@@ -14,8 +14,8 @@ $hexdig = [0-9A-Fa-f]
 $special = [\.\;\,\$\|\*\+\?\#\~\-\{\}\(\)\[\]\^\/]
 $esc_seq    = [\n \t \r \0 \\ \' \xnn \"  ]   -- DOES THIS PLAY???
 
-@string     = \" ($printable | \" | $esc_seq)* \"         -- Printable contains $white
-@chars      = \' ($alpha | $digit | $esc_seq | special) \'  -- Missing some characters
+@string     = \" ($printable | \" | $esc_seq)* \"               -- Printable contains $white
+@chars      = \' ($alpha | $digit | $esc_seq | $special) \'     -- Missing some characters
 @name       = $alpha[$alpha $digit \_]*
 
 tokens :-

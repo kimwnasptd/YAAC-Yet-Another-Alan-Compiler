@@ -2,5 +2,5 @@
 A compiler made for the Alan programming language written in haskell.
 
 ## Contributors
-* Ermis to poutanaki mou Soumalias
+* Ermis Soumalias
 * Kimonas Sotirchos
