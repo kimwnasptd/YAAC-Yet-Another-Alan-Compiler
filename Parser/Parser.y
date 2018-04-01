@@ -1,6 +1,6 @@
 {
 module Parser where
-import Lexer 
+import Lexer
 }
 
 
@@ -66,82 +66,81 @@ import Lexer
 
 %%
 
--- Program: Func_Def
+Program: Func_Def                           {       $1       }
 
--- Func_Def: 
---     var "(" ")" ":" R_Type L_Def_List Comp_Stmt           {- Empty -}     
---   | var "(" Fpar_List ")" ":" R_Type L_Def_List Comp_Stmt 
+Func_Def: var "(" ")" ":" R_Type L_Def_List Comp_Stmt           {- Empty -}
+        | var "(" Fpar_List ")" ":" R_Type L_Def_List Comp_Stmt
 
--- L_Def_List: {- Empty -}             { [] }
---           | L_Def_List Local_Def    { $2 : $1 }
-
-
--- Fpar_List: Fpar_Def
---          | Fpar_List "," Fpar_Def
-
--- Fpar_Def: var ":" reference Type
---         | var ":" Type
-
--- Data_Type: int
---          | byte
-
--- Type: Data_Type
---     | Data_Type "[" "]"
-
--- R_Type: Data_Type
---       | proc
-
--- Local_Def: Func_Def
---          | Var_Def
-
--- Var_Def: var ":" Data_Type ";"
---        | var: Data_Type "[" int_literal "]" ";"
-
--- Stmt: ;
---     | L_Value "=" Expr ";"
---     | Comp_Stmt
---     | Func_Call ";"
---     | if "(" Cond ")" Stmt
---     | if "(" Cond ")" Stmt else Stmt
---     | while "(" Cond ")" Stmt
---     | return ";"
-
-Comp_Stmt: "{" Stmt_List "}"    { $2 }
-
-Stmt_List: {-Nothing -}         { [] }
-         | Stmt_List Stmt       { $2 : $1 }
+L_Def_List:
+          | L_Def_List Local_Def
 
 
-Expr : int_literal
-     | char
-     | L_Value
-     | "(" Expr ")"
-     | Func_Call
-     | "+" Expr %prec POS
-     | "-" Expr %prec NEG
-     | Expr "+" Expr
-     | Expr "-" Expr
-     | Expr "*" Expr
-     | Expr "/" Expr
-     | Expr "%" Expr
+Fpar_List: Fpar_Def                      { FParL_Def   $1 }
+         | Fpar_List "," Fpar_Def        { FParL_Lst $1:$2}
 
-L_Value: var
-       | "[" Expr "]"
-       | string_literal
+Fpar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
+        | var ":" Type                   { FPar_Def $1 $3 }
+
+Data_Type: int                           { D_Type Int     }
+         | byte                          { D_Type Byte    }
+
+Type: Data_Type                          { S_Type      $1 }
+    | Data_Type "[" "]"                  { Table_Type  $1 }
+
+R_Type: Data_Type                        { R_Type_DT   $1 }
+      | proc                             { R_Type_Proc    }
+
+Local_Def: Func_Def                      { Loc_Def_Fun $1 }
+         | Var_Def                       { Loc_Def_Var $1 }
+
+Var_Def: var ":" Data_Type ";"                      { VDef    $1 $3 }
+       | var ":" Data_Type "[" int_literal "]" ";"  { VDef_T  $1 $3 $5   }
+
+Stmt: ";"                                { Stmt_Semi      }
+    | L_Value "=" Expr ";"               { Stmt_Eq  $1 $3 }
+    | Comp_Stmt                          { Stmt_Cmp  $1   }
+    | Func_Call ";"                      { Stmt_FCall $1  }
+    | if "(" Cond ")" Stmt               { Stmt_If  $3 $5 }
+    | if "(" Cond ")" Stmt else Stmt     { Stmt_IFE $3 $5 $7}
+    | while "(" Cond ")" Stmt            { Stmt_Wh  $3 $5 }
+    | return ";"                         { Stmt_Ret       }
+
+Comp_Stmt: "{" Stmt_List "}"             { C_Stmt $2      }
+
+Stmt_List: {-Nothing -}                  { StmtL_Empty    }
+         | Stmt_List Stmt                { StmtL  $1:$2   }
 
 
-Cond: "true"
-    | "false"
-    | "(" Cond ")"
-    | "!" Cond %prec BANG
-    | Expr "==" Expr
-    | Expr "!=" Expr
-    | Expr "<"  Expr
-    | Expr ">"  Expr
-    | Expr "<=" Expr
-    | Expr ">=" Expr
-    | Cond "&"  Cond
-    | Cond "|"  Cond
+Expr : int_literal                       { Expr_Int   $1  }
+     | char                              { Expr_Char  $1  }
+     | L_Value                           { Expr_Lval  $1  }
+     | "(" Expr ")"                      { Expr_Brack $2  }
+     | Func_Call                         { Expr_Fcall $1  }
+     | "+" Expr %prec POS                { Expr_Pos   $2  }
+     | "-" Expr %prec NEG                { Expr_Neg   $2  }
+     | Expr "+" Expr                     { Expr_Add $1 $3 }
+     | Expr "-" Expr                     { Expr_Sub $1 $3 }
+     | Expr "*" Expr                     { Expr_Tms $1 $3 }
+     | Expr "/" Expr                     { Expr_Div $1 $3 }
+     | Expr "%" Expr                     { Expr_Mod $1 $3 }
+
+L_Value: var                             { LV_Var  $1     }
+       | "[" Expr "]"                    { LV_Tbl  $2     }
+       | string_literal                  { LV_Lit  $1     }
+
+
+Cond: "true"                             { Cond_True      }
+    | "false"                            { Cond_False     }
+    | "(" Cond ")"                       { Cond_Br   $2   }
+    | "!" Cond %prec BANG                { Cond_Bang $2   }
+    | Expr "==" Expr                     { Cond_Eq  $1 $3 }
+    | Expr "!=" Expr                     { Cond_Neq $1 $3 }
+    | Expr "<"  Expr                     { Cond_L   $1 $3 }
+    | Expr ">"  Expr                     { Cond_G   $1 $3 }
+    | Expr "<=" Expr                     { Cond_LE  $1 $3 }
+    | Expr ">=" Expr                     { Cond_GE  $1 $3 }
+    | Cond "&"  Cond                     { Cond_And $1 $3 }
+    | Cond "|"  Cond                     { Cond_Or  $1 $3 }
 
 Func_Call: var "(" Expr_List ")"
          | var "(" ")"
@@ -156,8 +155,36 @@ parseError:: [Token]  -> a
 parseError _ = error "oopsie daisy "
 
 -- parseError :: [Token] -> a
--- parseError tokenList = let pos = tokenPosn(head(tokenList)) 
---   in 
+-- parseError tokenList = let pos = tokenPosn(head(tokenList))
+--   in
 --   error ("parse error at line " ++ show(getLineNum(pos)) ++ " and column " ++ show(getColumnNum(pos)))
+
+Expr : int_literal                      { Expr_Int   $1 }
+     | char                             { Expr_Char  $1 }
+     | L_Value                          { Expr_Lval  $1 }
+     | "(" Expr ")"                     { Expr_Brack $2 }
+     | Func_Call                        { Expr_Fcall $1 }
+     | "+" Expr %prec POS               { Expr_Pos   $2 }
+     | "-" Expr %prec NEG               { Expr_Neg   $2 }
+     | Expr "+" Expr                    { Expr_Add $1 $3}
+     | Expr "-" Expr                    { Expr_Sub $1 $3}
+     | Expr "*" Expr                    { Expr_Tms $1 $3}
+     | Expr "/" Expr                    { Expr_Div $1 $3}
+     | Expr "%" Expr                    { Expr_Mod $1 $3}
+
+data Expr = Expr_Add Expr Expr
+          | Expr_Sub Expr Expr
+          | Expr_Tms Expr Expr
+          | Expr_Div Expr Expr
+          | Expr_Mod Expr Expr
+          | Expr_Pos Expr
+          | Expr_Neg Expr
+          | ?????
+
+
+
+
+
+
 
 }
