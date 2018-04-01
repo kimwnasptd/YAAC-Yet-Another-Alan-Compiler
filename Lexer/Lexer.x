@@ -8,18 +8,14 @@ module Lexer where
 
 %wrapper "basic"
 
-$digit      = 0-9            -- digits
-$alpha      = [a-zA-Z]       -- alphabetic characters
-$octdig     = [0-7]
-$hexdig     = [0-9A-Fa-f]
-$special    = [\.\;\,\$\|\*\+\?\#\~\-\{\}\(\)\[\]\^\/]
-$graphic    = $printable # $white
+$digit = 0-9            -- digits
+$alpha = [a-zA-Z]       -- alphabetic characters
+$hexdig = [0-9A-Fa-f]
+$special = [\.\;\,\$\|\*\+\?\#\~\-\{\}\(\)\[\]\^\/]
+$esc_seq    = [\n \t \r \0 \\ \' \xnn \"  ]   -- DOES THIS PLAY???
 
-@escape     = ’\\’ ($printable | ’x’ $hexdig+ | ’o’ $octdig+ | $digit+)
-@string     = \" ($printable | \" | @escape)* \"         -- Printable contains $white
-@chars      = ($graphic # $special) | @escape
-
---@chars      = \' ($alpha | $digit | @escape) \'  -- Missing some characters
+@string     = \" ($printable | \" | $esc_seq)* \"         -- Printable contains $white
+@chars      = \' ($alpha | $digit | $esc_seq | special) \'  -- Missing some characters
 @name       = $alpha[$alpha $digit \_]*
 
 tokens :-
@@ -36,7 +32,7 @@ tokens :-
   "while"               { \s -> TWhile }
   "true"                { \s -> TTrue }
 
-  @escape               ;
+  $esc_seq              ;
   \-\-.*\n              ;
 
   [\+\-\*\/]            { \s -> TOp  s }
@@ -44,6 +40,7 @@ tokens :-
   "|"                   { \s -> TOp  s }
   "%"                   { \s -> TOp  s }
 
+  "="                   { \s -> TAssign }
   "=="                  { \s -> TComOp s }
   "!="                  { \s -> TComOp s }
   ">="                  { \s -> TComOp s }
@@ -65,6 +62,7 @@ tokens :-
   $digit+               { \s -> TIntLiteral (read s) }
   @name                 { \s -> TName s }
   @string               { \s -> TStringLiteral  $ init $ tail  s  }    -- remove the leading " and trailing "
+  .                     { \s -> TErrorSymbol s }
 
 {
 -- Each action has type :: String -> Token
@@ -95,7 +93,9 @@ data Token =
     TIntLiteral     Int     |
     TChar           String  |
     TOp             String  |
-    TComOp          String
+    TComOp          String  |
+    TErrorSymbol    String  |
+    TAssign
     deriving (Eq,Show)
 
 -- main = do
