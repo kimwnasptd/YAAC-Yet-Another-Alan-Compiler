@@ -66,20 +66,20 @@ import Lexer
 
 %%
 
-Program: Func_Def                           {       $1       }
+Program: Func_Def                        { Prog   $1      }
 
-Func_Def: var "(" ")" ":" R_Type L_Def_List Comp_Stmt           {- Empty -}
-        | var "(" Fpar_List ")" ":" R_Type L_Def_List Comp_Stmt
+Func_Def: var "(" ")" ":" R_Type L_Def_List Comp_Stmt           { F_Def_Vd $1 $5 $6 $7 }
+        | var "(" FPar_List ")" ":" R_Type L_Def_List Comp_Stmt { F_Def_Par $1 $3 $6 $7 $8 }
 
-L_Def_List:
-          | L_Def_List Local_Def
+L_Def_List:                              { L_Def_Empty    }
+          | L_Def_List Local_Def         { L_Def_L $1 $2  }
 
 
-Fpar_List: Fpar_Def                      { FParL_Def   $1 }
-         | Fpar_List "," Fpar_Def        { FParL_Lst $1:$2}
+FPar_List: FPar_Def                      { FParL_Def   $1 }
+         | FPar_List "," FPar_Def        { FParL_Lst $1 $2}
 
-Fpar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
-        | var ":" Type                   { FPar_Def $1 $3 }
+FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
+        | var ":" Type                   { FPar_Def_NR $1 $3 }
 
 Data_Type: int                           { D_Type Int     }
          | byte                          { D_Type Byte    }
@@ -142,11 +142,11 @@ Cond: "true"                             { Cond_True      }
     | Cond "&"  Cond                     { Cond_And $1 $3 }
     | Cond "|"  Cond                     { Cond_Or  $1 $3 }
 
-Func_Call: var "(" Expr_List ")"
-         | var "(" ")"
+Func_Call: var "(" Expr_List ")"         { Fucn_Call_Par $1 $3 }
+         | var "(" ")"                   { Func_Call_Void  $1  }
 
-Expr_List: Expr
-         | Expr_List "," Expr
+Expr_List: Expr                          { E_List_D $1    }
+         | Expr_List "," Expr            { E_List_L $1 $3 }
 
 
 {
@@ -179,12 +179,75 @@ data Expr = Expr_Add Expr Expr
           | Expr_Mod Expr Expr
           | Expr_Pos Expr
           | Expr_Neg Expr
-          | ?????
+          | Expr_Fcall Func_Call
+          | Expr_Brack Expr
+          | Expr_Lval L_Value
+          | Expr_Char ???
+          | Expr_Int  ???
+
+
+data Stmt = Stmt_Semi
+          | Stmt_Eq L_Value Expr
+          | Stmt_Cmp Comp_Stmt
+          | Stmt_FCall Func_Call
+          | Stmt_If Cond Stmt
+          | Stmt_IFE Cond Stmt Stmt
+          | Stmt_Wh Cond Stmt
+          | Stmt_Ret
+
+
+
+data Cond = Cond_True
+          | Cond_False
+          | Cond_Br Cond
+          | Cond_Bang Cond
+          | Cond_Eq Expr Expr
+          | Cond_Neq Expr Expr
+          | Cond_L Expr Expr
+          | Cond_G Expr Expr
+          | Cond_LE Expr Expr
+          | Cond_GE Expr Expr
+          | Cond_And Cond Cond
+          | Cond_Or Cond Cond
+
+
+data FPar_List = FParL_Def FPar_Def
+               | FParL_Lst FPar_List FPar_Def
+
+
+
+FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
+        | var ":" Type                   { FPar_Def_NR $1 $3 }
+
+data FPar_Def = FPar_Def_Ref ???? Type
+              | FPar_Def_NR ??? Type
+
+
+data Data_Type = D_Type Int
+               | D_Type Byte
+
+data Type = S_Type Data_Type
+          | Table_Type Data_Type
+
+data R_Type = R_Type_DT Data_Type
+            | R_Type_Proc
+
+data Local_Def = Loc_Def_Fun Func_Def
+               | Loc_Def_Var Var_Def
 
 
 
 
+Func_Call: var "(" Expr_List ")"         { Fucn_Call_Par $1 $3 }
+         | var "(" ")"                   { Func_Call_Void  $1  }
 
+
+data Func_Call = Func_Call_Par ???? Expr_List
+               | Func_Call_Void ????
+
+
+Expr_List: Expr                          { E_List_D $1    }
+         | Expr_List "," Expr            { E_List_L $1 $3 }
 
 
 }
