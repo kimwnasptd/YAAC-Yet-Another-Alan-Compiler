@@ -1,24 +1,24 @@
+-- module AlexInterface (
+--   P(..), AlexInput(..),
+--   ParseState(..), alexGetByte, 
+--   alexInputPrevChar, initialState,
+--   getLineNo, evalP
+--   ) where
 module AlexInterface where
-       
+
 import Control.Monad.State
 import Control.Monad
 import Data.Word
 import Codec.Binary.UTF8.String (encode)
 
-data Token 
-     = TCat
-     | TEOF
-     | TString String
-     deriving (Eq,Show)
-
 -- The functions that must be provided to Alex's basic interface
 -- The input: last character, unused bytes, remaining string
 data AlexInput
   = AlexInput {
-    aiprev::Char,
-    aibytes::[Word8],
-    airest::String,
-    ailineno::Int}
+    aiprev    :: Char,
+    aibytes   :: [Word8],
+    airest    :: String,
+    ailineno  :: Int}
   deriving Show
            
 alexGetByte :: AlexInput -> Maybe (Word8,AlexInput)
@@ -30,8 +30,8 @@ alexGetByte ai
       (c:cs) -> let n = (ailineno ai)
                     n' = if c=='\n' then n+1 else n
                     (b:bs) = encode [c] in
-                Just (b,AlexInput {aiprev=c,
-                                   aibytes=bs,
+                Just (b,AlexInput {aiprev=c, -- first b
+                                   aibytes=bs, --bs
                                    airest=cs,
                                    ailineno=n'})
                 
