@@ -28,46 +28,46 @@ tokens :-
 
 <0> {
   $white+               ;
-  "byte"                { getToken $ TByte }
-  "else"                { getToken $ TElse }
-  "false"               { getToken $ TFalse }
-  "if"                  { getToken $ TIf }
-  "int"                 { getToken $ TInt }
-  "proc"                { getToken $ TProc }
-  "reference"           { getToken $ TReference }
-  "return"              { getToken $ TReturn }
-  "while"               { getToken $ TWhile }
-  "true"                { getToken $ TTrue }
+  "byte"                { getToken $ TByte        }
+  "else"                { getToken $ TElse        }
+  "false"               { getToken $ TFalse       }
+  "if"                  { getToken $ TIf          }
+  "int"                 { getToken $ TInt         }
+  "proc"                { getToken $ TProc        }
+  "reference"           { getToken $ TReference   }
+  "return"              { getToken $ TReturn      }
+  "while"               { getToken $ TWhile       }
+  "true"                { getToken $ TTrue        }
 
   $esc_seq              ;
 
-  [\+\-\*\/]            { getToken $ TOp ""  }
-  "&"                   { getToken $ TOp ""  }
-  "|"                   { getToken $ TOp ""  }
-  "%"                   { getToken $ TOp ""  }
-  "!"                   { getToken $ TOp ""  }
+  [\+\-\*\/]            { getToken $ TOp ""       }
+  "&"                   { getToken $ TOp ""       }
+  "|"                   { getToken $ TOp ""       }
+  "%"                   { getToken $ TOp ""       }
+  "!"                   { getToken $ TOp ""       }
 
-  "="                   { getToken $ TAssign }
-  "=="                  { getToken $ TComOp "" }
-  "!="                  { getToken $ TComOp "" }
-  ">="                  { getToken $ TComOp "" }
-  "<="                  { getToken $ TComOp "" }
-  ">"                   { getToken $ TComOp "" }
-  "<"                   { getToken $ TComOp "" }
+  "="                   { getToken $ TAssign      }
+  "=="                  { getToken $ TComOp ""    }
+  "!="                  { getToken $ TComOp ""    }
+  ">="                  { getToken $ TComOp ""    }
+  "<="                  { getToken $ TComOp ""    }
+  ">"                   { getToken $ TComOp ""    }
+  "<"                   { getToken $ TComOp ""    } 
 
-  "."                   { getToken $ TPeriod }
-  ";"                   { getToken $ TSemiColon }
-  "("                   { getToken $ TLeftParen }
-  ")"                   { getToken $ TRightParen }
-  "{"                   { getToken $ TLeftBrace }
-  "}"                   { getToken $ TRightBrace }
-  ","                   { getToken $ TComma }
-  "["                   { getToken $ TLeftBrack }
-  "]"                   { getToken $ TRightBrack }
+  "."                   { getToken $ TPeriod      }
+  ";"                   { getToken $ TSemiColon   }
+  "("                   { getToken $ TLeftParen   }
+  ")"                   { getToken $ TRightParen  }
+  "{"                   { getToken $ TLeftBrace   }
+  "}"                   { getToken $ TRightBrace  }
+  ","                   { getToken $ TComma       }
+  "["                   { getToken $ TLeftBrack   }
+  "]"                   { getToken $ TRightBrack  }
 
-  @chars                { getToken $ TChar "" }
-  $digit+               { getToken $ TIntLiteral 0 }
-  @name                 { getToken $ TName "" }
+  @chars                { getToken $ TChar ""     }
+  $digit+               { getToken $ TIntLiteral 0}
+  @name                 { getToken $ TName ""     }
   @string               { getToken $ TStringLiteral  ""  }    -- remove the leading " and trailing "
   -- .                     { getToken $ TErrorSymbol s }
 }
@@ -87,9 +87,10 @@ tokens :-
 
 -- Int -> Chars Matched
 -- String -> String Matched
+-- This is the type that returns exery time a string is matched
 type Action = Int -> String -> P (Maybe Token)
 
--- Function that returns the Token inside our Monad
+-- Converts the corresponding Token to Action type for the { }
 getToken :: Token -> Action
 getToken (TOp _) _ s            = return $ Just $ TOp s
 getToken (TComOp _) _ s         = return $ Just $ TComOp s
@@ -98,9 +99,6 @@ getToken (TName _) _ s          = return $ Just $ TName s
 getToken (TIntLiteral _) _ s    = return $ Just $ TIntLiteral $ read s
 getToken (TChar _) _ s          = return $ Just $ TChar $ init $ tail s
 getToken t _ _ = return (Just t)
-
--- getTOpToken :: Token -> Action
--- getTOpToken _ _ val = return (Just TOp val)
 
 beginComment :: Action
 beginComment _ _ = do
@@ -117,15 +115,23 @@ endComment _ _ = do
   put s {lexSC=sc',commentDepth=cd-1}
   return Nothing
 
-readToken::P Token
+readToken :: P Token
 readToken = do
   s <- get
   case alexScan (input s) (lexSC s) of
+
+    -- End of File duh
     AlexEOF -> return TEOF
-    AlexError inp' -> error $ "Lexical error on line "++(show $ ailineno inp')      
+
+    -- We need to talk about this :P
+    AlexError inp' -> error $ "Lexical error on line "++ (show $ ailineno inp')      
+    
+    -- It's the characters that have as action the ;
     AlexSkip inp' _ -> do    
       put s{input = inp'}
       readToken
+
+    -- Found Token, the new input is inp, read n bytes, and got act (Action)
     AlexToken inp' n act -> do 
       let (AlexInput{airest=buf}) = input s
       put s{input = inp'}
@@ -139,7 +145,7 @@ lexer cont = do
   tok <- readToken
   cont tok
 
-
+-- For testing, creates a list of tokens from the input (Must set the State first)
 lexDummy :: P [Token]
 lexDummy = do
     tok <- readToken
@@ -149,6 +155,7 @@ lexDummy = do
         else do toks <- lexDummy
                 return (tok : toks)
 
+-- A simple runner program for sanity checking
 runner :: String -> [Token]
 runner s = evalState lexDummy (initialState s)
 
