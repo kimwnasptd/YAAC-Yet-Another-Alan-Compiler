@@ -108,7 +108,7 @@ Stmt: ";"                                { Stmt_Semi      }
 Comp_Stmt: "{" Stmt_List "}"             { C_Stmt $2      }
 
 Stmt_List: {-Nothing -}                  { StmtL_Empty    }
-         | Stmt_List Stmt                { StmtL  $1:$2   }
+         | Stmt_List Stmt                { StmtL  $1 $2   }  -- Probaby ALL LISTS NEED AMENDING
 
 
 Expr : int_literal                       { Expr_Int   $1  }
@@ -246,8 +246,46 @@ data Func_Call = Func_Call_Par ???? Expr_List
                | Func_Call_Void ????
 
 
-Expr_List: Expr                          { E_List_D $1    }
-         | Expr_List "," Expr            { E_List_L $1 $3 }
 
+data Expr_List = E_List_D Expr
+               | E_List_L Expr_List Expr
+
+
+
+data Program = Prog Func_Def
+
+
+data Func_Def = F_Def_Vd ???? R_Type L_Def_List Comp_Stmt
+              | F_Def_Par ???? FPar_List R_Type L_Def_List Comp_Stmt
+
+
+data L_Def_List = L_Def_Empty
+                | L_Def_L L_Def_List Local_Def
+
+
+L_Value: var                             { LV_Var  $1     }
+       | "[" Expr "]"                    { LV_Tbl  $2     }
+       | string_literal                  { LV_Lit  $1     }
+
+
+data L_Value = LV_Var ????
+             | LV_Tbl Expr
+             | LV_Lit ????
+
+
+Stmt_List: {-Nothing -}                  { StmtL_Empty    }
+         | Stmt_List Stmt                { StmtL  $1 $2   }  -- Probaby ALL LISTS NEED AMENDING
+
+data Stmt_List = StmtL_Empty
+               | StmtL Stmt_List Stmt
+
+Var_Def: var ":" Data_Type ";"                      { VDef    $1 $3 }
+       | var ":" Data_Type "[" int_literal "]" ";"  { VDef_T  $1 $3 $5   }
+
+data Var_Def = VDef ???? Data_Type
+             | VDef_T ???? Data_Type ????
+
+
+data Comp_Stmt = C_Stmt Stmt_List
 
 }
