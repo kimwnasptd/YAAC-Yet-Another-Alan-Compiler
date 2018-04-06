@@ -64,7 +64,8 @@ import ASTTypes
 %nonassoc "<" ">" "<=" ">=" "==" "!="
 %left "+" "-"
 %left "*" "/" "%"
-%left NEG POS BANG
+%left "!" NEG POS BANG
+%nonassoc "(" ")"
 
 %%
 
@@ -73,18 +74,18 @@ import ASTTypes
 -- same time then the same input will produce an error. Does this mean that both of
 -- them create an ambiguity to the grammar the way we have implemented it? )
 
--- Expr : int_literal                       { Expr_Int   $1  }
---      | char                              { Expr_Char  $1  }
---      -- | L_Value                           { Expr_Lval  $1  }
---      | "(" Expr ")"                      { Expr_Brack $2  }
---      -- | Func_Call                         { Expr_Fcall $1  }
---      | "+" Expr %prec POS                { Expr_Pos   $2  }
---      | "-" Expr %prec NEG                { Expr_Neg   $2  }
---      | Expr "+" Expr                     { Expr_Add $1 $3 }
---      | Expr "-" Expr                     { Expr_Sub $1 $3 }
---      | Expr "*" Expr                     { Expr_Tms $1 $3 }
---      | Expr "/" Expr                     { Expr_Div $1 $3 }
---      | Expr "%" Expr                     { Expr_Mod $1 $3 }
+Expr : int_literal                       { Expr_Int   $1  }
+     | char                              { Expr_Char  $1  }
+     | L_Value                           { Expr_Lval  $1  }
+     | "(" Expr ")"                      { Expr_Brack $2  }
+     -- | Func_Call                         { Expr_Fcall $1  }
+     | "+" Expr %prec POS                { Expr_Pos   $2  }
+     | "-" Expr %prec NEG                { Expr_Neg   $2  }
+     | Expr "+" Expr                     { Expr_Add $1 $3 }
+     | Expr "-" Expr                     { Expr_Sub $1 $3 }
+     | Expr "*" Expr                     { Expr_Tms $1 $3 }
+     | Expr "/" Expr                     { Expr_Div $1 $3 }
+     | Expr "%" Expr                     { Expr_Mod $1 $3 }
 
 L_Value: var                             { LV_Var  $1     }
        -- | var "[" Expr "]"                { LV_Tbl  $1 $3  }
