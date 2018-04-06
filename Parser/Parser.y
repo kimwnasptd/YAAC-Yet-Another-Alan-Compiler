@@ -26,6 +26,7 @@ import ASTTypes
 
 
     "."                  {  TPeriod     }
+    ":"                  {  TColon      }
     ";"                  {  TSemiColon  }
     "("                  {  TLeftParen  }
     ")"                  {  TRightParen }
@@ -50,6 +51,7 @@ import ASTTypes
     "%"                  {  TOp    "%"  }
     "&"                  {  TOp    "&"  }
     "|"                  {  TOp    "|"  }
+    "!"                  {  TOp    "!"  }
 
 
     char                { TChar           $$  }
@@ -69,16 +71,34 @@ import ASTTypes
 
 %%
 
--- Something weird happens, if I compile only with Expr or L_Value rule (not both
--- at the same time, then Parser-bin works for that rule. But if I have them at the
--- same time then the same input will produce an error. Does this mean that both of
--- them create an ambiguity to the grammar the way we have implemented it? )
+-- It works up to here
+
+Data_Type: int                           { D_Type $1    } 
+         | byte                          { D_Type $1    }
+
+Type: Data_Type                          { S_Type      $1 }
+    | Data_Type "[" "]"                  { Table_Type  $1 }
+
+R_Type: Data_Type                        { R_Type_DT   $1 }
+      | proc                             { R_Type_Proc    }
+
+Local_Def: Func_Def                      { Loc_Def_Fun $1 }
+         | Var_Def                       { Loc_Def_Var $1 }
+
+Var_Def: var ":" Data_Type ";"                      { VDef    $1 $3 }
+       | var ":" Data_Type "[" int_literal "]" ";"  { VDef_T  $1 $3 $5   }
+
+Func_Call: var "(" Expr_List ")"         { Func_Call_Par $1 $3 }
+         | var "(" ")"                   { Func_Call_Void  $1  }
+
+Expr_List: Expr                          { E_List_D $1    }
+         | Expr_List "," Expr            { E_List_L $1 $3 }
 
 Expr : int_literal                       { Expr_Int   $1  }
      | char                              { Expr_Char  $1  }
      | L_Value                           { Expr_Lval  $1  }
      | "(" Expr ")"                      { Expr_Brack $2  }
-     -- | Func_Call                         { Expr_Fcall $1  }
+     | Func_Call                         { Expr_Fcall $1  }
      | "+" Expr %prec POS                { Expr_Pos   $2  }
      | "-" Expr %prec NEG                { Expr_Neg   $2  }
      | Expr "+" Expr                     { Expr_Add $1 $3 }
@@ -88,7 +108,7 @@ Expr : int_literal                       { Expr_Int   $1  }
      | Expr "%" Expr                     { Expr_Mod $1 $3 }
 
 L_Value: var                             { LV_Var  $1     }
-       -- | var "[" Expr "]"                { LV_Tbl  $1 $3  }
+       | var "[" Expr "]"                { LV_Tbl  $1 $3  }
        | string_literal                  { LV_Lit  $1     }
 
 

@@ -56,6 +56,7 @@ tokens :-
   "<"                   { getToken $ TComOp ""    } 
 
   "."                   { getToken $ TPeriod      }
+  ":"                   { getToken $ TColon       }
   ";"                   { getToken $ TSemiColon   }
   "("                   { getToken $ TLeftParen   }
   ")"                   { getToken $ TRightParen  }

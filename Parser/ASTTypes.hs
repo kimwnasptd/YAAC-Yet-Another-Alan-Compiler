@@ -1,14 +1,5 @@
 module ASTTypes where
-
-
--- data Func_Call = Func_Call_Par ???? Expr_List
---                | Func_Call_Void ????
-
-
-
--- data Expr_List = E_List_D Expr
---                | E_List_L Expr_List Expr
-
+import Tokens
 
 
 -- data Program = Prog Func_Def
@@ -27,10 +18,6 @@ module ASTTypes where
 --                | StmtL Stmt_List Stmt
 
 
--- data Var_Def = VDef ???? Data_Type
---              | VDef_T ???? Data_Type ????
-
-
 -- data Comp_Stmt = C_Stmt Stmt_List
 
 
@@ -38,18 +25,28 @@ module ASTTypes where
 -- data FPar_Def = FPar_Def_Ref ???? Type
 --               | FPar_Def_NR ??? Type
 
+data Data_Type = D_Type Token
+          deriving Show
 
--- data Data_Type = D_Type Int
---                | D_Type Byte
+data Type = S_Type Data_Type
+          | Table_Type Data_Type
 
--- data Type = S_Type Data_Type
---           | Table_Type Data_Type
+data R_Type = R_Type_DT Data_Type
+            | R_Type_Proc
 
--- data R_Type = R_Type_DT Data_Type
---             | R_Type_Proc
+data Local_Def = Loc_Def_Fun Func_Def
+               | Loc_Def_Var Var_Def
 
--- data Local_Def = Loc_Def_Fun Func_Def
---                | Loc_Def_Var Var_Def
+data Var_Def = VDef String Data_Type
+             | VDef_T String Data_Type Int
+
+data Func_Call = Func_Call_Par String Expr_List
+               | Func_Call_Void String
+          deriving Show
+
+data Expr_List = E_List_D Expr
+               | E_List_L Expr_List Expr
+          deriving Show
 
 data Expr = Expr_Add Expr Expr
           | Expr_Sub Expr Expr
@@ -58,7 +55,7 @@ data Expr = Expr_Add Expr Expr
           | Expr_Mod Expr Expr
           | Expr_Pos Expr
           | Expr_Neg Expr
-          -- | Expr_Fcall Func_Call
+          | Expr_Fcall Func_Call
           | Expr_Brack Expr
           | Expr_Lval L_Value
           | Expr_Char String

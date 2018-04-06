@@ -13,21 +13,6 @@ FPar_List: FPar_Def                      { FParL_Def   $1 }
 FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
         | var ":" Type                   { FPar_Def_NR $1 $3 }
 
-Data_Type: int                           { D_Type Int     }
-         | byte                          { D_Type Byte    }
-
-Type: Data_Type                          { S_Type      $1 }
-    | Data_Type "[" "]"                  { Table_Type  $1 }
-
-R_Type: Data_Type                        { R_Type_DT   $1 }
-      | proc                             { R_Type_Proc    }
-
-Local_Def: Func_Def                      { Loc_Def_Fun $1 }
-         | Var_Def                       { Loc_Def_Var $1 }
-
-Var_Def: var ":" Data_Type ";"                      { VDef    $1 $3 }
-       | var ":" Data_Type "[" int_literal "]" ";"  { VDef_T  $1 $3 $5   }
-
 Stmt: ";"                                { Stmt_Semi      }
     | L_Value "=" Expr ";"               { Stmt_Eq  $1 $3 }
     | Comp_Stmt                          { Stmt_Cmp  $1   }
@@ -50,10 +35,6 @@ FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
         | var ":" Type                   { FPar_Def_NR $1 $3 }
 
 
-Func_Call: var "(" Expr_List ")"         { Fucn_Call_Par $1 $3 }
-         | var "(" ")"                   { Func_Call_Void  $1  }
-
-
 
 Cond: "true"                             { Cond_True      }
     | "false"                            { Cond_False     }
@@ -67,9 +48,3 @@ Cond: "true"                             { Cond_True      }
     | Expr ">=" Expr                     { Cond_GE  $1 $3 }
     | Cond "&"  Cond                     { Cond_And $1 $3 }
     | Cond "|"  Cond                     { Cond_Or  $1 $3 }
-
-Func_Call: var "(" Expr_List ")"         { Fucn_Call_Par $1 $3 }
-         | var "(" ")"                   { Func_Call_Void  $1  }
-
-Expr_List: Expr                          { E_List_D $1    }
-         | Expr_List "," Expr            { E_List_L $1 $3 }
