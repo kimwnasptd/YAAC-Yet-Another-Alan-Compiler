@@ -17,7 +17,8 @@ CLEAN_DIRS = Lexer Parser
 
 default: compiler
 
-compiler: lexer parser
+#compiler: lexer parser
+compiler: lexer 
 
 # ------------------------
 # Compile the Parser
