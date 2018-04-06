@@ -17,8 +17,7 @@ CLEAN_DIRS = Lexer Parser
 
 default: compiler
 
-#compiler: lexer parser
-compiler: lexer 
+compiler: lexer parser
 
 # ------------------------
 # Compile the Parser
@@ -35,7 +34,7 @@ Lexer.hs: $(LXR_DIR)Lexer.x
 # ------------------------
 
 parser: Parser.hs Lexer.hs
-	$(CC) -o Parser $(CC_FLAGS) $(PSR_DIR)Parser.hs $(LXR_DIR)Lexer.hs
+	$(CC) $(CC_FLAGS) $(PSR_DIR)parser_run.hs -o Parser-bin
 
 Parser.hs: $(PSR_DIR)Parser.y
 	$(PSR) $(PSR_FLAGS) $(PSR_DIR)Parser.y
@@ -44,5 +43,5 @@ Parser.hs: $(PSR_DIR)Parser.y
 
 clean:
 	for i in $(CLEAN_DIRS); do \
-		rm $$i/*.o $$i/*.hi ; \
+		rm $$i/*.o $$i/*.hi $$i/*.info ; \
 	done

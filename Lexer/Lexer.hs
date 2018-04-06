@@ -13613,9 +13613,10 @@ alex_actions = array (0 :: Int, 71)
 
 -- Int -> Chars Matched
 -- String -> String Matched
+-- This is the type that returns exery time a string is matched
 type Action = Int -> String -> P (Maybe Token)
 
--- Function that returns the Token inside our Monad
+-- Converts the corresponding Token to Action type for the { }
 getToken :: Token -> Action
 getToken (TOp _) _ s            = return $ Just $ TOp s
 getToken (TComOp _) _ s         = return $ Just $ TComOp s
@@ -13624,9 +13625,6 @@ getToken (TName _) _ s          = return $ Just $ TName s
 getToken (TIntLiteral _) _ s    = return $ Just $ TIntLiteral $ read s
 getToken (TChar _) _ s          = return $ Just $ TChar $ init $ tail s
 getToken t _ _ = return (Just t)
-
--- getTOpToken :: Token -> Action
--- getTOpToken _ _ val = return (Just TOp val)
 
 beginComment :: Action
 beginComment _ _ = do
@@ -13643,15 +13641,23 @@ endComment _ _ = do
   put s {lexSC=sc',commentDepth=cd-1}
   return Nothing
 
-readToken::P Token
+readToken :: P Token
 readToken = do
   s <- get
   case alexScan (input s) (lexSC s) of
+
+    -- End of File duh
     AlexEOF -> return TEOF
-    AlexError inp' -> error $ "Lexical error on line "++(show $ ailineno inp')      
+
+    -- We need to talk about this :P
+    AlexError inp' -> error $ "Lexical error on line "++ (show $ ailineno inp')      
+    
+    -- It's the characters that have as action the ;
     AlexSkip inp' _ -> do    
       put s{input = inp'}
       readToken
+
+    -- Found Token, the new input is inp, read n bytes, and got act (Action)
     AlexToken inp' n act -> do 
       let (AlexInput{airest=buf}) = input s
       put s{input = inp'}
@@ -13665,16 +13671,16 @@ lexer cont = do
   tok <- readToken
   cont tok
 
-
+-- For testing, creates a list of tokens from the input (Must set the State first)
 lexDummy :: P [Token]
 lexDummy = do
     tok <- readToken
     if tok == TEOF
-        then do let toks = []
-                return (tok : toks)
+        then return []
         else do toks <- lexDummy
                 return (tok : toks)
 
+-- A simple runner program for sanity checking
 runner :: String -> [Token]
 runner s = evalState lexDummy (initialState s)
 
@@ -13682,40 +13688,40 @@ runner s = evalState lexDummy (initialState s)
 
 commentSC :: Int
 commentSC = 1
-alex_action_1 =  getToken $ TByte 
-alex_action_2 =  getToken $ TElse 
-alex_action_3 =  getToken $ TFalse 
-alex_action_4 =  getToken $ TIf 
-alex_action_5 =  getToken $ TInt 
-alex_action_6 =  getToken $ TProc 
-alex_action_7 =  getToken $ TReference 
-alex_action_8 =  getToken $ TReturn 
-alex_action_9 =  getToken $ TWhile 
-alex_action_10 =  getToken $ TTrue 
-alex_action_12 =  getToken $ TOp ""  
-alex_action_13 =  getToken $ TOp ""  
-alex_action_14 =  getToken $ TOp ""  
-alex_action_15 =  getToken $ TOp ""  
-alex_action_16 =  getToken $ TOp ""  
-alex_action_17 =  getToken $ TAssign 
-alex_action_18 =  getToken $ TComOp "" 
-alex_action_19 =  getToken $ TComOp "" 
-alex_action_20 =  getToken $ TComOp "" 
-alex_action_21 =  getToken $ TComOp "" 
-alex_action_22 =  getToken $ TComOp "" 
-alex_action_23 =  getToken $ TComOp "" 
-alex_action_24 =  getToken $ TPeriod 
-alex_action_25 =  getToken $ TSemiColon 
-alex_action_26 =  getToken $ TLeftParen 
-alex_action_27 =  getToken $ TRightParen 
-alex_action_28 =  getToken $ TLeftBrace 
-alex_action_29 =  getToken $ TRightBrace 
-alex_action_30 =  getToken $ TComma 
-alex_action_31 =  getToken $ TLeftBrack 
-alex_action_32 =  getToken $ TRightBrack 
-alex_action_33 =  getToken $ TChar "" 
-alex_action_34 =  getToken $ TIntLiteral 0 
-alex_action_35 =  getToken $ TName "" 
+alex_action_1 =  getToken $ TByte        
+alex_action_2 =  getToken $ TElse        
+alex_action_3 =  getToken $ TFalse       
+alex_action_4 =  getToken $ TIf          
+alex_action_5 =  getToken $ TInt         
+alex_action_6 =  getToken $ TProc        
+alex_action_7 =  getToken $ TReference   
+alex_action_8 =  getToken $ TReturn      
+alex_action_9 =  getToken $ TWhile       
+alex_action_10 =  getToken $ TTrue        
+alex_action_12 =  getToken $ TOp ""       
+alex_action_13 =  getToken $ TOp ""       
+alex_action_14 =  getToken $ TOp ""       
+alex_action_15 =  getToken $ TOp ""       
+alex_action_16 =  getToken $ TOp ""       
+alex_action_17 =  getToken $ TAssign      
+alex_action_18 =  getToken $ TComOp ""    
+alex_action_19 =  getToken $ TComOp ""    
+alex_action_20 =  getToken $ TComOp ""    
+alex_action_21 =  getToken $ TComOp ""    
+alex_action_22 =  getToken $ TComOp ""    
+alex_action_23 =  getToken $ TComOp ""    
+alex_action_24 =  getToken $ TPeriod      
+alex_action_25 =  getToken $ TSemiColon   
+alex_action_26 =  getToken $ TLeftParen   
+alex_action_27 =  getToken $ TRightParen  
+alex_action_28 =  getToken $ TLeftBrace   
+alex_action_29 =  getToken $ TRightBrace  
+alex_action_30 =  getToken $ TComma       
+alex_action_31 =  getToken $ TLeftBrack   
+alex_action_32 =  getToken $ TRightBrack  
+alex_action_33 =  getToken $ TChar ""     
+alex_action_34 =  getToken $ TIntLiteral 0
+alex_action_35 =  getToken $ TName ""     
 alex_action_36 =  getToken $ TStringLiteral  ""  
 alex_action_38 =  beginComment 
 alex_action_39 =  endComment 

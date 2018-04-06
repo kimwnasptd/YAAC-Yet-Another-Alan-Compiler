@@ -150,8 +150,7 @@ lexDummy :: P [Token]
 lexDummy = do
     tok <- readToken
     if tok == TEOF
-        then do let toks = []
-                return (tok : toks)
+        then return []
         else do toks <- lexDummy
                 return (tok : toks)
 
