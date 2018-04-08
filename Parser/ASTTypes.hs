@@ -34,8 +34,8 @@ data Type = S_Type Data_Type
 data R_Type = R_Type_DT Data_Type
             | R_Type_Proc
 
-data Local_Def = Loc_Def_Fun Func_Def
-               | Loc_Def_Var Var_Def
+-- data Local_Def = Loc_Def_Fun Func_Def
+--                | Loc_Def_Var Var_Def
 
 data Var_Def = VDef String Data_Type
              | VDef_T String Data_Type Int

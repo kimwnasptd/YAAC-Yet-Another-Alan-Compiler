@@ -11,6 +11,9 @@ import ASTTypes
 %name basicParser
 %tokentype { Token }
 %error { parseError }
+%monad {P}
+%lexer {lexer} {TEOF}
+
 
 %token
     byte                 {  TByte       }
@@ -82,9 +85,6 @@ Type: Data_Type                          { S_Type      $1 }
 R_Type: Data_Type                        { R_Type_DT   $1 }
       | proc                             { R_Type_Proc    }
 
-Local_Def: Func_Def                      { Loc_Def_Fun $1 }
-         | Var_Def                       { Loc_Def_Var $1 }
-
 Var_Def: var ":" Data_Type ";"                      { VDef    $1 $3 }
        | var ":" Data_Type "[" int_literal "]" ";"  { VDef_T  $1 $3 $5   }
 
@@ -114,7 +114,15 @@ L_Value: var                             { LV_Var  $1     }
 
 {
 
-parseError:: [Token]  -> a
-parseError _ = error "oopsie daisy "
+-- Basic Error Messages
+-- parseError:: [Token]  -> a
+-- parseError _ = error "oopsie daisy "
+
+parseError _ = do
+  lno <- getLineNo
+  error $ "Parse error on line "++ show lno
+
+-- parse::String->[(String,Int)]
+parse s = evalP basicParser s
 
 }
