@@ -3,27 +3,29 @@ import Tokens
 
 
 data Program = Prog Func_Def
+             deriving (Eq, Show)
 
 
 data Func_Def = F_Def_Vd String R_Type L_Def_List Comp_Stmt
               | F_Def_Par String FPar_List R_Type L_Def_List Comp_Stmt
-
-
-data L_Def_List = L_Def_Empty
-                | L_Def_L L_Def_List Local_Def
+              deriving (Eq, Show)
 
 
 
-data Stmt_List = StmtL_Empty
-               | StmtL Stmt_List Stmt
+data Stmt_List =  [ Stmt ]
+ deriving (Eq, Show)
 
+data L_Def_List = [ Local_Def ]
+ deriving (Eq, Show)
 
 data Comp_Stmt = C_Stmt Stmt_List
+ deriving (Eq, Show)
 
 
 -- FPar_List
 data FPar_Def = FPar_Def_Ref String Type
               | FPar_Def_NR String Type
+               deriving (Eq, Show)
 
 data Data_Type = D_Type Token
           deriving (Eq, Show)
@@ -39,6 +41,7 @@ data R_Type = R_Type_DT Data_Type
 
 data Local_Def = Loc_Def_Fun Func_Def
                | Loc_Def_Var Var_Def
+               deriving (Eq, Show)
 
 data Var_Def = VDef String Data_Type
              | VDef_T String Data_Type Int
@@ -49,8 +52,7 @@ data Func_Call = Func_Call_Par String Expr_List
                deriving (Eq, Show)
 
 
-data Expr_List = E_List_D Expr
-               | E_List_L Expr_List Expr
+data Expr_List = [ Expr ]
                deriving (Eq, Show)
 
 
@@ -82,6 +84,7 @@ data Stmt = Stmt_Semi
           | Stmt_IFE Cond Stmt Stmt
           | Stmt_Wh Cond Stmt
           | Stmt_Ret
+          deriving (Eq, Show)
 
 
 
@@ -97,7 +100,8 @@ data Cond = Cond_True
           | Cond_GE Expr Expr
           | Cond_And Cond Cond
           | Cond_Or Cond Cond
+          deriving (Eq, Show)
 
 
-data FPar_List = FParL_Def FPar_Def
-               | FParL_Lst FPar_List FPar_Def
+data FPar_List =  [ FPar_Def ]
+ deriving (Eq, Show)

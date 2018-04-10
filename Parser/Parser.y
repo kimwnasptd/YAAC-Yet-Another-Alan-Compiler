@@ -77,8 +77,8 @@ import ASTTypes
 
 -- It works up to here
 
-Data_Type: int                           { D_Type $1    }
-         | byte                          { D_Type $1    }
+Data_Type: int                           { D_Type $1      }
+         | byte                          { D_Type $1      }
 
 Type: Data_Type                          { S_Type      $1 }
     | Data_Type "[" "]"                  { Table_Type  $1 }
@@ -90,8 +90,8 @@ R_Type: Data_Type                        { R_Type_DT   $1 }
 Func_Call: var "(" Expr_List ")"         { Func_Call_Par $1 $3 }
          | var "(" ")"                   { Func_Call_Void  $1  }
 
-Expr_List: Expr                          { E_List_D $1    }
-         | Expr_List "," Expr            { E_List_L $1 $3 }
+Expr_List: Expr                          {    [ $1 ]      }
+         | Expr_List "," Expr            {    $3 : $1     }
 
 Expr : int_literal                       { Expr_Int   $1  }
      | char                              { Expr_Char  $1  }
@@ -116,12 +116,12 @@ Program: Func_Def                        { Prog   $1      }
 Func_Def: var "(" ")" ":" R_Type L_Def_List Comp_Stmt           { F_Def_Vd $1 $5 $6 $7 }
         | var "(" FPar_List ")" ":" R_Type L_Def_List Comp_Stmt { F_Def_Par $1 $3 $6 $7 $8 }
 
-L_Def_List:                              { L_Def_Empty    }
-          | L_Def_List Local_Def         { L_Def_L $1 $2  }
+L_Def_List:                              {       []       }
+          | L_Def_List Local_Def         {     $2 : $1    }
 
 
-FPar_List: FPar_Def                      { FParL_Def   $1 }
-         | FPar_List "," FPar_Def        { FParL_Lst $1 $3}
+FPar_List: FPar_Def                      {      [$1]      }
+         | FPar_List "," FPar_Def        {     $3 : $1    }
 
 FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
         | var ":" Type                   { FPar_Def_NR $1 $3 }
@@ -141,8 +141,8 @@ Stmt: ";"                                { Stmt_Semi      }
 
 Comp_Stmt: "{" Stmt_List "}"             { C_Stmt $2      }
 
-Stmt_List: {-Nothing -}                  { StmtL_Empty    }
-         | Stmt_List Stmt                { StmtL  $1 $2   }  -- Probaby ALL LISTS NEED AMENDING
+Stmt_List: {-Nothing -}                  {       []       }
+         | Stmt_List Stmt                {     $2 : $1    }  -- Probaby ALL LISTS NEED AMENDING
 
 
 Var_Def: var ":" Data_Type ";"                      { VDef    $1 $3 }
