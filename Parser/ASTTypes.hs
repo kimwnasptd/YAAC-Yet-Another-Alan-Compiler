@@ -12,10 +12,10 @@ data Func_Def = F_Def_Vd String R_Type L_Def_List Comp_Stmt
 
 
 
-data Stmt_List =  [ Stmt ]
+data Stmt_List = Stmt_Lst [ Stmt ]
  deriving (Eq, Show)
 
-data L_Def_List = [ Local_Def ]
+data L_Def_List = LDEF_Lst [ Local_Def ]
  deriving (Eq, Show)
 
 data Comp_Stmt = C_Stmt Stmt_List
@@ -52,7 +52,7 @@ data Func_Call = Func_Call_Par String Expr_List
                deriving (Eq, Show)
 
 
-data Expr_List = [ Expr ]
+data Expr_List = Exprt_Lst [ Expr ]
                deriving (Eq, Show)
 
 
@@ -103,5 +103,5 @@ data Cond = Cond_True
           deriving (Eq, Show)
 
 
-data FPar_List =  [ FPar_Def ]
+data FPar_List =  FPar_Lst [ FPar_Def ]
  deriving (Eq, Show)
