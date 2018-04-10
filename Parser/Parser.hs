@@ -302,11 +302,11 @@ happyReduction_31 (HappyAbsSyn15  happy_var_1)
 happyReduction_31 _  = notHappyAtAll 
 
 happyReduce_32 = happySpecReduce_3  14 happyReduction_32
-happyReduction_32 _
-	(HappyTerminal happy_var_2)
+happyReduction_32 (HappyAbsSyn15  happy_var_3)
+	_
 	(HappyAbsSyn14  happy_var_1)
 	 =  HappyAbsSyn14
-		 (FParL_Lst happy_var_1 happy_var_2
+		 (FParL_Lst happy_var_1 happy_var_3
 	)
 happyReduction_32 _ _ _  = notHappyAtAll 
 

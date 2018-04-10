@@ -5,8 +5,8 @@ import Tokens
 data Program = Prog Func_Def
 
 
-data Func_Def = F_Def_Vd ???? R_Type L_Def_List Comp_Stmt
-              | F_Def_Par ???? FPar_List R_Type L_Def_List Comp_Stmt
+data Func_Def = F_Def_Vd String R_Type L_Def_List Comp_Stmt
+              | F_Def_Par String FPar_List R_Type L_Def_List Comp_Stmt
 
 
 data L_Def_List = L_Def_Empty
@@ -22,8 +22,8 @@ data Comp_Stmt = C_Stmt Stmt_List
 
 
 -- FPar_List
-data FPar_Def = FPar_Def_Ref ???? Type
-              | FPar_Def_NR ??? Type
+data FPar_Def = FPar_Def_Ref String Type
+              | FPar_Def_NR String Type
 
 data Data_Type = D_Type Token
           deriving (Eq, Show)

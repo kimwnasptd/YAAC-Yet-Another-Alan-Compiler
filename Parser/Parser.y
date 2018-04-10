@@ -121,7 +121,7 @@ L_Def_List:                              { L_Def_Empty    }
 
 
 FPar_List: FPar_Def                      { FParL_Def   $1 }
-         | FPar_List "," FPar_Def        { FParL_Lst $1 $2}
+         | FPar_List "," FPar_Def        { FParL_Lst $1 $3}
 
 FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
         | var ":" Type                   { FPar_Def_NR $1 $3 }
