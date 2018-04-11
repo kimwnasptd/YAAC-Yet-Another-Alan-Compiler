@@ -79,14 +79,13 @@ import ASTTypes
 
 Program: Func_Def                        { Prog   $1      }
 
-Func_Def: var "(" ")" ":" R_Type L_Def_List Comp_Stmt           { F_Def_Vd $1 $5 $6 $7 }
-        | var "(" FPar_List ")" ":" R_Type L_Def_List Comp_Stmt { F_Def_Par $1 $3 $6 $7 $8 }
+Func_Def: var "(" FPar_List ")" ":" R_Type L_Def_List Comp_Stmt { F_Def $1 $3 $6 $7 $8 }
 
 L_Def_List:                              {       []       }
           | L_Def_List Local_Def         {     $2 : $1    }
 
 
-FPar_List: FPar_Def                      {      [$1]      }
+FPar_List: {- Nothing -}                 {      []      }
          | FPar_List "," FPar_Def        {     $3 : $1    }
 
 FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
@@ -119,6 +118,7 @@ Stmt: ";"                                { Stmt_Semi      }
     | if "(" Cond ")" Stmt else Stmt     { Stmt_IFE $3 $5 $7}
     | while "(" Cond ")" Stmt            { Stmt_Wh  $3 $5 }
     | return ";"                         { Stmt_Ret       }
+    | return Expr ";"                    { Stmt_Ret_Expr $2 }
 
 Comp_Stmt: "{" Stmt_List "}"             { C_Stmt $2      }
 

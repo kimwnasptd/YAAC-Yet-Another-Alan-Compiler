@@ -6,8 +6,7 @@ data Program = Prog Func_Def
              deriving (Eq, Show)
 
 
-data Func_Def = F_Def_Vd String R_Type L_Def_List Comp_Stmt
-              | F_Def_Par String FPar_List R_Type L_Def_List Comp_Stmt
+data Func_Def = F_Def String FPar_List R_Type L_Def_List Comp_Stmt
               deriving (Eq, Show)
 
 -- It doesn't need a custom data type
@@ -85,6 +84,7 @@ data Stmt = Stmt_Semi
           | Stmt_IFE Cond Stmt Stmt
           | Stmt_Wh Cond Stmt
           | Stmt_Ret
+          | Stmt_Ret_Expr Expr
           deriving (Eq, Show)
 
 
