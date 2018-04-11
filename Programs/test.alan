@@ -1,0 +1,4 @@
+hello (rings : int) : proc
+{
+    return;
+}

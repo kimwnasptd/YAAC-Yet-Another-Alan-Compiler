@@ -85,7 +85,8 @@ L_Def_List:                              {       []       }
           | L_Def_List Local_Def         {     $2 : $1    }
 
 
-FPar_List: {- Nothing -}                 {      []      }
+FPar_List: {- Nothing -}                 {      []        }
+         | FPar_Def                      {      [$1]      }
          | FPar_List "," FPar_Def        {     $3 : $1    }
 
 FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
@@ -129,6 +130,7 @@ Stmt_List: {-Nothing -}                  {       []       }
 Func_Call: var "(" Expr_List ")"         { Func_Call $1 $3 }
 
 Expr_List: {-Nothing -}                  {    []      }
+         | Expr                          {    [$1]    }
          | Expr_List "," Expr            {    $3 : $1     }
 
 Expr : int_literal                       { Expr_Int   $1  }
