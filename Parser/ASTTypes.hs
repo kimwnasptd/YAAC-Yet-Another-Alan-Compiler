@@ -14,14 +14,16 @@ data Func_Def = F_Def_Vd String R_Type L_Def_List Comp_Stmt
 type Stmt_List = [ Stmt ]
 
 
-data L_Def_List = LDEF_Lst [ Local_Def ]
- deriving (Eq, Show)
+type L_Def_List = [ Local_Def ]
+ -- deriving (Eq, Show)
 
 data Comp_Stmt = C_Stmt Stmt_List
  deriving (Eq, Show)
 
 
--- FPar_List
+type FPar_List = [ FPar_Def ]
+
+
 data FPar_Def = FPar_Def_Ref String Type
               | FPar_Def_NR String Type
                deriving (Eq, Show)
@@ -101,6 +103,3 @@ data Cond = Cond_True
           | Cond_Or Cond Cond
           deriving (Eq, Show)
 
-
-data FPar_List =  FPar_Lst [ FPar_Def ]
- deriving (Eq, Show)

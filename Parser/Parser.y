@@ -77,35 +77,35 @@ import ASTTypes
 
 -- It works up to here
 
--- Program: Func_Def                        { Prog   $1      }
+Program: Func_Def                        { Prog   $1      }
 
--- Func_Def: var "(" ")" ":" R_Type L_Def_List Comp_Stmt           { F_Def_Vd $1 $5 $6 $7 }
---         | var "(" FPar_List ")" ":" R_Type L_Def_List Comp_Stmt { F_Def_Par $1 $3 $6 $7 $8 }
+Func_Def: var "(" ")" ":" R_Type L_Def_List Comp_Stmt           { F_Def_Vd $1 $5 $6 $7 }
+        | var "(" FPar_List ")" ":" R_Type L_Def_List Comp_Stmt { F_Def_Par $1 $3 $6 $7 $8 }
 
--- L_Def_List:                              {       []       }
---           | L_Def_List Local_Def         {     $2 : $1    }
+L_Def_List:                              {       []       }
+          | L_Def_List Local_Def         {     $2 : $1    }
 
 
--- FPar_List: FPar_Def                      {      [$1]      }
---          | FPar_List "," FPar_Def        {     $3 : $1    }
+FPar_List: FPar_Def                      {      [$1]      }
+         | FPar_List "," FPar_Def        {     $3 : $1    }
 
--- FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
---         | var ":" Type                   { FPar_Def_NR $1 $3 }
+FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
+        | var ":" Type                   { FPar_Def_NR $1 $3 }
 
--- Data_Type: int                           { D_Type $1      }
---          | byte                          { D_Type $1      }
+Data_Type: int                           { D_Type $1      }
+         | byte                          { D_Type $1      }
 
--- Type: Data_Type                          { S_Type      $1 }
---     | Data_Type "[" "]"                  { Table_Type  $1 }
+Type: Data_Type                          { S_Type      $1 }
+    | Data_Type "[" "]"                  { Table_Type  $1 }
 
--- R_Type: Data_Type                        { R_Type_DT   $1 }
---       | proc                             { R_Type_Proc    }
+R_Type: Data_Type                        { R_Type_DT   $1 }
+      | proc                             { R_Type_Proc    }
 
--- Local_Def: Func_Def                      { Loc_Def_Fun $1 }
---          | Var_Def                       { Loc_Def_Var $1 }
+Local_Def: Func_Def                      { Loc_Def_Fun $1 }
+         | Var_Def                       { Loc_Def_Var $1 }
 
--- Var_Def: var ":" Data_Type ";"                      { VDef    $1 $3 }
---        | var ":" Data_Type "[" int_literal "]" ";"  { VDef_T  $1 $3 $5   }
+Var_Def: var ":" Data_Type ";"                      { VDef    $1 $3 }
+       | var ":" Data_Type "[" int_literal "]" ";"  { VDef_T  $1 $3 $5   }
 
 
 -- -------------------------------------------------
