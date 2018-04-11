@@ -77,20 +77,58 @@ import ASTTypes
 
 -- It works up to here
 
-Data_Type: int                           { D_Type $1      }
-         | byte                          { D_Type $1      }
+-- Program: Func_Def                        { Prog   $1      }
 
-Type: Data_Type                          { S_Type      $1 }
-    | Data_Type "[" "]"                  { Table_Type  $1 }
+-- Func_Def: var "(" ")" ":" R_Type L_Def_List Comp_Stmt           { F_Def_Vd $1 $5 $6 $7 }
+--         | var "(" FPar_List ")" ":" R_Type L_Def_List Comp_Stmt { F_Def_Par $1 $3 $6 $7 $8 }
 
-R_Type: Data_Type                        { R_Type_DT   $1 }
-      | proc                             { R_Type_Proc    }
+-- L_Def_List:                              {       []       }
+--           | L_Def_List Local_Def         {     $2 : $1    }
 
 
-Func_Call: var "(" Expr_List ")"         { Func_Call_Par $1 $3 }
-         | var "(" ")"                   { Func_Call_Void  $1  }
+-- FPar_List: FPar_Def                      {      [$1]      }
+--          | FPar_List "," FPar_Def        {     $3 : $1    }
 
-Expr_List: Expr                          {    [ $1 ]      }
+-- FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
+--         | var ":" Type                   { FPar_Def_NR $1 $3 }
+
+-- Data_Type: int                           { D_Type $1      }
+--          | byte                          { D_Type $1      }
+
+-- Type: Data_Type                          { S_Type      $1 }
+--     | Data_Type "[" "]"                  { Table_Type  $1 }
+
+-- R_Type: Data_Type                        { R_Type_DT   $1 }
+--       | proc                             { R_Type_Proc    }
+
+-- Local_Def: Func_Def                      { Loc_Def_Fun $1 }
+--          | Var_Def                       { Loc_Def_Var $1 }
+
+-- Var_Def: var ":" Data_Type ";"                      { VDef    $1 $3 }
+--        | var ":" Data_Type "[" int_literal "]" ";"  { VDef_T  $1 $3 $5   }
+
+
+-- -------------------------------------------------
+-- -------------------------------------------------
+
+Stmt: ";"                                { Stmt_Semi      }
+    | L_Value "=" Expr ";"               { Stmt_Eq  $1 $3 }
+    | Comp_Stmt                          { Stmt_Cmp  $1   }
+    | Func_Call ";"                      { Stmt_FCall $1  }
+    | if "(" Cond ")" Stmt               { Stmt_If  $3 $5 }
+    | if "(" Cond ")" Stmt else Stmt     { Stmt_IFE $3 $5 $7}
+    | while "(" Cond ")" Stmt            { Stmt_Wh  $3 $5 }
+    | return ";"                         { Stmt_Ret       }
+
+Comp_Stmt: "{" Stmt_List "}"             { C_Stmt $2      }
+
+Stmt_List: {-Nothing -}                  {       []       }
+         | Stmt_List Stmt                {     $2 : $1    }  -- Probaby ALL LISTS NEED AMENDING
+
+
+Func_Call: var "(" Expr_List ")"         { Func_Call $1 $3 }
+
+Expr_List: {-Nothing -}                  {    []      }
          | Expr_List "," Expr            {    $3 : $1     }
 
 Expr : int_literal                       { Expr_Int   $1  }
@@ -109,44 +147,6 @@ Expr : int_literal                       { Expr_Int   $1  }
 L_Value: var                             { LV_Var  $1     }
        | var "[" Expr "]"                { LV_Tbl  $1 $3  }
        | string_literal                  { LV_Lit  $1     }
-
-
-Program: Func_Def                        { Prog   $1      }
-
-Func_Def: var "(" ")" ":" R_Type L_Def_List Comp_Stmt           { F_Def_Vd $1 $5 $6 $7 }
-        | var "(" FPar_List ")" ":" R_Type L_Def_List Comp_Stmt { F_Def_Par $1 $3 $6 $7 $8 }
-
-L_Def_List:                              {       []       }
-          | L_Def_List Local_Def         {     $2 : $1    }
-
-
-FPar_List: FPar_Def                      {      [$1]      }
-         | FPar_List "," FPar_Def        {     $3 : $1    }
-
-FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
-        | var ":" Type                   { FPar_Def_NR $1 $3 }
-
-
-Local_Def: Func_Def                      { Loc_Def_Fun $1 }
-         | Var_Def                       { Loc_Def_Var $1 }
-
-Stmt: ";"                                { Stmt_Semi      }
-    | L_Value "=" Expr ";"               { Stmt_Eq  $1 $3 }
-    | Comp_Stmt                          { Stmt_Cmp  $1   }
-    | Func_Call ";"                      { Stmt_FCall $1  }
-    | if "(" Cond ")" Stmt               { Stmt_If  $3 $5 }
-    | if "(" Cond ")" Stmt else Stmt     { Stmt_IFE $3 $5 $7}
-    | while "(" Cond ")" Stmt            { Stmt_Wh  $3 $5 }
-    | return ";"                         { Stmt_Ret       }
-
-Comp_Stmt: "{" Stmt_List "}"             { C_Stmt $2      }
-
-Stmt_List: {-Nothing -}                  {       []       }
-         | Stmt_List Stmt                {     $2 : $1    }  -- Probaby ALL LISTS NEED AMENDING
-
-
-Var_Def: var ":" Data_Type ";"                      { VDef    $1 $3 }
-       | var ":" Data_Type "[" int_literal "]" ";"  { VDef_T  $1 $3 $5   }
 
 Cond: true                               { Cond_True      }
     | false                              { Cond_False     }

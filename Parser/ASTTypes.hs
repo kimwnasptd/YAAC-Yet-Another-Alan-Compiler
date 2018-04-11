@@ -10,10 +10,9 @@ data Func_Def = F_Def_Vd String R_Type L_Def_List Comp_Stmt
               | F_Def_Par String FPar_List R_Type L_Def_List Comp_Stmt
               deriving (Eq, Show)
 
+-- It doesn't need a custom data type
+type Stmt_List = [ Stmt ]
 
-
-data Stmt_List = Stmt_Lst [ Stmt ]
- deriving (Eq, Show)
 
 data L_Def_List = LDEF_Lst [ Local_Def ]
  deriving (Eq, Show)
@@ -47,13 +46,13 @@ data Var_Def = VDef String Data_Type
              | VDef_T String Data_Type Int
              deriving (Eq, Show)
 
-data Func_Call = Func_Call_Par String Expr_List
-               | Func_Call_Void String
+data Func_Call = Func_Call String Expr_List
                deriving (Eq, Show)
 
 
-data Expr_List = Exprt_Lst [ Expr ]
-               deriving (Eq, Show)
+-- It doesn't need a custom data type
+type Expr_List = [ Expr ]
+               -- deriving (Eq, Show)
 
 
 data Expr = Expr_Add Expr Expr
