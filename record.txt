@@ -1,4 +1,4 @@
-1) Amend strings
+1) Amend strings:  done, the problem was that both the $printable and $esc_seq arguments, used to identify strings, also contained the character "
 2) Amend comments
 3) Create a rubust token data type that contains line info
-4) Locate the shift reduce conflict on the parser 
+4) Locate the shift reduce conflict on the parser

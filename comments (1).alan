@@ -1,7 +1,7 @@
 solve () : proc
 
 { -- solve
-    writeString("Rings: ");
+    writeString("Rings: \" ");
     NumberOfRings = readInteger();
     hanoi(NumberOfRings, "left", "right", "middle");
 } -- solve

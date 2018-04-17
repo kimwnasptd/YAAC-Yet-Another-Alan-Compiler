@@ -18,9 +18,11 @@ $digit = 0-9            -- digits
 $alpha = [a-zA-Z]       -- alphabetic characters
 $hexdig = [0-9A-Fa-f]
 $special = [\.\;\,\$\|\*\+\?\#\~\-\{\}\(\)\[\]\^\/]
-$esc_seq    = [\n \t \r \0 \\ \' \xnn \"  ]   -- DOES THIS PLAY???
+-- $esc_seq    = [\n \t \r \0 \\ \' \xnn \"  ]                     -- THIS LINE NEEDED CHANGES (original)
+$esc_seq    = [\n \t \r \0 \\ \' \xnn  ]                           -- Removed " from escape sequences
+$quotable = $printable # \"                                        -- Any printable character except "
 
-@string     = \" ($printable | \" | $esc_seq)* \"               -- Printable contains $white
+@string     = \" ($quotable| \\\" | $esc_seq)* \"               -- Printable contains $white
 @chars      = \' ($alpha | $digit | $esc_seq | $special) \'     -- Missing some characters
 @name       = $alpha[$alpha $digit \_]*
 
@@ -39,7 +41,7 @@ tokens :-
   "while"               { getToken $ TWhile       }
   "true"                { getToken $ TTrue        }
 
-  $esc_seq              ;
+  $esc_seq              ;                           -- Pretty sure that's a bad idea.
 
   [\+\-\*\/]            { getToken $ TOp ""       }
   "&"                   { getToken $ TOp ""       }
