@@ -45,3 +45,4 @@ clean:
 	for i in $(CLEAN_DIRS); do \
 		rm $$i/*.o $$i/*.hi $$i/*.info ; \
 	done
+	rm Lexer-bin  Parser-bin ./Parser/Parser.hs ./Lexer/Lexer.hs   # remove anything missed by the previous steps 
