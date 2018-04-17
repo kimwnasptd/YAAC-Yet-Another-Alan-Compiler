@@ -5,7 +5,7 @@
 {
 module Lexer (
   lexer, lexDummy, runner
-  ) 
+  )
 where
 
 import Control.Monad
@@ -53,7 +53,7 @@ tokens :-
   ">="                  { getToken $ TComOp ""    }
   "<="                  { getToken $ TComOp ""    }
   ">"                   { getToken $ TComOp ""    }
-  "<"                   { getToken $ TComOp ""    } 
+  "<"                   { getToken $ TComOp ""    }
 
   "."                   { getToken $ TPeriod      }
   ":"                   { getToken $ TColon       }
@@ -125,15 +125,15 @@ readToken = do
     AlexEOF -> return TEOF
 
     -- We need to talk about this :P
-    AlexError inp' -> error $ "Lexical error on line "++ (show $ ailineno inp')      
-    
+    AlexError inp' -> error $ "Lexical error on line "++ (show $ ailineno inp')
+
     -- It's the characters that have as action the ;
-    AlexSkip inp' _ -> do    
+    AlexSkip inp' _ -> do
       put s{input = inp'}
       readToken
 
     -- Found Token, the new input is inp, read n bytes, and got act (Action)
-    AlexToken inp' n act -> do 
+    AlexToken inp' n act -> do
       let (AlexInput{airest=buf}) = input s
       put s{input = inp'}
       res <- act n (take n buf)

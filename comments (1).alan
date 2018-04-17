@@ -1,0 +1,7 @@
+solve () : proc
+
+{ -- solve
+    writeString("Rings: ");
+    NumberOfRings = readInteger();
+    hanoi(NumberOfRings, "left", "right", "middle");
+} -- solve

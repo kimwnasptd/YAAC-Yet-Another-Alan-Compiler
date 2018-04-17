@@ -1,0 +1,4 @@
+1) Amend strings
+2) Amend comments
+3) Create a rubust token data type that contains line info
+4) Locate the shift reduce conflict on the parser 
