@@ -1,4 +1,11 @@
 1) Amend strings:  done, the problem was that both the $printable and $esc_seq arguments, used to identify strings, also contained the character "
-2) Amend comments
-3) Create a rubust token data type that contains line info
+2) Amend comments:   probably only partially done. *  We still have the EOF issue???
+3) Create a rοbust token data type that contains line info
 4) Locate the shift reduce conflict on the parser
+
+
+
+
+* If we are inside a comment that starts with "(*" , EVERYTHING INSIDE THE COMMENT , except "*)" must be ignored.
+So, we match with "--" only if we are outside any other comment.
+e.g.     (*   something something -- other other *) : This comment must be closed

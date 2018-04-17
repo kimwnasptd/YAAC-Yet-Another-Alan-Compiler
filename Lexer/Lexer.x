@@ -68,15 +68,17 @@ tokens :-
   "["                   { getToken $ TLeftBrack   }
   "]"                   { getToken $ TRightBrack  }
 
+  \-\-.*\n              ;                                 -- If we come across a comment of that type, we ignore everything till the end of the line
+
   @chars                { getToken $ TChar ""     }
   $digit+               { getToken $ TIntLiteral 0}
   @name                 { getToken $ TName ""     }
   @string               { getToken $ TStringLiteral  ""  }    -- remove the leading " and trailing "
-  -- .                     { getToken $ TErrorSymbol s }
+  -- .                  { getToken $ TErrorSymbol s }
 }
 
 -- The rules here apply for all the States of Lexer
-\-\-.*\n              ;
+-- \-\-.*\n              ;                                   --Nope: That rule should only apply if we are not already in a comment. Check the record.
 "(*"                  { beginComment }
 
 -- The 'Comment' State of Lexer
