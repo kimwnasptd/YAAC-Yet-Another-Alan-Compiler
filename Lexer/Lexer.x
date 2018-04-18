@@ -16,14 +16,13 @@ import Tokens
 
 $digit = 0-9            -- digits
 $alpha = [a-zA-Z]       -- alphabetic characters
-$hexdig = [0-9A-Fa-f]
-$special = [\.\;\,\$\|\*\+\?\#\~\-\{\}\(\)\[\]\^\/]
--- $esc_seq    = [\n \t \r \0 \\ \' \xnn \"  ]                     -- THIS LINE NEEDED CHANGES (original)
-$esc_seq    = [\n \t \r \0 \\ \' \xnn  ]                           -- Removed " from escape sequences
+$hexdig = [0-9A-Fa-f]           
 $quotable = $printable # \"                                        -- Any printable character except "
+$esc_seq = [\n \t \r]
 
-@string     = \" ($quotable| \\\" | $esc_seq)* \"               -- Printable contains $white
-@chars      = \' ($alpha | $digit | $esc_seq | $special) \'     -- Missing some characters
+@string_sp  = \\\" | \\\' | \\$quotable | \\x $hexdig $hexdig 
+@string     = \" ( $quotable | @string_sp )* \"               -- Printable contains $white
+@chars      = \' ($alpha | $digit  | @string_sp) \'     -- Missing some characters
 @name       = $alpha[$alpha $digit \_]*
 
 tokens :-
@@ -68,7 +67,7 @@ tokens :-
   "["                   { getToken $ TLeftBrack   }
   "]"                   { getToken $ TRightBrack  }
 
-  \-\-.*\n              ;                                 -- If we come across a comment of that type, we ignore everything till the end of the line
+  \-\-.*                ;                                 -- If we come across a comment of that type, we ignore everything till the end of the line
 
   @chars                { getToken $ TChar ""     }
   $digit+               { getToken $ TIntLiteral 0}
@@ -99,11 +98,22 @@ type Action = Int -> String -> P (Maybe Token)
 getToken :: Token -> Action
 getToken (TOp _) _ s            = return $ Just $ TOp s
 getToken (TComOp _) _ s         = return $ Just $ TComOp s
-getToken (TStringLiteral _) _ s = return $ Just $ TStringLiteral $ init $ tail s
+getToken (TStringLiteral _) _ s = return $ Just $ TStringLiteral $ convEsc (init $ tail s)
 getToken (TName _) _ s          = return $ Just $ TName s
 getToken (TIntLiteral _) _ s    = return $ Just $ TIntLiteral $ read s
-getToken (TChar _) _ s          = return $ Just $ TChar $ init $ tail s
+getToken (TChar _) _ s          = return $ Just $ TChar $ convEsc (init $ tail s)
 getToken t _ _ = return (Just t)
+
+-- Convert the mathced weird characters (\\n) to their coresponding ones
+convEsc :: String -> String
+convEsc ( '\\' : 'n' : s )       = '\n' : convEsc s 
+convEsc ( '\\' : 't' : s )       = '\t' : convEsc s  
+convEsc ( '\\' : 'r' : s )       = '\r' : convEsc s 
+convEsc ( '\\' : '\"' : s )      = '\"' : convEsc s 
+convEsc ( '\\' : '\'' : s )      = '\'' : convEsc s 
+convEsc ( '\\' : 'x' : s )       = '\\' : 'x' : convEsc s   -- Here we have to decide what to do with these
+convEsc ( a : s )                = a : convEsc s 
+convEsc []                       = []
 
 beginComment :: Action
 beginComment _ _ = do

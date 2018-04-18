@@ -1,11 +1,14 @@
-1) Amend strings:  done, the problem was that both the $printable and $esc_seq arguments, used to identify strings, also contained the character "
-2) Amend comments:   probably only partially done. *  We still have the EOF issue???
-3) Create a rοbust token data type that contains line info
-4) Locate the shift reduce conflict on the parser
+ToDo:
+
+    1) Create a rοbust token data type that contains line info
+    2) Locate the shift reduce conflict on the parser (Check below)
 
 
 
+Take a Look:
 
-* If we are inside a comment that starts with "(*" , EVERYTHING INSIDE THE COMMENT , except "*)" must be ignored.
-So, we match with "--" only if we are outside any other comment.
-e.g.     (*   something something -- other other *) : This comment must be closed
+    Changed the way we were matching strings a little. Added a convEsc fun that converts the matched
+    characters to their correct values (ex \\n is matched and then converted to \n)
+
+    Shift Reduce: In the hannoi.alan program if we remove the if (...) { } and keep its body for some
+    reason it compiles. Guess the conflict is somewhere there?
