@@ -1,0 +1,12 @@
+solve () : proc
+
+    toUse (k : reference int []) : int
+
+    { -- toUse
+        return 42;
+    }
+
+{
+    if (toUse(5) == 42) { return; return; }
+    
+}

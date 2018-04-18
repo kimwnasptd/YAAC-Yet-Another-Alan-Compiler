@@ -1,0 +1,7 @@
+solve () : proc
+
+{ -- solve
+    writeString("Rings: \n")
+    return '\n'
+} -- solve
+
