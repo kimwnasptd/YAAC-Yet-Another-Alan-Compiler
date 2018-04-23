@@ -16,12 +16,12 @@ import Tokens
 
 $digit = 0-9            -- digits
 $alpha = [a-zA-Z]       -- alphabetic characters
-$hexdig = [0-9A-Fa-f]           
+$hexdig = [0-9A-Fa-f]
 $quotable = $printable # \"                                        -- Any printable character except "
 $esc_seq = [\n \t \r]
 
-@string_sp  = \\\" | \\\' | \\$quotable | \\x $hexdig $hexdig 
-@string     = \" ( $quotable | @string_sp )* \"               -- Printable contains $white
+@string_sp  = \\\" | \\\' | \\$quotable | \\x $hexdig $hexdig                              --"
+@string     = \" ( $quotable | @string_sp )* \"               -- Printable contains $white  " just fixed all the coments for you <3
 @chars      = \' ($alpha | $digit  | @string_sp) \'     -- Missing some characters
 @name       = $alpha[$alpha $digit \_]*
 
@@ -67,7 +67,7 @@ tokens :-
   "["                   { getToken $ TLeftBrack   }
   "]"                   { getToken $ TRightBrack  }
 
-  \-\-.*                ;                                 -- If we come across a comment of that type, we ignore everything till the end of the line
+  \-\-.*                ;                                 -- If we come across a comment of that type, we ignore everything till the end of the line "
 
   @chars                { getToken $ TChar ""     }
   $digit+               { getToken $ TIntLiteral 0}
@@ -106,13 +106,13 @@ getToken t _ _ = return (Just t)
 
 -- Convert the mathced weird characters (\\n) to their coresponding ones
 convEsc :: String -> String
-convEsc ( '\\' : 'n' : s )       = '\n' : convEsc s 
-convEsc ( '\\' : 't' : s )       = '\t' : convEsc s  
-convEsc ( '\\' : 'r' : s )       = '\r' : convEsc s 
-convEsc ( '\\' : '\"' : s )      = '\"' : convEsc s 
-convEsc ( '\\' : '\'' : s )      = '\'' : convEsc s 
+convEsc ( '\\' : 'n' : s )       = '\n' : convEsc s
+convEsc ( '\\' : 't' : s )       = '\t' : convEsc s
+convEsc ( '\\' : 'r' : s )       = '\r' : convEsc s
+convEsc ( '\\' : '\"' : s )      = '\"' : convEsc s
+convEsc ( '\\' : '\'' : s )      = '\'' : convEsc s
 convEsc ( '\\' : 'x' : s )       = '\\' : 'x' : convEsc s   -- Here we have to decide what to do with these
-convEsc ( a : s )                = a : convEsc s 
+convEsc ( a : s )                = a : convEsc s
 convEsc []                       = []
 
 beginComment :: Action
@@ -139,7 +139,7 @@ readToken = do
     AlexEOF -> return TEOF
 
     -- We need to talk about this :P
-    AlexError inp' -> error $ "Lexical error on line "++ (show $ ailineno inp')
+    AlexError inp' -> error $ "Lexical error on line "++ (show $ ailineno inp')      -- ' should be removed '
 
     -- It's the characters that have as action the ;
     AlexSkip inp' _ -> do
