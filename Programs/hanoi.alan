@@ -14,6 +14,7 @@ solve () : proc
 
     { -- hanoi
         if (rings >= 1) {  -- If we remove the If () then it parses
+    --    if (true ) {  -- If we remove the If () then it parses
             hanoi(rings-1, source, auxiliary, target);
             move(source, target);
             hanoi(rings-1, auxiliary, target, source);

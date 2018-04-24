@@ -51,7 +51,7 @@ data Func_Call = Func_Call String Expr_List
                deriving (Eq, Show)
 
 
--- It doesn't need a custom data type
+-- It doesn't need a custom data type -> I am sorry.
 type Expr_List = [ Expr ]
                -- deriving (Eq, Show)
 
@@ -102,4 +102,3 @@ data Cond = Cond_True
           | Cond_And Cond Cond
           | Cond_Or Cond Cond
           deriving (Eq, Show)
-

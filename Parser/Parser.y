@@ -43,8 +43,8 @@ import ASTTypes
 
     "=="                 {  TComOp "==" }
     "!="                 {  TComOp "!=" }
-    ">="                 {  TComOp "("  }
-    "<="                 {  TComOp ")"  }
+    ">="                 {  TComOp ">="  }
+    "<="                 {  TComOp "<="  }
     ">"                  {  TComOp ">"  }
     "<"                  {  TComOp "<"  }
 
