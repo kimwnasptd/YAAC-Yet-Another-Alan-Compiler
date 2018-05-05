@@ -1,6 +1,6 @@
 -- module AlexInterface (
 --   P(..), AlexInput(..),
---   ParseState(..), alexGetByte, 
+--   ParseState(..), alexGetByte,
 --   alexInputPrevChar, initialState,
 --   getLineNo, evalP
 --   ) where
@@ -15,39 +15,39 @@ import Codec.Binary.UTF8.String (encode)
 -- The input: last character, unused bytes, remaining string
 data AlexInput
   = AlexInput {
-    aiprev    :: Char,
-    aibytes   :: [Word8],
-    airest    :: String,
-    ailineno  :: Int}
-  deriving Show
-           
-alexGetByte :: AlexInput -> Maybe (Word8,AlexInput)
+    aiprev    :: Char,              -- Last char
+    aibytes   :: [Word8],           -- Unused bytes
+    airest    :: String,            -- Remaining string
+    ailineno  :: Int}               -- Line number
+  deriving ( Eq,Show )
+
+alexGetByte :: AlexInput -> Maybe (Word8,AlexInput)          -- Returns the next byte, AlexInput
 alexGetByte ai
   = case (aibytes ai) of
     (b:bs) -> Just (b,ai{aibytes=bs})
     [] -> case (airest ai) of
       [] -> Nothing
-      (c:cs) -> let n = (ailineno ai)
+      (c:cs) -> let n = (ailineno ai)                      -- Amends the next line, if it must
                     n' = if c=='\n' then n+1 else n
                     (b:bs) = encode [c] in
                 Just (b,AlexInput {aiprev=c, -- first b
                                    aibytes=bs, --bs
                                    airest=cs,
                                    ailineno=n'})
-                
-                    
+
+
 alexInputPrevChar :: AlexInput -> Char
 alexInputPrevChar (AlexInput {aiprev=c}) = c
 
-data ParseState = 
+data ParseState =
      ParseState {input::AlexInput,
                  lexSC::Int,       --Lexer start code
                  commentDepth::Int,--Comment depth
                  stringBuf::String --Temporary storage for strings
                 }
-     deriving Show
+     deriving (Eq,Show)
 
-initialState::String -> ParseState
+initialState::String -> ParseState                  -- Sets the parsers initial state, according to the given string
 initialState s = ParseState {   input = AlexInput {aiprev='\n',
                                                    aibytes=[],
                                                    airest=s,
@@ -60,11 +60,20 @@ initialState s = ParseState {   input = AlexInput {aiprev='\n',
 -- Our Parser monad
 type P a = State ParseState a
 
-getLineNo::P Int
-getLineNo = do
-  s <- get
+getLineNo::P Int                  -- Looks at our parser state monad
+getLineNo = do                    -- takes the alexinput state from inside the monad
+  s <- get                        -- and returns the line  number that was wrapped in that data type
   return . ailineno . input $ s
 
-evalP::P a -> String -> a
-evalP m s= evalState m (initialState s)
+-- FANCIER getLine, since we are playing with monads after all     --> So sad it doesn;t work :(
+-- getLIneNoAlt :: P Int               -- > Something like that anyway, we have work to do !
+-- getLIneNoAlt = do
+--     return  $ gets (ailineno . input  )
 
+
+evalP::P a -> String -> a               -- Just pack the intial string inside a parsestate,
+evalP m s = evalState m (initialState s)   -- run the corresponding monad, and return the result 
+--
+-- NOTE  :
+-- evalstate m s = fst $ runstate (m s )
+-- Basicallly, we we run the monad, and return the result, sans state

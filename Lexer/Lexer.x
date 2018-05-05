@@ -1,6 +1,9 @@
--- TODO: Operators (all)    Missing only ( ! )
---       Fix missing escape characters  Medium
---       Comments   NP Hard xD
+-- TODO: Operators (all)    Missing only ( ! )          --> DONE
+--       Fix missing escape characters  Medium          --> DONE
+--       Comments   NP Hard xD                          --> DONE
+--       Feed to the parser a line token, so that we can show
+--       Lines on syntactic/ semantic erros
+
 
 {
 module Lexer (
@@ -69,7 +72,7 @@ tokens :-
 
   \-\-.*                ;                                 -- If we come across a comment of that type, we ignore everything till the end of the line "
 
-  @chars                { getToken $ TChar ""     }
+  @chars                { getToken $ TChar ""     }       -- "
   $digit+               { getToken $ TIntLiteral 0}
   @name                 { getToken $ TName ""     }
   @string               { getToken $ TStringLiteral  ""  }    -- remove the leading " and trailing "
@@ -91,7 +94,7 @@ tokens :-
 
 -- Int -> Chars Matched
 -- String -> String Matched
--- This is the type that returns exery time a string is matched
+-- This is the type that returns every time a string is matched
 type Action = Int -> String -> P (Maybe Token)
 
 -- Converts the corresponding Token to Action type for the { }

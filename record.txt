@@ -1,7 +1,7 @@
 ToDo:
 
-    1) Create a rοbust token data type that contains line info   --> Will be done later today 
-    2) Locate the shift reduce conflict on the parser (
+    1) Create a rοbust token data type that contains line info   --> Will be done later today
+    2) Locate the shift reduce conflict on the parser (nothing to do here) 
 
 Done:
     2) If you check the Parser.info file, the shift reduce conflict
