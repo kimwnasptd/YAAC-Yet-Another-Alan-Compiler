@@ -8,7 +8,7 @@ type MethodName = String
 type SymbolName = String
 
 -- The Symbol Table
-type SymbolTable = Map.Map SymbolName MethodSymbol
+type SymbolTable = Map.Map SymbolName TableSymbol
 -- But shouldn't it be something  more like a stack?
 
 data TableSymbol = 
