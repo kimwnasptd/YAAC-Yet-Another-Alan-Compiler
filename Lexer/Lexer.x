@@ -107,6 +107,11 @@ getToken (TIntLiteral _) _ s    = return $ Just $ TIntLiteral $ read s
 getToken (TChar _) _ s          = return $ Just $ TChar $ convEsc (init $ tail s)
 getToken t _ _ = return (Just t)
 
+
+-- Using get token, returns not only the token, but the corresponding line
+getLToken :: Token -> (Action, Int )
+getLToken token1 = return ( getToken token1, getLineNo)
+
 -- Convert the mathced weird characters (\\n) to their coresponding ones
 convEsc :: String -> String
 convEsc ( '\\' : 'n' : s )       = '\n' : convEsc s
@@ -141,7 +146,7 @@ readToken = do
     -- End of File duh
     AlexEOF -> return TEOF
 
-    -- We need to talk about this :P
+    -- We need to talk about this :P   --> I have no idea what I was thinking when I wrote that, sorry
     AlexError inp' -> error $ "Lexical error on line "++ (show $ ailineno inp')      -- ' should be removed '
 
     -- It's the characters that have as action the ;

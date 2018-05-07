@@ -7,8 +7,8 @@ solve () : proc
         {
             writeString("Moving from ");
             writeString(source);
-            writeString(" to ");    
-            writeString(target);
+            writeString(" to ");
+            writeString(target); "
             writeString(".\n");
         }
 

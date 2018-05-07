@@ -175,7 +175,7 @@ parseError _ = do
   lno <- getLineNo
   error $ "Parse error on line "++ show lno
 
--- parse::String->[(String,Int)]
+parse:: String -> Program                             -- probably correct! 
 parse s = evalP basicParser s
 
 }
