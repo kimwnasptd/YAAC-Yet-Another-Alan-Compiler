@@ -263,4 +263,18 @@ ret :: Operand -> Codegen (Named Terminator)
 ret val = terminator $ Do $ Ret (Just val) []
 
 
--- EFFECT Instructions: 
+-- EFFECT Instructions:  these effect memory / evaluation side effects
+call :: Operand -> [Operand] -> Codegen Operand  -- takes a named function reference and a list of arguments,evaluates it,
+call fn args = instr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []   -- and then invokes it at the current position
+
+alloca :: Type -> Codegen Operand                   -- takes the type of the value we want to allocate space for, and creates
+alloca ty = instr $ Alloca ty Nothing 0 []        --  a pointer to a STACK ALLOCATED, UNINITIALIZED  of the given type.
+
+store :: Operand -> Operand -> Codegen Operand      -- takes a pointer and a value, and stores the value to that pointer,
+store ptr val = instr $ Store False ptr val Nothing 0 []         -- provided that the types are valid
+
+load :: Operand -> Codegen Operand
+load ptr = instr $ Load False ptr Nothing 0 []
+
+
+-- Our basic infrastructure is done. Now the burdain falls to Emit.hs 
