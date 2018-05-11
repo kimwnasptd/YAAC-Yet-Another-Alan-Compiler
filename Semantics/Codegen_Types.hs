@@ -5,20 +5,25 @@ import Data.Map.Strict     -- > No reason to use a lazy implementation for Map:
 -- Small data sizes, (almost) all stored data will be needed in the end
 
 
--- double :: Type
--- double  = FloatingPointType 64 IEEE
+double :: Type
+double  = FloatingPointType 64 IEEE  -- has a simple double as its abbreviation
 int :: Type
-int = i16
+int = i16         -- This will be a SIGNED integer number
 byte :: Type
-byte = i8    -- > Placeholder until we can find an appropriate byte type
+byte = i8         -- This will be an UNSIGNED byte. Why? Well, I am glad you asked!
+-- http://lists.llvm.org/pipermail/llvm-dev/2011-November/044966.html
+-- there is no need to represent boolean values in our memory, so we don't have
+-- to declare them
 
-type Name = String
-type Names = Map.Map String Int
+
+type Name = String                -- e.g. names of functions, blocks, etc are just Strings
+type Names = Map.Map String Int   --the backend for our name supply
+-- note that Strings have an instance of Ord, so this map is more efficient than it looks!
 
 type SymbolTable = [(String, Operand)]
 -- NOTE: LLVM TYPE  An Operand is roughly that which is an argument to an Instruction, will become clear later
 
-data CodegenState             -- >   holds the internal state of our code generator as we walk the AST.
+data CodegenState       -- >   holds the internal state of our code generator as we walk the AST.
   = CodegenState {
     currentBlock :: Name                     -- Name of the active block to append to
   , blocks       :: Map.Map Name BlockState  -- Blocks for functions
@@ -28,6 +33,10 @@ data CodegenState             -- >   holds the internal state of our code genera
   , names        :: Names                    -- Name Supply : Its use is shown on lines ~150-160
   } deriving Show
 
+-- If you think about it, CodegenState and block state need not derive anything more:
+-- We only have one codgenstate monad, with nothing else to compare it to.
+-- We are never going to compare a bloc with another one. What semantics would that have?
+
 data BlockState
   = BlockState {
     idx   :: Int                            -- Block index
@@ -35,15 +44,15 @@ data BlockState
   , term  :: Maybe (Named Terminator)       -- Block terminator
   } deriving Show
 
--- NOTE: eg of a block, written in llvm, to
+-- NOTE: eg of a block, written in llvm:
 --
 -- define i64 @n1(i64 %x, i64 %y, i64 %z){
 -- entry:                              <-- BLOCK INDEX
 --  %0 = mul i64 %x, %y                <-- stack[0]
---  %1 = add i64 %0, %z                <-- stack[1]             ( NOTE : in practice we always append them from the fronst, so numbers are reversed )
+--  %1 = add i64 %0, %z                <-- stack[1]
 --  ret i64 %1                         <-- terminator
 -- }
-
+-- ( NOTE : in practice we always append them from the front, so stack numbers are reversed )
 
 newtype Codegen a = Codegen { runCodegen :: State CodegenState a }
   deriving (Functor, Applicative, Monad, MonadState CodegenState )
@@ -75,7 +84,7 @@ runLLVM mod (LLVM m) = execState m mod
  -- one with semantics/ other cool stuff done to it
 
 
-emptyModule :: String -> AST.Module         -- > Returns the most plain jane module possible
+emptyModule :: String -> AST.Module         -- > Returns the most plain jane AST.module possible
 emptyModule label = defaultModule { moduleName = label }
 
 addDefn :: Definition -> LLVM ()  -- > Takes our existing module and adds a new definition to it
@@ -83,8 +92,10 @@ addDefn d = do
   defs <- gets moduleDefinitions
   modify $ \s -> s { moduleDefinitions = defs ++ [d] }
 
-
-
+-- NOTE:
+-- Definition: anythiνg that can be at the top level of a module
+-- CONSTRUCTORS  we will use:
+-- GlobalDefinition Global
 
 
 -- Inside of our module we'll need to insert our toplevel definitions.
@@ -116,7 +127,7 @@ external retty label argtys = addDefn $
 -- Now that our codegen monad is ready, we create some functions to work with it:
 
 entry :: Codegen Name
-entry = gets currentBlock     -- > Pretty self explanatory. Gets the currentBlock from our codegen monad
+entry = gets currentBlock  -- > Pretty self explanatory. Gets the currentBlock from our codegen monad
 
 
 addBlock :: String -> Codegen Name   -- > We push a new block in the codegen monad
@@ -125,15 +136,15 @@ addBlock bname = do
   ix  <- gets blockCount
   nms <- gets names
 
-  let new = emptyBlock ix
+  let new = emptyBlock ix                       -- creates a fresh name for the new block
       (qname, supply) = uniqueName bname nms
 
   modify $ \s -> s { blocks = Map.insert (Name qname) new bls    -- we update all fields of codegen accordingly. We insert the new block
                    , blockCount = ix + 1                -- blockCount ++
                    , names = supply                     -- this is a "name generator" of sorts, updated to still give a fresh name next time
                    }
-  return (Name qname)       -- For some not obvious reason, we return the block that we pushed as a result. ASK QUESTIONS LATER
-
+  return (Name qname)       -- For some not obvious reason, we return the nae
+                            -- of the  that we pushed as a result. ASK QUESTIONS LATER
 
 getBlock :: Codegen Name            -- Does the same as entry ? YEAP.
 getBlock = gets currentBlock        -- Do we write whatever we plase ? ALSO YEAP.
@@ -159,16 +170,14 @@ current = do                                -- if a block with the current's nam
 
 
 
-
-
  ----- We need some helper functions for our llvm bindings          ------
 
-fresh :: Codegen Word                           -- Provides a fresh name supply , whenever we need names for our bidings, using our Codegen monad
+fresh :: Codegen Word      -- Provides a fresh name supply , whenever we need names for our bidings, using our Codegen monad
 fresh = do
   i <- gets count
-  modify $ \s -> s { count = 1 + i }            -- Increases codegen by  1, so that the next call can also take a fresh name
-  return $ i + 1
-
+  modify $ \s -> s { count = 1 + i }   -- Increases codegen count  by  1, so that the next call can also take a fresh name
+  return $ i + 1              -- returns a number? YEAP! think of the 'names' we provide to unnamed instructions:
+  -- %1, %2, %3 etc
 
 
 uniqueName :: String -> Names -> (String, Names)   -- A second fresh name supply. The difference is that this one
@@ -179,12 +188,17 @@ uniqueName nm ns =                                 -- Guarantees that our block 
 
 
 
+ -- Since we can now work with named LLVM values we need to create several functions
+ -- for referring to references of values:
 
+-- IMPORTANT NOTE: These two ABSOLUTELY need changes, they have double types only here.
 local ::  Name -> Operand
 local = LocalReference double
 
 externf :: Name -> Operand
 externf = ConstantOperand . C.GlobalReference double
+-- Extern is a bit of a pain in our back
+
 
 -- Two simple functions for referring to local/external references
 
@@ -193,20 +207,20 @@ externf = ConstantOperand . C.GlobalReference double
 
 -- Because we need to refer by name to values on the stack, we will need a symbol table (one of its uses ).
 -- For starters, we will create a simple symbol table, as an association list, letting us assign variable names
--- to operands and subsequently look them up when used :
+-- to operand quantities  and subsequently look them up when used :
 
 
 
-assign :: String -> Operand -> Codegen ()               -- Updates the codegen monad, by adding the pair VName - Operand to it
+assign :: String -> Operand -> Codegen ()   -- Updates the codegen monad, by adding the pair VName - Operand to it
 assign var x = do
   lcls <- gets symtab
   modify $ \s -> s { symtab = [(var, x)] ++ lcls }
 
-getvar :: String -> Codegen Operand                     -- Looks up for a Vname on the symbol table, and returns it's typ... operand I mean
+getvar :: String -> Codegen Operand  -- Looks up for a Vname on the symbol table, and returns it's typ... operand I mean
 getvar var = do
   syms <- gets symtab
-  case lookup var syms of
-    Just x  -> return x
+  case lookup var syms of     -- NOTE: this is O(logN ). It may be a smart idea to convert
+    Just x  -> return x       -- to a hashmap
     Nothing -> error $ "Local variable not in scope: " ++ show var
 
 
@@ -218,40 +232,57 @@ getvar var = do
 instr :: Instruction -> Codegen (Operand)           -- takes an instruction as an argument, and appends it to the instruction stack
 instr ins = do
   n <- fresh               -- EVERY instruction gets a fresh  name. NOTE: helps with SSA
-  let ref = (UnName n)     -- Helps in case the name we chose was by any chance used by someone else
-  blk <- current
+  let ref = (UnName n)     -- NOTE: UnName Int   is the llvm-hs constructor for unnamed instructions
+  blk <- current            -- for example,  ret i32 %1 : %1 corresponds to UnName 1
   let i = stack blk        -- Gets the instruction stack of the current block
   modifyBlock (blk { stack = (ref := ins) : i } )      -- appends the new instruction to it
   return $ local ref
 
 
 
-terminator :: Named Terminator -> Codegen (Named Terminator)                -- takes an instruction as an argument and sets it as the blocks terminator
+terminator :: Named Terminator -> Codegen (Named Terminator)        -- takes an instruction as an argument and sets it as the blocks terminator
 terminator trm = do
-  blk <- current
-  modifyBlock (blk { term = Just trm })
-  return trm
+  blk <- current        --get current block
+  modifyBlock (blk { term = Just trm })     -- set its' terminator to our arguement
+  return trm            -- the JUST is neededed because in our block term:: Maybe Terminator
 
 
 -- In all these, we use the instr function to wrap the AST nodes for simple arithmetic functions
 
-fadd :: Operand -> Operand -> Codegen Operand
-fadd a b = instr $ FAdd NoFastMathFlags a b []
 
-fsub :: Operand -> Operand -> Codegen Operand
-fsub a b = instr $ FSub NoFastMathFlags a b []
+-- THESE ARE THE ORIGINAL:
+-- fadd :: Operand -> Operand -> Codegen Operand
+-- fadd a b = instr $ FAdd NoFastMathFlags a b []
+--
+-- fsub :: Operand -> Operand -> Codegen Operand
+-- fsub a b = instr $ FSub NoFastMathFlags a b []
+--
+-- fmul :: Operand -> Operand -> Codegen Operand
+-- fmul a b = instr $ FMul NoFastMathFlags a b []
+--
+-- fdiv :: Operand -> Operand -> Codegen Operand
+-- fdiv a b = instr $ FDiv NoFastMathFlags a b []
 
-fmul :: Operand -> Operand -> Codegen Operand
-fmul a b = instr $ FMul NoFastMathFlags a b []
+-- JUST A BIT BETTER!
+add :: Operand -> Operand -> Codegen Operand
+add a b = instr $ FAdd  a b []
 
-fdiv :: Operand -> Operand -> Codegen Operand
-fdiv a b = instr $ FDiv NoFastMathFlags a b []
+sub :: Operand -> Operand -> Codegen Operand
+sub a b = instr $ FSub  a b []
 
+mul :: Operand -> Operand -> Codegen Operand
+mul a b = instr $ FMul a b []
 
+udiv :: Operand -> Operand -> Codegen Operand
+udiv a b = instr $ FDiv  a b []
+-- FastMath are for noobs
+-- we only use QUICK MUFFS
+-- The integer instructions don't use fast math flags  
 
 
 -- Control flow operations --
 -- These all must end the current block, so the instruction is added to the terminator, not the instruction stack
+-- Same logic as before applies, but now we call the terminator function instead of the instr one
 
 br :: Name -> Codegen (Named Terminator)
 br val = terminator $ Do $ Br val []
@@ -277,4 +308,4 @@ load :: Operand -> Codegen Operand
 load ptr = instr $ Load False ptr Nothing 0 []
 
 
--- Our basic infrastructure is done. Now the burdain falls to Emit.hs 
+-- Our basic infrastructure is done. Now the burdain falls to Emit.hs
