@@ -13,7 +13,7 @@ data Func_Def = F_Def String FPar_List R_Type L_Def_List Comp_Stmt
 type Stmt_List = [ Stmt ]
 
 
-type L_Def_List = [ Local_Def ]
+type L_Def_List = [ Local_Def ]             -- Local Functions or variables
  -- deriving (Eq, Show)
 
 data Comp_Stmt = C_Stmt Stmt_List
@@ -27,7 +27,7 @@ data FPar_Def = FPar_Def_Ref String Type
               | FPar_Def_NR String Type
                deriving (Eq, Show)
 
-data Data_Type = D_Type Token
+data Data_Type = D_Type Token   -- Parser takes care of us, only Token Int and Token Byte can reach this point 
           deriving (Eq, Show)
 
 data Type = S_Type Data_Type
