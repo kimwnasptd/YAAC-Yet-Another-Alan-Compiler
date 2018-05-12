@@ -1,33 +1,62 @@
--- The Types for the Symbol Table Entries
+module SymbolTableTypes where
+
+import Control.Monad.State
+import Control.Monad
 import qualified Data.Map as Map
 
--- Declare type Synonyms for better understanding
-type VarName = String
-type VarType = String
-type MethodName = String
-type SymbolName = String
 
--- The Symbol Table
-type SymbolTable = Map.Map SymbolName TableSymbol
--- But shouldn't it be something  more like a stack?
+type ScopeID = Int
 
-data TableSymbol =
-    MethodSymbol {
-      name       :: MethodName
-    , returnType :: String
-    , args       :: Map.Map VarName VarType            -- The arguments of the function
-    , methods    :: Map.Map MethodName MethodSymbol    -- This will most probably change
-    }
+type NameTable = Map.Map Name [ScopeID]     -- Key: Variable Name, Val: Scope Key (Used to search them in their own Map)
+type ScopeTable = Map.Map ScopeID Scope     -- 
 
-  | ScopeSymnol {
-      vars       :: Map.Map VarName VarType
-    }
+type Name = String
+type VarType = String   -- int, byte, t_byte, t_int (with "")
+type FunType = String   -- int, byte, proc
 
-    deriving (Show, Eq)
+data VarInfo = 
+    VarInfo {
+      var_name    :: Name
+    , var_type    :: VarType
+    , id          :: Int 
+    , dimension   :: Maybe Int
+  }
+  deriving Show
 
--- instance Show MethodSymbol where
---     show (MethodSymbol method_name rType method_args its_methods) = (show name)
--- Didn't work :'(
+data FunInfo = 
+    FunInfo {
+      fn_name        :: Name
+    , result_type    :: FunType
+    , args           :: [(Name,VarType)]
+    , forward_dec    :: Bool
+  }
+  deriving Show
 
--- Ex:
--- let first_symbol = MethodSymbol "main" "int" Map.empty Map.empty
+
+data Scope = 
+    Scope {
+      scope_id        :: ScopeID
+    , vars            :: Map.Map Name VarInfo     -- args go here ?
+    , funs            :: Map.Map Name FunInfo
+    , parent_scope    :: Scope  -- Maybe we won't need this one
+
+  }
+  deriving Show
+
+
+-- Monad Code
+data SemState =
+     SemState { nameTable   :: NameTable
+              , scopeTable  :: ScopeTable
+              , counter     :: Int
+              }
+    deriving Show
+
+initialSemState :: SemState
+initialSemState = SemState { nameTable = Map.empty, 
+                             scopeTable = Map.empty, 
+                             counter = 1
+                           }
+
+-- Our Semantic Monad
+type P a = State SemState a

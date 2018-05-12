@@ -6,18 +6,20 @@ LXR_DIR = Lexer/
 PSR = happy
 PSR_DIR = Parser/
 
+SEM_DIR = Semantic/
+
 CC_FLAGS = -i$(MODULES)
 LXR_FLAGS = -i
 PSR_FLAGS = -i
 
-MODULES = Lexer:Parser
+MODULES = Lexer:Parser:Semantic
 CLEAN_DIRS = Lexer Parser
 
 # ------------------------
 
-default: compiler
+default: parts compiler
 
-compiler: lexer parser
+parts: lexer parser 
 
 # ------------------------
 # Compile the Parser
@@ -38,6 +40,15 @@ parser: Parser.hs Lexer.hs
 
 Parser.hs: $(PSR_DIR)Parser.y
 	$(PSR) $(PSR_FLAGS) $(PSR_DIR)Parser.y
+
+# ------------------------
+# Compile the Compiler
+# ------------------------
+# semantic: $(SEM_DIR)SemanticFunctions.hs
+# 	$(CC) $(CC_FLAGS) $(SEM_DIR)SemanticFunctions.hs -o Semantic-bin
+
+compiler:
+	$(CC) $(CC_FLAGS) Compiler.hs -o YAAC-bin
 
 # ------------------------
 

@@ -124,7 +124,7 @@ Stmt: ";"                                { Stmt_Semi      }
 Comp_Stmt: "{" Stmt_List "}"             { C_Stmt $2      }
 
 Stmt_List: {-Nothing -}                  {       []       }
-         | Stmt_List Stmt                {     $2 : $1    }  -- Probaby ALL LISTS NEED AMENDING
+         | Stmt_List Stmt                {    $1 ++ [$2]  }  -- Probaby ALL LISTS NEED AMENDING
 
 
 Func_Call: var "(" Expr_List ")"         { Func_Call $1 $3 }
@@ -175,7 +175,7 @@ parseError _ = do
   lno <- getLineNo
   error $ "Parse error on line "++ show lno
 
--- parse::String->[(String,Int)]
+-- parse::String->Program (AST)
 parse s = evalP basicParser s
 
 }
