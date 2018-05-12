@@ -13,7 +13,7 @@ LXR_FLAGS = -i
 PSR_FLAGS = -i
 
 MODULES = Lexer:Parser:Semantic
-CLEAN_DIRS = Lexer Parser
+CLEAN_DIRS = Lexer Parser .
 
 # ------------------------
 
