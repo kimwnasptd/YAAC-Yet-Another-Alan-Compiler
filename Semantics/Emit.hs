@@ -62,18 +62,18 @@ cgen (S.Call fn args) = do
 -- just look at the binary operations of llvm.
 -- we put everything on a map to clean up the rest of the code.
 binops = Map.fromList [
-      ("*",  mul )
-    , ("/",  udiv)
-    , ("%",  urem)
-    , ("+",  add )
-    , ("-",  sub )
+      ("*",  mul )  -- > Done
+    , ("/",  sdiv)  -- > Done
+    , ("%",  srem)  -- > Done? Perhaps we want UREM?
+    , ("+",  add )  -- > Done
+    , ("-",  sub )  -- > Done
     , ("==", eq  )
     , ("!=", ne  )
     , (">",  gt  )
     , ("<",  lt  )
     , ("<=", leq )
     , (">=", geq )
-    , ("&",  andL)
+    , ("&",  andL)   
     , ("|",  orL )
   ]
 -- for our operators, we create a predifined association map
@@ -88,18 +88,18 @@ binops = Map.fromList [
 
 
 -- OUR VERSION:
--- NOTE:  As far as types go, we are ok. For the rest, I have my doubts.
+-- NOTE:  The llvm instructions are probably correct. For the rest, I have my doubts.
 
 eq :: AST.Operand -> AST.Operand -> Codegen AST.Operand
-lt a b = do
+eq a b = do
   test <- ICmp EQ a b
 
 ne :: AST.Operand -> AST.Operand -> Codegen AST.Operand
-lt a b = do
+ne a b = do
   test <- ICmp NE  a b
 
 gt :: AST.Operand -> AST.Operand -> Codegen AST.Operand
-lt a b = do
+gt a b = do
   test <- ICmp UGT a b
 
 lt :: AST.Operand -> AST.Operand -> Codegen AST.Operand
@@ -107,11 +107,11 @@ lt a b = do
   test <- ICmp ULT  a b
 
 leq :: AST.Operand -> AST.Operand -> Codegen AST.Operand
-lt a b = do
+leq a b = do
   test <- ICmp ULE a b
 
 geq :: AST.Operand -> AST.Operand -> Codegen AST.Operand
-lt a b = do
+geq a b = do
   test <- ICmp UGE a b
 
 -- NOTE: I still haven't figured out what to do about the 2 logical instructions, maybe
@@ -145,7 +145,7 @@ cgen (S.BinaryOp op a b) = do
 
 
 -- NOTE: Papaspyrou will be as if he sees as using the IO module
---  but we have to start from somewhere 
+--  but we have to start from somewhere
 codegen :: AST.Module -> [S.Expr] -> IO AST.Module
 codegen mod fns = withContext $ \context ->
   liftError $ withModuleFromAST context newast $ \m -> do

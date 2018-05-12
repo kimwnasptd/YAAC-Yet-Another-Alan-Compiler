@@ -13,7 +13,7 @@ byte :: Type
 byte = i8         -- This will be an UNSIGNED byte. Why? Well, I am glad you asked!
 -- http://lists.llvm.org/pipermail/llvm-dev/2011-November/044966.html
 -- there is no need to represent boolean values in our memory, so we don't have
--- to declare them
+-- to declare them.
 
 
 type Name = String                -- e.g. names of functions, blocks, etc are just Strings
@@ -264,20 +264,24 @@ terminator trm = do
 -- fdiv a b = instr $ FDiv NoFastMathFlags a b []
 
 -- JUST A BIT BETTER!
+-- all instructions can be found at: https://hackage.haskell.org/package/llvm-hs-pure-5.1.2/docs/LLVM-AST-Instruction.html
 add :: Operand -> Operand -> Codegen Operand
-add a b = instr $ FAdd  a b []
+add a b = instr $ Add  a b []
 
 sub :: Operand -> Operand -> Codegen Operand
-sub a b = instr $ FSub  a b []
+sub a b = instr $ Sub  a b []
 
 mul :: Operand -> Operand -> Codegen Operand
-mul a b = instr $ FMul a b []
+mul a b = instr $ Mul a b []
 
-udiv :: Operand -> Operand -> Codegen Operand
-udiv a b = instr $ FDiv  a b []
+sdiv :: Operand -> Operand -> Codegen Operand           -- SIGNED Integer  Division
+sdiv a b = instr $ SDiv  a b []
+
+srem :: Operand -> Operand -> Codegen Operand           -- SIGNED Integer  Division Remainder
+srem a b = instr $ SRem  a b []
 -- FastMath are for noobs
 -- we only use QUICK MUFFS
--- The integer instructions don't use fast math flags  
+-- ( The integer instructions don't use fast math flags )
 
 
 -- Control flow operations --

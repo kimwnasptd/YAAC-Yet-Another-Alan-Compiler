@@ -108,9 +108,9 @@ getToken (TChar _) _ s          = return $ Just $ TChar $ convEsc (init $ tail s
 getToken t _ _ = return (Just t)
 
 
--- Using get token, returns not only the token, but the corresponding line
-getLToken :: Token -> (Action, Int )
-getLToken token1 = return ( getToken token1, getLineNo)
+-- -- Using get token, returns not only the token, but the corresponding line
+--  getLToken :: Token -> (Action, Int )
+--  getLToken token1 = return ( getToken token1, getLineNo)
 
 -- Convert the mathced weird characters (\\n) to their coresponding ones
 convEsc :: String -> String
