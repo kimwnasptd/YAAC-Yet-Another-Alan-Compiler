@@ -27,8 +27,8 @@ data FPar_Def = FPar_Def_Ref String Type
               | FPar_Def_NR String Type
                deriving (Eq, Show)
 
-data Data_Type = D_Type Token   -- Parser takes care of us, only Token Int and Token Byte can reach this point 
-          deriving (Eq, Show)
+data Data_Type = D_Type Token   -- Parser takes care of us,
+          deriving (Eq, Show)   -- only Token Int and Token Byte can reach this point 
 
 data Type = S_Type Data_Type
           | Table_Type Data_Type
