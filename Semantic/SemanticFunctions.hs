@@ -43,13 +43,14 @@ openScope :: String -> P ()
 openScope name = do
   writeLog $ "Opening a new Scope for " ++ name
   s <- get
-  put s {   -- Put as a State the current one
-      currentScope = emptyScope { -- But as a currentScope we put an empty one
-        parent_scope = (Just $ currentScope s)  -- And change its parent
-      , scp_name = name
-      }
-  }
-  return ()
+  case scp_name (currentScope s) of
+    "" -> put s { currentScope = emptyScope { scp_name = name } }  -- if we are the INITIAL scope, we just change the scope's name
+    _  -> put s {   -- Put as a State the current one
+                  currentScope = emptyScope { -- But as a currentScope we put an empty one
+                  parent_scope = (Just $ currentScope s)  -- And change its parent
+                  , scp_name = name
+                  }
+                }
 
 -- Revert the currentScope to the parent one
 -- and remove the Latest entries of the vars
@@ -86,14 +87,33 @@ removeScopeFuns (fun:funs) = do
 removeScopeFuns [] = do
   return ()
 
+-- Put the Function args to the current Scope
+addFArgs :: FPar_List -> P ()
+addFArgs (arg:args) = do
+  return ()
+addFArgs [] = do
+  return ()
 
+-- addFunc
+-- addVar
+-- addFArgs
+--
 -- ------------------------------------------------------- --
 -- ----------------Top Level Functions-------------------- --
 
-ast_sem :: Program -> P String
-ast_sem (Prog (F_Def name _ _ _ _)) = do
-  openScope name
+semFuncDef :: F_Def -> P ()
+semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
+  addFunc name args_lst f_type
+  openScope name   -- > every function creates a new scope
+  addFArgs args_lst  -- > add formal parameters
+  addFunc name args_lst f_type
+  addLDef ldef_list
+  semStmtList cmp_stmt
   closeScope
+
+ast_sem :: Program -> P String
+ast_sem (Prog main) = do
+  semFuncDef main
   s <- get
   return (logger s)
 

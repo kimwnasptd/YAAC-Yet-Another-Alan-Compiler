@@ -21,6 +21,7 @@ data VarInfo = VarInfo {
     , var_type    :: VarType
     , id          :: Int
     , dimension   :: Maybe Int
+    , byreference :: Bool 
   }
   deriving Show
 
