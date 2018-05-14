@@ -73,7 +73,7 @@ binops = Map.fromList [
     , ("<",  lt  )
     , ("<=", leq )
     , (">=", geq )
-    , ("&",  andL)   
+    , ("&",  andL)
     , ("|",  orL )
   ]
 -- for our operators, we create a predifined association map
@@ -123,7 +123,6 @@ geq a b = do
 -- orL :: AST.Operand -> AST.Operand -> Codegen AST.Operand
 -- lt a b = do
 --   test <- ICmp UGE a b
-
 
 
 
