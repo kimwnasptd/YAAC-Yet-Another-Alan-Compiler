@@ -1,5 +1,6 @@
 module SemanticFunctions where
 
+import Tokens
 import ASTTypes
 import SymbolTableTypes
 import qualified Data.HashMap.Strict as Map
@@ -127,16 +128,14 @@ createFtype ( R_Type_DT (D_Type sth  ) ) = case show sth of
 -- createFType ( R_Type_DT (D_Type TByte ) ) = "byte"
 
 createArgType:: FPar_Def -> (Name,VarType, Bool )    -- takes a function arguement from the ast and returns its sem tuple
-createArgType ( FPar_Def_Ref str tp ) = case show tp of
-  "S_Type (D_Type TInt)"      -> (str, "int" ,True)
-  "S_Type (D_Type TByte)"     -> (str, "byte" ,True)
-  "Table_Type (D_Type TInt)" -> (str, "int table" ,True)
-  "Table_Type (D_Type TByte)" -> (str, "byte table" ,True)
-createArgType ( FPar_Def_NR str tp ) = case show tp of
-  "S_Type (D_Type TInt)"      -> (str, "int" ,False)
-  "S_Type (D_Type TByte)"     -> (str, "byte" ,False)
-  "Table_Type (D_Type TInt)" -> (str, "int table" ,False)
-  "Table_Type (D_Type TByte)" -> (str, "byte table" ,False)
+createArgType ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = (str, "int" ,True)
+createArgType ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = (str, "byte" ,True)
+createArgType ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = (str, "int table" ,True)
+createArgType ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = (str, "int table" ,True)
+createArgType ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = (str, "int" ,False)
+createArgType ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = (str, "byte" ,False)
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, "int table" ,False)
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, "int table" ,False)
 
 createVarInfo:: Name -> VarType -> Int ->  Maybe Int -> Bool -> VarInfo
 createVarInfo  nm_str vt idv dimension_num by_ref_bool =  VarInfo {
