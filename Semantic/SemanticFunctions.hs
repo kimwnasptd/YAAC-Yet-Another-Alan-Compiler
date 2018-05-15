@@ -137,6 +137,17 @@ createArgType ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = (str, "byte" ,F
 createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, "int table" ,False)
 createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, "int table" ,False)
 
+
+createVar :: Var_Def -> VarInfo
+createVar ( VDef str (D_Type TInt) )  = createVarInfo str "int"  0 Nothing False
+createVar ( VDef str (D_Type TByte) ) = createVarInfo str "byte" 0 Nothing False
+createVar ( VDef_T str (D_Type TInt) dimension  )  = createVarInfo str "int table"  0 (Just dimension) False
+createVar ( VDef_T str (D_Type TByte) dimension )  = createVarInfo str "byte table" 0 (Just dimension) False
+-- Whenever we create a variable from a Var_Def, it's always NOT by reference
+-- If it's a table, we know a priori its size, so we add it
+-- Else, we add Nothing to the dimension
+
+
 createVarInfo:: Name -> VarType -> Int ->  Maybe Int -> Bool -> VarInfo
 createVarInfo  nm_str vt idv dimension_num by_ref_bool =  VarInfo {
       var_name = nm_str
@@ -151,14 +162,20 @@ addFunc name args_lst f_type = do
     scpnm <- getScopeName
     writeLog  $ "add function was called from scope  " ++ scpnm ++ "for function " ++ name
     let
-      our_ret = createFType f_type
-    -- createFunInfo name args_lst f_type
-    -- insert name
+      our_ret = createFType f_type   -- we format all of the function stuff properly
+      fun_args = map createArgType args_lst
+      our_fn = createFunInfo name fun_args our_ret
+    -- insert name  NOTE: We need to talk about what sem functions actually do ...
     return ()
 
 addLDef :: L_Def_List -> P ()
 addLDef _ = do
     return ()
+
+
+
+
+-- createLocalDef:: L_Def  
 
 --
 -- ------------------------------------------------------- --
