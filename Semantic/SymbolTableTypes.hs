@@ -32,7 +32,7 @@ data VarInfo = VarInfo {
 data FunInfo = FunInfo {
       fn_name        :: Name
     , result_type    :: FunType
-    , args           :: [(Name,VarType)]
+    , args           :: [(Name,VarType, Bool )]  -- NOTE: for every argument, we know if its by reference or not 
     , forward_dec    :: Bool
   }
   deriving Show
@@ -71,7 +71,7 @@ emptyScope = Scope {
 initialSemState :: SemState
 initialSemState = SemState {
       symbol_fend = Map.empty
-    , symbol_bend = Map.empty   
+    , symbol_bend = Map.empty
     , currentScope = emptyScope
     , counter = 1   -- We might also not need this
     , logger = ""

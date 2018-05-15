@@ -5,6 +5,7 @@ import SymbolTableTypes
 import qualified Data.HashMap.Strict as Map
 import Control.Monad.State
 import Control.Monad
+-- import Lexer.hs
 
 -- ------------------------------------------------------- --
 -- ------------------------------------------------------- --
@@ -98,7 +99,7 @@ addFArgs [] = do
 -- addVar
 -- addFArgs
 
-createFunInfo :: Name -> [(Name,VarType)]  ->  FunType -> FunInfo
+createFunInfo :: Name -> [(Name,VarType,Bool)]  ->  FunType -> FunInfo
 createFunInfo func_name fun_args fun_res = FunInfo {
       fn_name = func_name
     , result_type = fun_res
@@ -116,6 +117,27 @@ createFunInfo func_name fun_args fun_res = FunInfo {
 --   }
 --   deriving Show
 
+createFType :: R_Type -> FunType  -- takes the token that corresponds to a functions return type
+createFType R_Type_Proc =  "proc" -- and returns its VarType string
+-- createFtype ( R_Type_DT (D_Type sth  ) ) = show sth    -- NOTE: I am going to strangle you Kimonas.
+createFtype ( R_Type_DT (D_Type sth  ) ) = case show sth of
+  "TInt"  -> "int"
+  "TByte" -> "byte"
+  _ -> seq undefined "oops "
+-- createFType ( R_Type_DT (D_Type TByte ) ) = "byte"
+
+createArgType:: FPar_Def -> (Name,VarType, Bool )    -- takes a function arguement from the ast and returns its sem tuple
+createArgType ( FPar_Def_Ref str tp ) = case show tp of
+  "S_Type (D_Type TInt)"      -> (str, "int" ,True)
+  "S_Type (D_Type TByte)"     -> (str, "byte" ,True)
+  "Table_Type (D_Type TInt)" -> (str, "int table" ,True)
+  "Table_Type (D_Type TByte)" -> (str, "byte table" ,True)
+createArgType ( FPar_Def_NR str tp ) = case show tp of
+  "S_Type (D_Type TInt)"      -> (str, "int" ,False)
+  "S_Type (D_Type TByte)"     -> (str, "byte" ,False)
+  "Table_Type (D_Type TInt)" -> (str, "int table" ,False)
+  "Table_Type (D_Type TByte)" -> (str, "byte table" ,False)
+
 createVarInfo:: Name -> VarType -> Int ->  Maybe Int -> Bool -> VarInfo
 createVarInfo  nm_str vt idv dimension_num by_ref_bool =  VarInfo {
       var_name = nm_str
@@ -129,6 +151,10 @@ addFunc :: String ->  FPar_List  ->  R_Type -> P ()
 addFunc name args_lst f_type = do
     scpnm <- getScopeName
     writeLog  $ "add function was called from scope  " ++ scpnm ++ "for function " ++ name
+    let
+      our_ret = createFType f_type
+    -- createFunInfo name args_lst f_type
+    -- insert name
     return ()
 
 addLDef :: L_Def_List -> P ()
@@ -152,7 +178,7 @@ semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
 
 semStmtList :: Comp_Stmt -> P ()
 semStmtList _ = do
-    return ()  
+    return ()
 
 ast_sem :: Program -> P String
 ast_sem (Prog main) = do
