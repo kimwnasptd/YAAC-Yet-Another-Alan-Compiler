@@ -32,17 +32,20 @@ data VarInfo = VarInfo {
 data FunInfo = FunInfo {
       fn_name        :: Name
     , result_type    :: FunType
-    , args           :: [(Name,VarType, Bool )]  -- NOTE: for every argument, we know if its by reference or not 
+    , args           :: [(Name,VarType, Bool )]  -- NOTE: for every argument, we know if its by reference or not
     , forward_dec    :: Bool
   }
   deriving Show
 
+data G_Info = V VarInfo
+            | F FunInfo
+            deriving Show
 
 data Scope = Scope {
       scope_id        :: ScopeID
     , scp_name        :: Name
-    , vars            :: Map.HashMap Name VarInfo     -- args and local vars go here
-    , funs            :: Map.HashMap Name FunInfo     -- funcs go here
+    , symbols         :: Map.HashMap Name G_Info     -- args and local vars go here
+    -- , funs            :: Map.HashMap Name FunInfo     -- funcs go here
     , parent_scope    :: Maybe Scope  -- Used when we close a scope
   }
   deriving Show
@@ -63,8 +66,7 @@ emptyScope :: Scope
 emptyScope = Scope {
         scope_id = 0  -- I think we won't need this. Yeah yeah
       , scp_name = ""
-      , vars = Map.empty
-      , funs = Map.empty
+      , symbols = Map.empty
       , parent_scope = Nothing    -- Genesis Scope doesn't have a parent
   }
 
