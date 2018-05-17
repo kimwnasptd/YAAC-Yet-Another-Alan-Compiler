@@ -69,28 +69,13 @@ closeScope = do
         symbol_names = Map.keys $ symbols currScope
 
     removeScopeSymbols symbol_names scpnm
-  -- Remove the Function Names
-
+    s <- get
 
   -- Make current Scope the Parent one
     case parent_scope (currentScope s) of
         Just scope -> put s { currentScope = scope }
         Nothing -> return ()
 
-
--- Removes the current Scope from the list of Scopes
--- for each of the variables in this scope
-removeScopeVars :: [Name] -> P ()
-removeScopeVars (var:vars) = do
-  return ()   -- TODO
-removeScopeVars [] = do
-  return ()
-
-removeScopeFuns :: [Name] -> P ()
-removeScopeFuns (fun:funs) = do
-  return ()   -- TODO
-removeScopeFuns [] = do
-  return ()
 
 -- Removes the va
 cleanup :: SymbolTable_Frontend -> [Name] -> Name -> SymbolTable_Frontend
@@ -99,8 +84,8 @@ cleanup frontend (var_name:rest) scope_name = case Map.lookup var_name frontend 
     Nothing -> cleanup frontend rest scope_name -- what we wanted to remove didn't even make it
     -- to the inner workings of our symbol table, what a short life!
     Just [] -> cleanup frontend rest scope_name -- NOTE: This would have been a bug for the ages!
-    Just name_list -> case head name_list of
-        scope_name -> cleanup ( Map.insert var_name (tail name_list) frontend ) rest  scope_name
+    Just name_list -> case ( scope_name == head name_list ) of
+        True -> cleanup ( Map.insert var_name (tail name_list) frontend ) rest  scope_name
             -- new_frontend = Map.insert var_name (tail name_list) frontend
             -- cleanup new_frontend rest scope_name
             -- we remove the name of the current scope from the record of names that has that variable
@@ -116,7 +101,7 @@ cleanup frontend (var_name:rest) scope_name = case Map.lookup var_name frontend 
 
 removeScopeSymbols :: [Name] -> Name ->  P ()
 removeScopeSymbols [] nm  = do
-  return ()
+    writeLog $ "cleaning up the symbol table for scope name "  ++ nm
 removeScopeSymbols symbol_lst nm = do
     writeLog $ "cleaning up the symbol table for scope name "  ++ nm
     s <- get
@@ -124,7 +109,7 @@ removeScopeSymbols symbol_lst nm = do
         curr_fend = symbol_fend s  -- get the current front-end of our symbol table
         clean_fend = cleanup curr_fend symbol_lst nm  -- clean it up
     put s { symbol_fend = clean_fend}  -- put the clean symbol table back in the state.
-    return ()   -- TODO
+
 
 
 
@@ -260,21 +245,28 @@ addVar vdef = do
         curr_fend = symbol_fend s                 -- get our backend implementation of nested scopes
         newSymbols = Map.insert new_var_name new_G_Info currSymbols -- we update our symbol table
         newScope = currScope { symbols = newSymbols }   -- we updated our scope
-        new_fend = Map.insertWith foo new_var_name [scpnm] curr_fend where  -- we also update our backend
-            foo lst_a lst_b = lst_a ++ lst_b
+        new_fend = Map.insertWith (++) new_var_name [scpnm] curr_fend  -- we also update our backend
             -- NOTE : We also need to update our behind the scenes scopes! If you have an issue with that Kimonas,
             -- my biceps are bigger than yours, just saying...
 
     put s    { symbol_fend = new_fend
              , currentScope = newScope
     }
-    writeLog $ "adding variable " ++ new_var_name ++ "to the scope " ++ scpnm
-
-    return ()
+    writeLog $ "Adding variable " ++ new_var_name ++ " to the scope " ++ scpnm
 
 
+addLDef :: Local_Def -> P ()
+addLDef def = do
+  case def of
+    Loc_Def_Fun fun -> semFuncDef fun
+    Loc_Def_Var var -> addVar var
 
-
+-- Check it at night
+addLDefLst :: [Local_Def] -> P  ()
+addLDefLst [] = do { return () }
+addLDefLst (def:defs) = do
+    addLDef def
+    addLDefLst defs
 
 
 
@@ -287,7 +279,7 @@ semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
   openScope name   -- > every function creates a new scope
   addFArgs args_lst  -- > add formal parameters  (list of var info , add it to the map with the vars)
   addFunc name args_lst f_type  -- > NOTE: add the function to the inside scope as well ?
-  --NOTE: addLDef ldef_list             -- > add the local definitions of that function
+  addLDefLst ldef_list             -- > add the local definitions of that function
   semStmtList cmp_stmt          -- > do the Semantic analysis of the function body
   closeScope                    -- > close the function' s scope
 
