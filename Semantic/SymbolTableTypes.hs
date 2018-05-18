@@ -4,13 +4,7 @@ import Control.Monad.State
 import Control.Monad
 import qualified Data.HashMap.Strict as Map
 
-
-type ScopeID = Int
-
--- type SymbolTable = Map.HashMap Name [Scope]    -- NOTE: I am sorry, but I can not go on unless we change this
-type SymbolTable_Frontend = Map.HashMap Name [Name ]    -- Tells us in which scope to search
--- it takes us from VARIABLE NAME _>  [ SCOPE NAME ] (the same variable may be in a list of scopes )
-type SymbolTable_Backend = Map.HashMap Name Scope
+type SymbolTable = Map.HashMap Name [Scope]
 -- we give it the SCOPE NAME and it gives us the actual scope
 
 -- type NameTable = Map.Map Name [ScopeID]     -- Key: Variable Name, Val: Scope Key
@@ -42,10 +36,8 @@ data G_Info = V VarInfo
             deriving Show
 
 data Scope = Scope {
-      scope_id        :: ScopeID
-    , scp_name        :: Name
+      scp_name        :: Name
     , symbols         :: Map.HashMap Name G_Info     -- args and local vars go here
-    -- , funs            :: Map.HashMap Name FunInfo     -- funcs go here
     , parent_scope    :: Maybe Scope  -- Used when we close a scope
   }
   deriving Show
@@ -54,28 +46,23 @@ data Scope = Scope {
 -- Monad Code
 data SemState = SemState {
     -- symbolTable :: SymbolTable
-      symbol_fend   :: SymbolTable_Frontend
-    , symbol_bend   :: SymbolTable_Backend
+      symbolTable   :: SymbolTable
     , currentScope  :: Scope   -- > We always keep the current scope close to our chest.
-    , counter       :: Int
     , logger        :: String
   }
   deriving Show
 
 emptyScope :: Scope
 emptyScope = Scope {
-        scope_id = 0  -- I think we won't need this. Yeah yeah
-      , scp_name = ""
+        scp_name = ""
       , symbols = Map.empty
       , parent_scope = Nothing    -- Genesis Scope doesn't have a parent
   }
 
 initialSemState :: SemState
 initialSemState = SemState {
-      symbol_fend = Map.empty
-    , symbol_bend = Map.empty
+      symbolTable = Map.empty
     , currentScope = emptyScope
-    , counter = 1   -- We might also not need this
     , logger = ""
   }
 
