@@ -7,7 +7,7 @@ import qualified Data.HashMap.Strict as Map
 
 type ScopeID = Int
 
-type SymbolTable = Map.HashMap Name [Scope]    -- NOTE: I am sorry, but I can not go on unless we change this
+-- type SymbolTable = Map.HashMap Name [Scope]    -- NOTE: I am sorry, but I can not go on unless we change this
 type SymbolTable_Frontend = Map.HashMap Name [Name ]    -- Tells us in which scope to search
 -- it takes us from VARIABLE NAME _>  [ SCOPE NAME ] (the same variable may be in a list of scopes )
 type SymbolTable_Backend = Map.HashMap Name Scope

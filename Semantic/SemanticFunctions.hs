@@ -36,6 +36,39 @@ getScopeName = do
   s <- get
   return (scp_name $ currentScope s)
 
+
+-- Looks up for a definition of a name in all scopes, and returs its defintion,
+-- the name of the scope it was found in, and whether that was the current scope or not
+check_all_scopes:: Name -> P ( Maybe (G_Info, Name, Bool  ) )
+check_all_scopes var_name = do
+    s <- get
+    let
+        curr_scope =  currentScope s
+        curr_symbols = symbols $  currentScope s
+        curr_name = scp_name curr_scope
+    case Map.lookup var_name curr_symbols of
+        Just info -> return ( Just (info, curr_name, True ) ) -- the variable is in the current scope
+        Nothing   ->  do   -- the variable isn't defined in the current scope
+            let  -- but we must still check our private stash of scopes
+                fend = symbol_fend s
+                bend = symbol_bend s
+            case Map.lookup var_name fend of
+                Nothing -> return Nothing -- the variable is nowhere to be found
+                Just [] -> return Nothing -- the variable is nowhere to be found
+                Just (scpnm:rest ) -> -- the variable has a 'live' definition in a previous scope
+                    case Map.lookup scpnm bend of
+                        Nothing -> error $ "symbol table inconsistency from scope " ++ curr_name ++ " to " ++ scpnm ++ " while searching for " ++ var_name
+                        Just new_scope -> case Map.lookup var_name  (symbols $ new_scope) of
+                            Just info -> return ( Just (info, scpnm, False) )
+                            Nothing -> error $ "symbol table inconsistency from scope " ++ curr_name ++ " to " ++ scpnm ++ "while searching for " ++ var_name
+-- NOTE: What are these symbol table inconsistencies? If the frontend of our symbol table says that the info for
+-- a specific name is held at the backend named A, then that backend should always contain the info for that definition,
+-- else, something has gone terribly wrong
+
+-- NOTE: We should beautify it, but during night time only
+
+
+
 -- ------------------------------------------------------- --
 -- ----------------------Scope Functions----------------- --
 
@@ -45,13 +78,20 @@ openScope :: String -> P ()
 openScope name = do
   writeLog $ "Opening a new Scope for " ++ name
   s <- get
-  case scp_name (currentScope s) of
+  writeLog $ "The keys of the scope we were in are: " ++ (show $ Map.keys $ symbols $ currentScope s)
+  s <- get
+  let
+    curr_scope = currentScope s
+    curr_name = scp_name curr_scope
+  case curr_name of
     "" -> put s { currentScope = emptyScope { scp_name = name } }  -- if we are the INITIAL scope, we just change the scope's name
     _  -> put s {   -- Put as a State the current one
                   currentScope = emptyScope { -- But as a currentScope we put an empty one
-                  parent_scope = (Just $ currentScope s)  -- And change its parent
+                  parent_scope = (Just $ curr_scope)  -- And change its parent
                   , scp_name = name
                   }
+                  , symbol_bend = Map.insert (curr_name) (curr_scope) (symbol_bend s)
+                  -- finally, when we open a new scope, we need to add the current one to our backend.
                 }
 
 -- Revert the currentScope to the parent one
@@ -70,14 +110,15 @@ closeScope = do
 
     removeScopeSymbols symbol_names scpnm
     s <- get
-
   -- Make current Scope the Parent one
     case parent_scope (currentScope s) of
-        Just scope -> put s { currentScope = scope }
         Nothing -> return ()
+        Just scope ->  put s { currentScope = scope, symbol_bend = Map.delete scpnm $ symbol_bend s }
+-- When we close a scope, we also delete it from our backend, if it was ever there
 
 
--- Removes the va
+
+-- Removes the variables from all the appropriate scopes
 cleanup :: SymbolTable_Frontend -> [Name] -> Name -> SymbolTable_Frontend
 cleanup frontend [] scope_name = frontend
 cleanup frontend (var_name:rest) scope_name = case Map.lookup var_name frontend of
@@ -261,7 +302,7 @@ addLDef def = do
     Loc_Def_Fun fun -> semFuncDef fun
     Loc_Def_Var var -> addVar var
 
--- Check it at night
+-- Check it at night. -> Looks fine to me.
 addLDefLst :: [Local_Def] -> P  ()
 addLDefLst [] = do { return () }
 addLDefLst (def:defs) = do
