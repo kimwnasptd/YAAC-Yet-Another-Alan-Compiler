@@ -26,7 +26,7 @@ data VarInfo = VarInfo {
 data FunInfo = FunInfo {
       fn_name        :: Name
     , result_type    :: FunType
-    , args           :: [(Name,VarType, Bool )]  -- NOTE: for every argument, we know if its by reference or not
+    , args           :: [(Name,VarType,Bool,Bool)]  -- NOTE: for every argument, we know if its by reference or not
     , forward_dec    :: Bool
   }
   deriving Show

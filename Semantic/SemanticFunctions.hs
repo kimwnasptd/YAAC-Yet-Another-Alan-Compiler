@@ -25,20 +25,27 @@ getScopeName = do
 
 -- Looks up for a definition of a name in all scopes, and returs its defintion,
 -- the name of the scope it was found in, and whether that was the current scope or not
-checkSymbol:: Name -> P ( Maybe (G_Info, Name, Bool) )
+checkSymbol:: Name -> P ( Maybe G_Info )
 checkSymbol var_name = do
     s <- get
     let curr_scope = currentScope s
     case var_name `Map.lookup` (symbols curr_scope) of
-        Just info -> return $ Just (info, scp_name curr_scope, True )  -- the variable is in the current scope
+        Just info -> return $ Just info  -- the variable is in the current scope
         Nothing   ->  do   -- the variable isn't defined in the current scope
             case var_name `Map.lookup` (symbolTable s) of
                 Nothing -> return Nothing -- the variable is nowhere to be found
                 Just [] -> return Nothing -- the variable is nowhere to be found
                 Just (scp:scps) -> case var_name `Map.lookup` (symbols scp) of
-                    Just info -> return ( Just (info, scp_name scp, False) )
+                    Just info -> return ( Just info )
                     Nothing   -> return Nothing
 
+-- To save ourselfes writing "case" again and again
+checkSymbolError :: Name -> P G_Info
+checkSymbolError symbol = do
+    symbol_check <- checkSymbol symbol
+    case symbol_check of
+        Nothing     -> error $ "Symbol " ++ symbol ++ " is not defined!"
+        Just def    -> return def
 -- ------------------------------------------------------- --
 -- ----------------------Scope Functions------------------ --
 
@@ -46,6 +53,7 @@ checkSymbol var_name = do
 -- the currentScope in our State
 openScope :: String -> P ()
 openScope name = do
+    s <- get
     writeLog $ "The keys of the scope we were in are: " ++ (show $ Map.keys $ symbols $ currentScope s)
     writeLog $ "Opening a new Scope for " ++ name
     s <- get
@@ -102,7 +110,7 @@ removeScopeSymbols symbol_lst nm = do
 -- ------------------------------------------------------- --
 -- ----------------Transofrmation Functions--------------- --
 
-createFunInfo :: Name -> [(Name,VarType,Bool)]  ->  FunType -> FunInfo
+createFunInfo :: Name -> [(Name,VarType,Bool,Bool)]  ->  FunType -> FunInfo
 createFunInfo func_name fun_args fun_res = FunInfo {
       fn_name = func_name
     , result_type = fun_res
@@ -115,15 +123,16 @@ createFType R_Type_Proc =  "proc" -- and returns its VarType string
 createFtype ( R_Type_DT (D_Type TInt ) ) =  "int"
 createFtype ( R_Type_DT (D_Type TByte ) ) =  "byte"
 
-createArgType:: FPar_Def -> (Name,VarType, Bool )    -- takes a function arguement from the ast and returns its sem tuple
-createArgType ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = (str, "int" ,True)
-createArgType ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = (str, "byte" ,True)
-createArgType ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = (str, "int table" ,True)
-createArgType ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = (str, "byte table" ,True)
-createArgType ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = (str, "int" ,False)
-createArgType ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = (str, "byte" ,False)
-createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, "int table" ,False)
-createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, "byte table" ,False)
+-- (Var Name, Var Type{int, byte}, Reference{T,F}, Table{T,F})
+createArgType:: FPar_Def -> (Name,VarType, Bool, Bool )    -- takes a function arguement from the ast and returns its sem tuple
+createArgType ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = (str, "int" , True, False)
+createArgType ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = (str, "byte", True, False)
+createArgType ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = (str, "int" , True, True)
+createArgType ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = (str, "byte", True, True)
+createArgType ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = (str, "int" , False, False)
+createArgType ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = (str, "byte", False, False)
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, "int" , False, True)
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, "byte", False, True)
 
 
 createVar_from_Def :: Var_Def -> VarInfo
@@ -222,6 +231,82 @@ addLDefLst (def:defs) = do
 -- ------------------------------------------------------- --
 -- ----------------Top Level Functions-------------------- --
 
+-- Used to ensure that variables are used as variables
+-- and tables as tables
+checkValidLeftVal :: L_Value -> P ()
+checkValidLeftVal (LV_Lit _) = return ()
+checkValidLeftVal (LV_Var var) = do
+    V var_info <- checkSymbolError var
+    case dimension var_info of
+        Nothing -> return ()
+        _       -> error $ "Using table " ++ var_name var_info ++ " as a variable!"
+checkValidLeftVal (LV_Tbl var _) = do
+    V var_info <- checkSymbolError var
+    case dimension var_info of
+        Nothing -> error $ "Using variable " ++ var_name var_info ++ " as a table!"
+        _       -> return ()
+
+-- Recursively check the type of the expression, and return it
+getExprType :: Expr -> P String
+getExprType (Expr_Int _) = return "int"
+getExprType (Expr_Char _)= return "byte"
+getExprType (Expr_Brack expr) = getExprType expr
+
+getExprType (Expr_Lval (LV_Lit str)) = return "string"     -- Just something different from int,byte
+getExprType (Expr_Lval (LV_Var var)) = do
+    checkValidLeftVal (LV_Var var)
+    V var_info <- checkSymbolError var
+    return $ var_type var_info
+getExprType (Expr_Lval (LV_Tbl var dim)) = do
+    checkValidLeftVal (LV_Tbl var dim)
+    V var_info <- checkSymbolError var
+    return $ var_type var_info
+
+getExprType (Expr_Add e1 e2 ) = do
+    e1_type <- getExprType e1
+    e2_type <- getExprType e2
+    case e1_type == e2_type of
+        True  -> return e1_type
+        False -> error $ "Cant add " ++ e1_type ++ " and " ++ e2_type
+
+getExprType _ = return ""
+
+
+-- NOTE Up to now Smt_Eq only works
+-- check getExprType which check if an Expr is well defined and returns its type
+-- Haven't touched function checking (params, return vals etc)
+semStmt :: Stmt -> P ()
+-- Just a ; do nothing
+semStmt Stmt_Semi = return ()
+
+-- Case where L_Value = Expr (Stmt_Eq)
+semStmt (Stmt_Eq (LV_Lit str) expr) =
+    error $ "Cannot assign value to string: " ++ str
+-- Bytes must be < 256
+semStmt (Stmt_Eq lval (Expr_Int num)) = do
+    lval_type <- getExprType (Expr_Lval lval)
+    case (lval_type == "byte") && (num > 255) of
+        True    ->  error $ "Byte must be from 0 - 255, value " ++ show num ++ " was given."
+        False   ->  return ()
+-- In
+semStmt (Stmt_Eq lval expr) = do
+    checkValidLeftVal lval
+    lval_type <- getExprType (Expr_Lval lval)
+    expr_type <- getExprType expr
+    case lval_type == expr_type of
+        True  -> return ()
+        False -> error $ "Can't assign a " ++ expr_type ++ " to " ++ lval_type
+
+semStmt _ = return ()
+
+
+semStmtList :: Comp_Stmt -> P ()
+semStmtList (C_Stmt []) = do
+    return ()
+semStmtList (C_Stmt (stmt:rest)) = do
+    semStmt stmt
+    semStmtList (C_Stmt rest)    -- this will be beautified with a nice fmap
+
 semFuncDef :: Func_Def -> P ()
 semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
     addFunc name args_lst f_type      -- > we add the function to our CURRENT scope, so the one who defined the function can then call her.
@@ -232,10 +317,6 @@ semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
     closeScope                        -- > close the function' s scope
 
-
-semStmtList :: Comp_Stmt -> P ()
-semStmtList _ = do
-    return ()
 
 ast_sem :: Program -> P String
 ast_sem (Prog main) = do

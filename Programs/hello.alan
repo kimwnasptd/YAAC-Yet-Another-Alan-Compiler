@@ -2,24 +2,18 @@ hello () : proc
     Counter : int[5];
     guard : byte;
     n1 : int;
-
-    sum(n1:int, n2:int) : int
-
-        mult(n1:int, n2:int) : int
-        {
-            return n1 * n2;
-        }
-
-        res : int;
-
-    {
-        return mult(n1,n3) + n2;
-    }
-
     
 {
     -- writeString("Hello World\n");
-    Counter = 5;
-    guard = 1;
-    Counter = sum(Counter,Counter);
+    -- Counter[1] = 5;
+
+    --These are the errors we can catch up to now
+    -- guard = 256;     -- byte > 255
+    -- Counter = 5 + 5;     -- Table as var
+    -- Counter[0] = "erpis";
+    -- Counter[0] = "kimonas" + 5;
+    -- Counter[1] = 1 + guard;  -- Int + Byte
+    -- Counter[1] = Counter + 2;   -- Works from both sides
+    -- "kimonas" = 5;
+    -- ermis = 5;
 }

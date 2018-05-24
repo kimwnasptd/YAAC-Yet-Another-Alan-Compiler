@@ -17,7 +17,7 @@ CLEAN_DIRS = . Lexer Parser Semantic
 
 # ------------------------
 
-default: parts compiler
+default: compiler
 
 parts: lexer parser 
 
