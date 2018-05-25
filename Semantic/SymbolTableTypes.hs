@@ -18,7 +18,7 @@ data VarInfo = VarInfo {
       var_name    :: Name              -- the variable name
     , var_type    :: VarType
     , id_num      :: Int               -- we'll probably need this field later
-    , dimension   :: Maybe Int         -- its dimensions, if it's a table
+    , dimension   :: Maybe Int         -- its dimensions, if it's a table NOTE: It's nothing, if we arent' a table 
     , byreference :: Bool              -- if it was passed by reference (if it is a function arg)
   }
   deriving Show

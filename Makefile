@@ -17,9 +17,9 @@ CLEAN_DIRS = . Lexer Parser Semantic
 
 # ------------------------
 
-default: compiler
+default: parts  compiler
 
-parts: lexer parser 
+parts: lexer parser
 
 # ------------------------
 # Compile the Parser
@@ -35,7 +35,7 @@ Lexer.hs: $(LXR_DIR)Lexer.x
 # Compile the Parser
 # ------------------------
 
-parser: Parser.hs Lexer.hs
+parser: Parser.hs
 	$(CC) $(CC_FLAGS) $(PSR_DIR)parser_run.hs -o Parser-bin
 
 Parser.hs: $(PSR_DIR)Parser.y
@@ -53,7 +53,7 @@ compiler:
 # ------------------------
 
 clean:
+	rm Lexer-bin  Parser-bin ./Parser/Parser.hs ./Lexer/Lexer.hs  YAAC-bin # remove anything missed by the previous steps
 	for i in $(CLEAN_DIRS); do \
 		rm $$i/*.o $$i/*.hi $$i/*.info ; \
 	done
-	rm Lexer-bin  Parser-bin ./Parser/Parser.hs ./Lexer/Lexer.hs   # remove anything missed by the previous steps 

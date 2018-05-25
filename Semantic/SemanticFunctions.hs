@@ -34,10 +34,11 @@ checkSymbol var_name = do
         Nothing   ->  do   -- the variable isn't defined in the current scope
             case var_name `Map.lookup` (symbolTable s) of
                 Nothing -> return Nothing -- the variable is nowhere to be found
-                Just [] -> return Nothing -- the variable is nowhere to be found
+                Just [] -> return Nothing -- the variable is nowhere to be found (it was previously declared, but deleted )
                 Just (scp:scps) -> case var_name `Map.lookup` (symbols scp) of
                     Just info -> return ( Just info )
-                    Nothing   -> return Nothing
+                    Nothing   -> error $ "go home, you're drunk " ++ var_name       -- NOTE: I think this should throw an error
+                    -- Nothing   -> return Nothing       -- Original
 
 -- To save ourselfes writing "case" again and again
 checkSymbolError :: Name -> P G_Info
@@ -97,10 +98,11 @@ cleanup symb_t (var:vars) =
         Just []         -> cleanup symb_t vars
         Just (scp:scps) -> cleanup ( Map.insert var scps symb_t ) vars
         -- Just pop the last scope from the list
+        -- NOTE: You have Ermis' seal of approval here. Well done sir.
 
 removeScopeSymbols :: [Name] -> Name ->  P ()
 removeScopeSymbols [] nm  = do
-    writeLog $ "cleaning up the symbol table for scope name "  ++ nm
+    writeLog $ "cleaning up the (EMTPY) symbol table for scope name "  ++ nm
 removeScopeSymbols symbol_lst nm = do
     writeLog $ "cleaning up the symbol table for scope name "  ++ nm
     s <- get
@@ -109,7 +111,7 @@ removeScopeSymbols symbol_lst nm = do
 
 -- ------------------------------------------------------- --
 -- ----------------Transofrmation Functions--------------- --
-
+-----                  ---  (ArgName, Type )
 createFunInfo :: Name -> [(Name,VarType,Bool,Bool)]  ->  FunType -> FunInfo
 createFunInfo func_name fun_args fun_res = FunInfo {
       fn_name = func_name
@@ -127,19 +129,19 @@ createFtype ( R_Type_DT (D_Type TByte ) ) =  "byte"
 createArgType:: FPar_Def -> (Name,VarType, Bool, Bool )    -- takes a function arguement from the ast and returns its sem tuple
 createArgType ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = (str, "int" , True, False)
 createArgType ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = (str, "byte", True, False)
-createArgType ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = (str, "int" , True, True)
-createArgType ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = (str, "byte", True, True)
+createArgType ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = (str, "table int" , True, True)
+createArgType ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = (str, "table byte", True, True)
 createArgType ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = (str, "int" , False, False)
 createArgType ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = (str, "byte", False, False)
-createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, "int" , False, True)
-createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, "byte", False, True)
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, "table int" , False, True)
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, "table byte", False, True)
 
 
 createVar_from_Def :: Var_Def -> VarInfo
 createVar_from_Def ( VDef str (D_Type TInt) )  = createVarInfo str "int"  0 Nothing False
 createVar_from_Def ( VDef str (D_Type TByte) ) = createVarInfo str "byte" 0 Nothing False
-createVar_from_Def ( VDef_T str (D_Type TInt) dimension  )  = createVarInfo str "int table"  0 (Just dimension) False
-createVar_from_Def ( VDef_T str (D_Type TByte) dimension )  = createVarInfo str "byte table" 0 (Just dimension) False
+createVar_from_Def ( VDef_T str (D_Type TInt) dimension  )  = createVarInfo str "table int"  0 (Just dimension) False
+createVar_from_Def ( VDef_T str (D_Type TByte) dimension )  = createVarInfo str "table byte" 0 (Just dimension) False
 -- Whenever we create a variable from a Var_Def, it's always NOT by reference
 -- If it's a table, we know a priori its size, so we add it
 -- Else, we add Nothing to the dimension
@@ -149,12 +151,12 @@ createVar_from_Def ( VDef_T str (D_Type TByte) dimension )  = createVarInfo str 
 createVar_from_Arg :: FPar_Def -> VarInfo
 createVar_from_Arg ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = createVarInfo str "int" 0 Nothing True
 createVar_from_Arg ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = createVarInfo str "byte" 0 Nothing True
-createVar_from_Arg ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = createVarInfo str "int table" 0 (Just 0) True
-createVar_from_Arg ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = createVarInfo str "byte table" 0 (Just 0) True
+createVar_from_Arg ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = createVarInfo str "table int" 0 (Just 0) True
+createVar_from_Arg ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = createVarInfo str "table byte" 0 (Just 0) True
 createVar_from_Arg ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = createVarInfo str "int" 0 Nothing False
 createVar_from_Arg ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = createVarInfo str "byte" 0 Nothing False
-createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = createVarInfo str "int table" 0 (Just 0) False
-createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = createVarInfo str "byte table" 0 (Just 0 ) False
+createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = createVarInfo str "table int" 0 (Just 0) False
+createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = createVarInfo str "table byte" 0 (Just 0 ) False
 -- NOTE: A VarInfo table having as dimensions JUST 0 has special meaning:
 -- it means that we are indeed talking about a table, but we don't know its size yet
 
@@ -232,19 +234,14 @@ addLDefLst (def:defs) = do
 -- ----------------Top Level Functions-------------------- --
 
 -- Used to ensure that variables are used as variables
--- and tables as tables
-checkValidLeftVal :: L_Value -> P ()
-checkValidLeftVal (LV_Lit _) = return ()
-checkValidLeftVal (LV_Var var) = do
-    V var_info <- checkSymbolError var
-    case dimension var_info of
-        Nothing -> return ()
-        _       -> error $ "Using table " ++ var_name var_info ++ " as a variable!"
-checkValidLeftVal (LV_Tbl var _) = do
-    V var_info <- checkSymbolError var
-    case dimension var_info of
-        Nothing -> error $ "Using variable " ++ var_name var_info ++ " as a table!"
-        _       -> return ()
+-- and tables as tables - Kimon
+
+-- That function is completely gone, but the redundant comments survived
+-- in its memory
+
+--NOTE : Checks that soething that looks like a table
+-- is a talbe, and soething that looks like a var, is a var
+--  -Ermis
 
 -- Recursively check the type of the expression, and return it
 getExprType :: Expr -> P String
@@ -252,24 +249,109 @@ getExprType (Expr_Int _) = return "int"
 getExprType (Expr_Char _)= return "byte"
 getExprType (Expr_Brack expr) = getExprType expr
 
-getExprType (Expr_Lval (LV_Lit str)) = return "string"     -- Just something different from int,byte
-getExprType (Expr_Lval (LV_Var var)) = do
-    checkValidLeftVal (LV_Var var)
-    V var_info <- checkSymbolError var
-    return $ var_type var_info
-getExprType (Expr_Lval (LV_Tbl var dim)) = do
-    checkValidLeftVal (LV_Tbl var dim)
-    V var_info <- checkSymbolError var
-    return $ var_type var_info
+getExprType (Expr_Add left right ) = do
+    left_type  <- getExprType left
+    right_type <- getExprType right
+    case (left_type, right_type) of
+        ("int", "int")    -> return "int"
+        ("byte", "byte")  -> return "byte"
+        (_,_)  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for addition."
 
-getExprType (Expr_Add e1 e2 ) = do
-    e1_type <- getExprType e1
-    e2_type <- getExprType e2
-    case e1_type == e2_type of
-        True  -> return e1_type
-        False -> error $ "Cant add " ++ e1_type ++ " and " ++ e2_type
+getExprType (Expr_Sub left right ) = do
+    left_type  <- getExprType left
+    right_type <- getExprType right
+    case (left_type, right_type) of
+        ("int", "int")    -> return "int"
+        ("byte", "byte")  -> return "byte"
+        (_,_)  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for subtraction."
+
+getExprType (Expr_Tms left right ) = do
+    left_type  <- getExprType left
+    right_type <- getExprType right
+    case (left_type, right_type) of
+        ("int", "int")    -> return "int"
+        ("byte", "byte")  -> return "byte"
+        (_,_)  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for multiplication."
+
+getExprType (Expr_Mod left right ) = do
+    left_type  <- getExprType left
+    right_type <- getExprType right
+    case (left_type, right_type) of
+        ("int", "int")    -> return "int"
+        ("byte", "byte")  -> return "byte"
+        (_,_)  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for mod."
+
+
+getExprType (Expr_Pos num ) = do
+    num  <- getExprType num
+    case num of
+        "int"  -> return "int"
+        "byte" -> return "byte"
+        _ -> error $ "Type " ++ num  ++  " has no positive."
+-- the only types that can have a positive or negative sign are int and byte
+-- the resulting type must be the same as the initial
+
+getExprType (Expr_Neg num ) = do
+    num  <- getExprType num
+    case num of
+        "int"  -> return "int"
+        "byte" -> return "byte"
+        _ -> error $ "Type " ++ num  ++  " has no negative."
+-- the only types that can have a positive or negative sign are int and byte
+-- the resulting type must be the same as the initial
+
+getExprType (Expr_Lval (LV_Lit str)) = return "table byte"
+
+getExprType (Expr_Lval (LV_Var var)) = do
+    V var_info <- checkSymbolError var
+    return $ var_type var_info
+-- in case we encounter something that looks like a variable, we do simple stuff:
+-- we just check our symbol table, and return its type, regarldess of what
+-- that type might be
+
+
+getExprType (Expr_Lval (LV_Tbl var dim)) = do
+    dim_type <- getExprType dim
+    V table_info <- checkSymbolError var
+    case (dim_type , var_type table_info ) of
+        ("int", "table int" )  -> return "int"
+        ("int", "table byte")  -> return "byte"
+        ( _ , _)               -> error  $ "Something sketchy is going on with the table " ++ var
+
+
+
+-- NOTE: late night, maybe this should be beautified, but definetely not now
+getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
+    actual_types <- get_actual_types fargs [] -- get the list of types of the given arguements
+    formal_types <- get_formal_types fname
+    F foo_info <- checkSymbolError fname
+    -- case actual_types of
+    --     formal_types -> return $ result_type foo_info
+    --     _            -> error $ "arg missmatch in function " ++ fname
+    if (actual_types == formal_types) then return $ result_type foo_info
+    else  error $ "arg missmatch in function " ++ fname
+-- Simple enough: If the type of all the actual paramters a function
+-- was called with match respectively with the type of the formal
+-- types, then the result type is the one declared by the fuction
+
 
 getExprType _ = return ""
+
+
+get_actual_types::[Expr] -> [String] ->  P [String]
+get_actual_types [] types = return $ reverse types
+get_actual_types (expr:rest) types = do
+    act_type <- getExprType expr -- take the type of the expression at the head of the list for interpretation
+    get_actual_types rest (act_type:types )  -- keep interpeting
+
+
+-- takes the name of a function, and returns a list
+-- with the type of its arguments, in the proper order
+get_formal_types:: String -> P [String]
+get_formal_types fn_name = do
+    F fn_info <- checkSymbolError fn_name -- lookup the function on the symbol table
+    return $ map get_vartype (args fn_info)
+    where get_vartype (a,b,c,d) = b
 
 
 -- NOTE Up to now Smt_Eq only works
@@ -290,7 +372,7 @@ semStmt (Stmt_Eq lval (Expr_Int num)) = do
         False   ->  return ()
 -- In
 semStmt (Stmt_Eq lval expr) = do
-    checkValidLeftVal lval
+    -- checkValidLeftVal lval
     lval_type <- getExprType (Expr_Lval lval)
     expr_type <- getExprType expr
     case lval_type == expr_type of
