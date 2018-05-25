@@ -356,7 +356,7 @@ get_formal_types fn_name = do
 
 -- NOTE Up to now Smt_Eq only works
 -- check getExprType which check if an Expr is well defined and returns its type
--- Haven't touched function checking (params, return vals etc)
+-- Haven't touched function checking (params, return vals etc)  -- > Done.
 semStmt :: Stmt -> P ()
 -- Just a ; do nothing
 semStmt Stmt_Semi = return ()
@@ -375,9 +375,10 @@ semStmt (Stmt_Eq lval expr) = do
     -- checkValidLeftVal lval
     lval_type <- getExprType (Expr_Lval lval)
     expr_type <- getExprType expr
-    case lval_type == expr_type of
-        True  -> return ()
-        False -> error $ "Can't assign a " ++ expr_type ++ " to " ++ lval_type
+    case (lval_type,expr_type) of
+        ("int", "int")  -> return ()
+        ("byte","byte") -> return () 
+        ( _ , _) -> error $ "Can't assign a " ++ expr_type ++ " to " ++ lval_type
 
 semStmt _ = return ()
 
