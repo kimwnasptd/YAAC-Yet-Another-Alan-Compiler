@@ -245,57 +245,65 @@ addLDefLst (def:defs) = do
 
 -- Recursively check the type of the expression, and return it
 getExprType :: Expr -> P String
-getExprType (Expr_Int _) = return "int"
+-- getExprType (Expr_Int _) = return "int"    -- NOTE: here is a YOLO idea:
+getExprType (Expr_Int value ) =
+    if ( (0 <= value) && (255 >=  value) ) then return "int or byte"  -- this will simplify later stages
+        else return "int"  -- any other number can only be of type int.
+        -- we need to avoid the corner case of
+            --eg x = 230 ;
+            -- should type math regarldess of whether x is byte or int.
+
 getExprType (Expr_Char _)= return "byte"
 getExprType (Expr_Brack expr) = getExprType expr
 
 getExprType (Expr_Add left right ) = do
     left_type  <- getExprType left
     right_type <- getExprType right
-    case (left_type, right_type) of
-        ("int", "int")    -> return "int"
-        ("byte", "byte")  -> return "byte"
-        (_,_)  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for addition."
+    case unifyTypes left_type right_type of
+        "incompatitable"  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for addition."
+        _ -> return (unifyTypes left_type right_type)
 
 getExprType (Expr_Sub left right ) = do
     left_type  <- getExprType left
     right_type <- getExprType right
-    case (left_type, right_type) of
-        ("int", "int")    -> return "int"
-        ("byte", "byte")  -> return "byte"
-        (_,_)  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for subtraction."
+    case unifyTypes left_type right_type of
+        "incompatitable"  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for subtraction."
+        _                 -> return (unifyTypes left_type right_type)
+
 
 getExprType (Expr_Tms left right ) = do
     left_type  <- getExprType left
     right_type <- getExprType right
-    case (left_type, right_type) of
-        ("int", "int")    -> return "int"
-        ("byte", "byte")  -> return "byte"
-        (_,_)  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for multiplication."
+    case unifyTypes left_type right_type of
+        "incompatitable"  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for multiplication."
+        _                 -> return (unifyTypes left_type right_type)
+
 
 getExprType (Expr_Mod left right ) = do
     left_type  <- getExprType left
     right_type <- getExprType right
-    case (left_type, right_type) of
-        ("int", "int")    -> return "int"
-        ("byte", "byte")  -> return "byte"
-        (_,_)  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for mod."
-
+    case unifyTypes left_type right_type of
+        "incompatitable"  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for mod."
+        _                 -> return (unifyTypes left_type right_type)
 
 getExprType (Expr_Pos num ) = do
     num  <- getExprType num
     case num of
-        "int"  -> return "int"
-        "byte" -> return "byte"
+        "int"           -> return "int"
+        "byte"          -> return "byte"
+        "int or byte"   -> return "int or byte"
         _ -> error $ "Type " ++ num  ++  " has no positive."
 -- the only types that can have a positive or negative sign are int and byte
 -- the resulting type must be the same as the initial
 
+
+-- NOTE: Not sure what we must do about that. Bytes have no negative?
+-- WARNING: PAY SPECIAL ATTENTION TO NEGATIVE!
 getExprType (Expr_Neg num ) = do
     num  <- getExprType num
     case num of
         "int"  -> return "int"
-        "byte" -> return "byte"
+        "int or byte" -> return "int"
         _ -> error $ "Type " ++ num  ++  " has no negative."
 -- the only types that can have a positive or negative sign are int and byte
 -- the resulting type must be the same as the initial
@@ -316,19 +324,23 @@ getExprType (Expr_Lval (LV_Tbl var dim)) = do
     case (dim_type , var_type table_info ) of
         ("int", "table int" )  -> return "int"
         ("int", "table byte")  -> return "byte"
+        ("int or byte", "table int")  -> return "int"
+        ("int or byte", "table byte")  -> return "byte"
         ( _ , _)               -> error  $ "Something sketchy is going on with the table " ++ var
 
 
 
 -- NOTE: late night, maybe this should be beautified, but definetely not now
+-- NOTE: Not sure if the check here is proper!
 getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
     actual_types <- get_actual_types fargs [] -- get the list of types of the given arguements
     formal_types <- get_formal_types fname
     F foo_info <- checkSymbolError fname
+    -- NOTE: The above line may look kinda ugly, because we call checkSymbol fname twice
+    -- (one inside get_formal_types), but everyone reading this comment knows why
+    -- that isn't inefficient.
     -- case actual_types of
-    --     formal_types -> return $ result_type foo_info
-    --     _            -> error $ "arg missmatch in function " ++ fname
-    if (actual_types == formal_types) then return $ result_type foo_info
+    if (check_inferred_types actual_types  formal_types) then return $ result_type foo_info
     else  error $ "arg missmatch in function " ++ fname
 -- Simple enough: If the type of all the actual paramters a function
 -- was called with match respectively with the type of the formal
@@ -336,6 +348,18 @@ getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
 
 
 getExprType _ = return ""
+
+-- tries to take care of the int/byte problem
+unifyTypes:: String -> String -> String
+unifyTypes "int" "int" = "int"
+unifyTypes "byte" "byte" = "byte"
+unifyTypes "int" "int or byte" = "int"
+unifyTypes "byte" "int or byte" =   "byte"
+unifyTypes "int or byte" "int or byte" =  "int or byte"
+-- unifyTypes first second = error $ "can not unify types " ++ first ++ " second!"
+unifyTypes first second = "incompatitable"
+
+
 
 
 get_actual_types::[Expr] -> [String] ->  P [String]
@@ -353,6 +377,12 @@ get_formal_types fn_name = do
     return $ map get_vartype (args fn_info)
     where get_vartype (a,b,c,d) = b
 
+check_inferred_types:: [String] -> [String] -> Bool
+check_inferred_types [] [] = True
+check_inferred_types
+THIS IS NOT EVEN FINISHED 
+
+
 
 -- NOTE Up to now Smt_Eq only works
 -- check getExprType which check if an Expr is well defined and returns its type
@@ -364,21 +394,22 @@ semStmt Stmt_Semi = return ()
 -- Case where L_Value = Expr (Stmt_Eq)
 semStmt (Stmt_Eq (LV_Lit str) expr) =
     error $ "Cannot assign value to string: " ++ str
--- Bytes must be < 256
-semStmt (Stmt_Eq lval (Expr_Int num)) = do
-    lval_type <- getExprType (Expr_Lval lval)
-    case (lval_type == "byte") && (num > 255) of
-        True    ->  error $ "Byte must be from 0 - 255, value " ++ show num ++ " was given."
-        False   ->  return ()
--- In
+-- Bytes must be < 256 --> NOTE:
+-- semStmt (Stmt_Eq lval (Expr_Int num)) = do
+    -- lval_type <- getExprType (Expr_Lval lval)
+    -- case (lval_type == "byte") && (num > 255) of
+    --     True    ->  error $ "Byte must be from 0 - 255, value " ++ show num ++ " was given."
+    --     False   ->  return ()
+-- NOTE: Now we don't need special case for this:
+
+
 semStmt (Stmt_Eq lval expr) = do
-    -- checkValidLeftVal lval
     lval_type <- getExprType (Expr_Lval lval)
     expr_type <- getExprType expr
-    case (lval_type,expr_type) of
-        ("int", "int")  -> return ()
-        ("byte","byte") -> return () 
-        ( _ , _) -> error $ "Can't assign a " ++ expr_type ++ " to " ++ lval_type
+    case unifyTypes lval_type expr_type of
+        "incompatitable" -> error $ "types " ++ lval_type ++ "and" ++ rval_type ++ " can't be assigned!"
+        _                -> return ()
+
 
 semStmt _ = return ()
 

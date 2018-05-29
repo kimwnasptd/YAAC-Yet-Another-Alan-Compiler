@@ -15,8 +15,8 @@ hello () : proc
     -- Counter[1] = 1 + guard;  -- Int + Byte
     -- Counter[1] = Counter + 2;   -- Works from both sides
     --   guard[3] =  2;   -- Works from both sides
-    Counter = Counter  ;    -- this should fail in the eq part
-    Counter[1] = 3 % 5 ;    -- Should work 
+    -- Counter = Counter  ;    -- this should fail in the eq part
+    Counter[1] = 3 % 5 ;    -- Should work
     -- guard = 3 + 5 ;      -- THIS IS A PROBLEM, THIS SHOULD BE VIABLE
     -- "kimonas" = 5;
     -- ermis = 5;
