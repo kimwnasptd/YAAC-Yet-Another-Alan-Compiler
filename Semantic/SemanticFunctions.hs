@@ -340,7 +340,7 @@ getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
     -- (one inside get_formal_types), but everyone reading this comment knows why
     -- that isn't inefficient.
     -- case actual_types of
-    if (check_inferred_types actual_types  formal_types) then return $ result_type foo_info
+    if (check_inferred_types formal_types actual_types ) then return $ result_type foo_info
     else  error $ "arg missmatch in function " ++ fname
 -- Simple enough: If the type of all the actual paramters a function
 -- was called with match respectively with the type of the formal
@@ -377,10 +377,18 @@ get_formal_types fn_name = do
     return $ map get_vartype (args fn_info)
     where get_vartype (a,b,c,d) = b
 
+-- Takes the list of types of the formal parameters,
+-- and the list of types of the arguements, and checks whether they
+-- can be unified
 check_inferred_types:: [String] -> [String] -> Bool
 check_inferred_types [] [] = True
-check_inferred_types
-THIS IS NOT EVEN FINISHED 
+check_inferred_types ("int" : rest1) ("int or byte": rest2 ) = check_inferred_types rest1 rest2
+check_inferred_types ("byte" : rest1) ("int or byte": rest2 ) = check_inferred_types rest1 rest2
+check_inferred_types (h1 : rest1) ( h2: rest2 ) = case (h1 == h2 ) of
+    True  -> check_inferred_types rest1 rest2
+    False -> False
+check_inferred_types _ _ = False
+
 
 
 
@@ -407,7 +415,7 @@ semStmt (Stmt_Eq lval expr) = do
     lval_type <- getExprType (Expr_Lval lval)
     expr_type <- getExprType expr
     case unifyTypes lval_type expr_type of
-        "incompatitable" -> error $ "types " ++ lval_type ++ "and" ++ rval_type ++ " can't be assigned!"
+        "incompatitable" -> error $ "types " ++ lval_type ++ "and" ++ expr_type ++ " can't be assigned!"
         _                -> return ()
 
 
