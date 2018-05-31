@@ -246,12 +246,8 @@ addLDefLst (def:defs) = do
 -- Recursively check the type of the expression, and return it
 getExprType :: Expr -> P String
 -- getExprType (Expr_Int _) = return "int"    -- NOTE: here is a YOLO idea:
-getExprType (Expr_Int value ) =
-    if ( (0 <= value) && (255 >=  value) ) then return "int or byte"  -- this will simplify later stages
-        else return "int"  -- any other number can only be of type int.
-        -- we need to avoid the corner case of
-            --eg x = 230 ;
-            -- should type math regarldess of whether x is byte or int.
+getExprType (Expr_Int num ) = if ( (num < 256) && (num >=0) ) then return "int or byte"
+    else return "int"
 
 getExprType (Expr_Char _)= return "byte"
 getExprType (Expr_Brack expr) = getExprType expr
@@ -284,6 +280,13 @@ getExprType (Expr_Mod left right ) = do
     right_type <- getExprType right
     case unifyTypes left_type right_type of
         "incompatitable"  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for mod."
+        _                 -> return (unifyTypes left_type right_type)
+
+getExprType (Expr_Div left right ) = do
+    left_type  <- getExprType left
+    right_type <- getExprType right
+    case unifyTypes left_type right_type of
+        "incompatitable"  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " can't be divided."
         _                 -> return (unifyTypes left_type right_type)
 
 getExprType (Expr_Pos num ) = do
@@ -331,15 +334,11 @@ getExprType (Expr_Lval (LV_Tbl var dim)) = do
 
 
 -- NOTE: late night, maybe this should be beautified, but definetely not now
--- NOTE: Not sure if the check here is proper!
+-- NOTE: Not sure if the check here is proper!  --> Fixed.
 getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
     actual_types <- get_actual_types fargs [] -- get the list of types of the given arguements
     formal_types <- get_formal_types fname
     F foo_info <- checkSymbolError fname
-    -- NOTE: The above line may look kinda ugly, because we call checkSymbol fname twice
-    -- (one inside get_formal_types), but everyone reading this comment knows why
-    -- that isn't inefficient.
-    -- case actual_types of
     if (check_inferred_types formal_types actual_types ) then return $ result_type foo_info
     else  error $ "arg missmatch in function " ++ fname
 -- Simple enough: If the type of all the actual paramters a function
@@ -347,7 +346,8 @@ getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
 -- types, then the result type is the one declared by the fuction
 
 
-getExprType _ = return ""
+getExprType _ = return ""   -- NOTE: The compiler should return this pattern is redundant here
+-- which it does, because we have tested all the cases. 
 
 -- tries to take care of the int/byte problem
 unifyTypes:: String -> String -> String

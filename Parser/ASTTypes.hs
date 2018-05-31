@@ -28,7 +28,7 @@ data FPar_Def = FPar_Def_Ref String Type
                deriving (Eq, Show)
 
 data Data_Type = D_Type Token   -- Parser takes care of us,
-          deriving (Eq, Show)   -- only Token Int and Token Byte can reach this point 
+          deriving (Eq, Show)   -- only Token Int and Token Byte can reach this point
 
 data Type = S_Type Data_Type
           | Table_Type Data_Type
@@ -56,23 +56,23 @@ type Expr_List = [ Expr ]
                -- deriving (Eq, Show)
 
 
-data Expr = Expr_Add Expr Expr
-          | Expr_Sub Expr Expr
-          | Expr_Tms Expr Expr
-          | Expr_Div Expr Expr
-          | Expr_Mod Expr Expr
-          | Expr_Pos Expr
-          | Expr_Neg Expr
-          | Expr_Fcall Func_Call
-          | Expr_Brack Expr
-          | Expr_Lval L_Value
-          | Expr_Char String
-          | Expr_Int  Int
+data Expr = Expr_Add Expr Expr  --
+          | Expr_Sub Expr Expr --
+          | Expr_Tms Expr Expr --
+          | Expr_Div Expr Expr --
+          | Expr_Mod Expr Expr --
+          | Expr_Pos Expr --
+          | Expr_Neg Expr --
+          | Expr_Fcall Func_Call  --
+          | Expr_Brack Expr  --
+          | Expr_Lval L_Value  --
+          | Expr_Char String --
+          | Expr_Int  Int   --
           deriving (Eq, Show)
 
-data L_Value = LV_Var String
-             | LV_Tbl String Expr
-             | LV_Lit String
+data L_Value = LV_Var String --
+             | LV_Tbl String Expr  --
+             | LV_Lit String --
              deriving (Eq, Show)
 
 
