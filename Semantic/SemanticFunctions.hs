@@ -334,11 +334,15 @@ getExprType (Expr_Lval (LV_Tbl var dim)) = do
 
 -- NOTE: late night, maybe this should be beautified, but definetely not now
 -- NOTE: Not sure if the check here is proper!  --> Fixed.
+-- NOTE: More fixes are required
+-- NOTE: getExprType for function calls is very powerful:
+-- it does all the necessary checks that a function requires
+-- so we don't have to worry about that later
 getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
     actual_types <- get_actual_types fargs [] -- get the list of types of the given arguements
     formal_types <- get_formal_types fname
     F foo_info <- checkSymbolError fname
-    if (check_inferred_types formal_types actual_types ) then return $ result_type foo_info
+    if ( formal_types ==  actual_types ) then return $ result_type foo_info
     else  error $ "arg missmatch in function " ++ fname
 -- Simple enough: If the type of all the actual paramters a function
 -- was called with match respectively with the type of the formal
@@ -358,35 +362,34 @@ unifyTypes "int or byte" "int or byte" =  "int or byte"
 -- unifyTypes first second = error $ "can not unify types " ++ first ++ " second!"
 unifyTypes first second = "incompatitable"
 
+-- Takes an expression and checks whether it's a valid left value
+getRef :: Expr -> Bool
+getRef (Expr_Lval sth ) = True
+getRef _ = False
 
-
-
-get_actual_types::[Expr] -> [String] ->  P [String]
+-- Takes a list of actual types of a fuction, and returns
+-- a list of tuples of (actual type, left_value )
+get_actual_types::[Expr] -> [String] ->  P [(Bool, String)]
 get_actual_types [] types = return $ reverse types
 get_actual_types (expr:rest) types = do
     act_type <- getExprType expr -- take the type of the expression at the head of the list for interpretation
-    get_actual_types rest (act_type:types )  -- keep interpeting
+    let
+        left_flag = getRef exr      -- check if the expression is a left value
+    get_actual_types rest ( (act_type, left_flag ) : types )  -- keep interpeting
+
 
 
 -- takes the name of a function, and returns a list
--- with the type of its arguments, in the proper order
-get_formal_types:: String -> P [String]
+-- of (arg type, by reference ) tuple,  in the proper order
+get_formal_types:: String -> P [(String, Bool)]
 get_formal_types fn_name = do
     F fn_info <- checkSymbolError fn_name -- lookup the function on the symbol table
     return $ map get_vartype (args fn_info)
-    where get_vartype (a,b,c,d) = b
+    where get_vartype (a,b,c,d) = (b,c)
 
 -- Takes the list of types of the formal parameters,
 -- and the list of types of the arguements, and checks whether they
 -- can be unified
-check_inferred_types:: [String] -> [String] -> Bool
-check_inferred_types [] [] = True
-check_inferred_types ("int" : rest1) ("int or byte": rest2 ) = check_inferred_types rest1 rest2
-check_inferred_types ("byte" : rest1) ("int or byte": rest2 ) = check_inferred_types rest1 rest2
-check_inferred_types (h1 : rest1) ( h2: rest2 ) = case (h1 == h2 ) of
-    True  -> check_inferred_types rest1 rest2
-    False -> False
-check_inferred_types _ _ = False
 
 
 
