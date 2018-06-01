@@ -251,62 +251,69 @@ getExprType (Expr_Int num ) = return "int"
 getExprType (Expr_Char _)= return "byte"
 getExprType (Expr_Brack expr) = getExprType expr
 
+
+-- The types about operations are simple: We just check that both operands are of the same type,
+-- int or byte, and return that type.
 getExprType (Expr_Add left right ) = do
     left_type  <- getExprType left
     right_type <- getExprType right
-    case unifyTypes left_type right_type of
-        "incompatitable"  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for addition."
-        _ -> return (unifyTypes left_type right_type)
+    case (left_type, right_type) of
+        ("int", "int") -> return "int"
+        ("byte", "byte") -> return "int"
+        _ -> error $ "Types " ++ left_type ++ "and " ++ right_type ++ "can't be added together!"
+
 
 getExprType (Expr_Sub left right ) = do
     left_type  <- getExprType left
     right_type <- getExprType right
-    case unifyTypes left_type right_type of
-        "incompatitable"  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for subtraction."
-        _                 -> return (unifyTypes left_type right_type)
+    case (left_type, right_type) of
+        ("int", "int") -> return "int"
+        ("byte", "byte") -> return "int"
+        _ -> error $ "You can't subtract a " ++ left_type ++ " from a " ++ right_type ++"!"
 
 
 getExprType (Expr_Tms left right ) = do
     left_type  <- getExprType left
     right_type <- getExprType right
-    case unifyTypes left_type right_type of
-        "incompatitable"  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for multiplication."
-        _                 -> return (unifyTypes left_type right_type)
+    case (left_type, right_type) of
+        ("int", "int") -> return "int"
+        ("byte", "byte") -> return "int"
+        _ -> error $ "You can't multiply a " ++ left_type ++ " with a " ++ right_type ++"!"
 
 
 getExprType (Expr_Mod left right ) = do
     left_type  <- getExprType left
     right_type <- getExprType right
-    case unifyTypes left_type right_type of
-        "incompatitable"  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " are incompatitable for mod."
-        _                 -> return (unifyTypes left_type right_type)
+    case (left_type, right_type) of
+        ("int", "int") -> return "int"
+        ("byte", "byte") -> return "int"
+        _ -> error $ "You can't mod a " ++ left_type ++ " from a " ++ right_type ++"!"
 
 getExprType (Expr_Div left right ) = do
     left_type  <- getExprType left
     right_type <- getExprType right
-    case unifyTypes left_type right_type of
-        "incompatitable"  -> error $ "Types " ++ left_type ++ " " ++ right_type ++ " can't be divided."
-        _                 -> return (unifyTypes left_type right_type)
+    case (left_type, right_type) of
+        ("int", "int") -> return "int"
+        ("byte", "byte") -> return "int"
+        _ -> error $ "You can't divide a " ++ left_type ++ " by a " ++ right_type ++"!"
 
 getExprType (Expr_Pos num ) = do
     num  <- getExprType num
     case num of
         "int"           -> return "int"
-        "byte"          -> return "byte"
-        "int or byte"   -> return "int or byte"
-        _ -> error $ "Type " ++ num  ++  " has no positive."
+        _ -> error $ "Type " ++ num  ++  " has no positive (only ints do)."
 -- the only types that can have a positive or negative sign are int and byte
 -- the resulting type must be the same as the initial
 
 
 -- NOTE: Not sure what we must do about that. Bytes have no negative?
--- WARNING: PAY SPECIAL ATTENTION TO NEGATIVE!
+-- > Reminder to self: Next time, read the manual before you start doing your own
+-- thing. This is Alan, not erml
 getExprType (Expr_Neg num ) = do
     num  <- getExprType num
     case num of
         "int"  -> return "int"
-        "int or byte" -> return "int"
-        _ -> error $ "Type " ++ num  ++  " has no negative."
+        _ -> error $ "Type " ++ num  ++  " has no negative (only ints do)."
 -- the only types that can have a positive or negative sign are int and byte
 -- the resulting type must be the same as the initial
 
@@ -326,9 +333,7 @@ getExprType (Expr_Lval (LV_Tbl var dim)) = do
     case (dim_type , var_type table_info ) of
         ("int", "table int" )  -> return "int"
         ("int", "table byte")  -> return "byte"
-        ("int or byte", "table int")  -> return "int"
-        ("int or byte", "table byte")  -> return "byte"
-        ( _ , _)               -> error  $ "Something sketchy is going on with the table " ++ var
+        ( _ , _)               -> error  $ "Something sketchy is going on with the " ++ var ++ " table!"
 
 
 
@@ -347,20 +352,30 @@ getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
 -- Simple enough: If the type of all the actual paramters a function
 -- was called with match respectively with the type of the formal
 -- types, then the result type is the one declared by the fuction
+-- We also pay special attention to the fact that for every actual paramter that was
+-- declared by reference, the value passed as argument is a left value
 
 
 getExprType _ = return ""   -- NOTE: The compiler should return this pattern is redundant here
 -- which it does, because we have tested all the cases.
 
+
+-------------  GRAVEYARD OF BROKEN IDEAS -----------
+
+
+-- NOTE: It was fun while it lasted, but this langauge has no type interpatation.
+-- salute to the fallen soldier
 -- tries to take care of the int/byte problem
-unifyTypes:: String -> String -> String
-unifyTypes "int" "int" = "int"
-unifyTypes "byte" "byte" = "byte"
-unifyTypes "int" "int or byte" = "int"
-unifyTypes "byte" "int or byte" =   "byte"
-unifyTypes "int or byte" "int or byte" =  "int or byte"
--- unifyTypes first second = error $ "can not unify types " ++ first ++ " second!"
-unifyTypes first second = "incompatitable"
+-- unifyTypes:: String -> String -> String
+-- unifyTypes "int" "int" = "int"
+-- unifyTypes "byte" "byte" = "byte"
+-- unifyTypes "int" "int or byte" = "int"
+-- unifyTypes "byte" "int or byte" =   "byte"
+-- unifyTypes "int or byte" "int or byte" =  "int or byte"
+-- unifyTypes first second = "incompatitable"
+
+
+------------- GRAVEYARD'S END  --- -----------------e
 
 -- Takes an expression and checks whether it's a valid left value
 getRef :: Expr -> Bool
@@ -368,13 +383,13 @@ getRef (Expr_Lval sth ) = True
 getRef _ = False
 
 -- Takes a list of actual types of a fuction, and returns
--- a list of tuples of (actual type, left_value )
-get_actual_types::[Expr] -> [String] ->  P [(Bool, String)]
+-- a list of tuples of (actual type,whether it's  left_value )
+get_actual_types::[Expr] -> [(String, Bool)] ->  P [(String, Bool)]
 get_actual_types [] types = return $ reverse types
 get_actual_types (expr:rest) types = do
     act_type <- getExprType expr -- take the type of the expression at the head of the list for interpretation
     let
-        left_flag = getRef exr      -- check if the expression is a left value
+        left_flag = getRef expr      -- check if the expression is a left value
     get_actual_types rest ( (act_type, left_flag ) : types )  -- keep interpeting
 
 
@@ -420,15 +435,16 @@ semStmt (Stmt_Cmp cmp_stmt) = do
     return ()
 
 -- WARNING: FN_CALL is incomplete (read specs page 9 )
-semStmt (Stmt_FCall ( Func_Call name args  ) ) = do
-     response <- checkSymbolError name  -- get the function defintion
-     case response of
-         F foo_info -> return ()
-         V voo_info -> error $ "you can't call a non-function like " ++ name
--- WARNING:Continue from here!
-    -- case (ret_type ) of
-    --     "proc"  -> return ()
-    --     _       -> error $ "When we have a fun call as a statement, its type must be proc, not " ++ ret_type
+-- semStmt (Stmt_FCall ( Func_Call name args  ) ) = do
+--      response <- checkSymbolError name  -- get the function defintion
+--      case response of
+--          V voo_info -> error $ "you can't call a non-function like " ++ name
+--          F foo_info -> case (getExprType (Expr_Fcall ( Func_Call name args) ) ) of
+--              "proc" -> return ()
+--              _      -> error $ "you can't use a call of a non-proc fuction as a statement: " ++ name
+
+-- NOTE: ABOVE SHOULD BE INSIDE, BUT IT ISN'T WORKING RIGHT NOW 
+
 
 semStmt (Stmt_If cond stmt) = do
     semCond cond   -- do the semantic analysis of the condition
@@ -447,11 +463,26 @@ semStmt (Stmt_Wh cond stmt) = do
     return ()       -- if they didn't fail, we don't fail
 
 
--- WARNING: Also incorrect, this needs a lot of work I think
-semStmt Stmt_Ret = return ()
+
+semStmt (  Stmt_Ret_Expr expr ) = do
+    expr_type <- getExprType expr -- get the type of the expression
+    fn_name <- getScopeName       -- the name of the fuction we are in is the same as the name of the scope we are in!
+    info <- checkSymbolError getScopeName
+    case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
+        V var_info -> error $ "you tried to return" ++ (show expr) ++ " from something that wasn't even a function!"
+        F fun_info -> if ( result_type fun_info ==  expr_type ) then return ()
+            else error $ "you are trying to return something of type " ++ expr_type ++ "from the function"  ++ fn_name++ "with declared type " ++ (result_type fun_info)
 
 
-semStmt (  Stmt_Ret_Expr expr ) = return ()
+-- Same logic as above, the difference being that now the return type of the expression is proc by default
+semStmt Stmt_Ret = do
+    fn_name <- getScopeName       -- the name of the fuction we are in is the same as the name of the scope we are in!
+    info <- checkSymbolError getScopeName
+    case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
+        V var_info -> error "you tried to return" ++ (show expr) ++ " from something that wasn't even a function!"
+        F fun_info -> if ( result_type fun_info ==  "proc" ) then return ()
+            else error $ "you are trying to return something of type proc from the function"  ++ fn_name++ "with declared type " ++ (result_type fun_info)
+
 
 semStmt _ = return ()
 -- NOTE: again, if we have done our job properly, this
