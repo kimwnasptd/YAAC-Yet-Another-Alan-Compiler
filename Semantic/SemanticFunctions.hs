@@ -245,9 +245,8 @@ addLDefLst (def:defs) = do
 
 -- Recursively check the type of the expression, and return it
 getExprType :: Expr -> P String
--- getExprType (Expr_Int _) = return "int"    -- NOTE: here is a YOLO idea:
-getExprType (Expr_Int num ) = if ( (num < 256) && (num >=0) ) then return "int or byte"
-    else return "int"
+-- getExprType (Expr_Int _) = return "int"
+getExprType (Expr_Int num ) = return "int"
 
 getExprType (Expr_Char _)= return "byte"
 getExprType (Expr_Brack expr) = getExprType expr
@@ -347,7 +346,7 @@ getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
 
 
 getExprType _ = return ""   -- NOTE: The compiler should return this pattern is redundant here
--- which it does, because we have tested all the cases. 
+-- which it does, because we have tested all the cases.
 
 -- tries to take care of the int/byte problem
 unifyTypes:: String -> String -> String
@@ -402,25 +401,128 @@ semStmt Stmt_Semi = return ()
 -- Case where L_Value = Expr (Stmt_Eq)
 semStmt (Stmt_Eq (LV_Lit str) expr) =
     error $ "Cannot assign value to string: " ++ str
--- Bytes must be < 256 --> NOTE:
--- semStmt (Stmt_Eq lval (Expr_Int num)) = do
-    -- lval_type <- getExprType (Expr_Lval lval)
-    -- case (lval_type == "byte") && (num > 255) of
-    --     True    ->  error $ "Byte must be from 0 - 255, value " ++ show num ++ " was given."
-    --     False   ->  return ()
 -- NOTE: Now we don't need special case for this:
 
 
 semStmt (Stmt_Eq lval expr) = do
     lval_type <- getExprType (Expr_Lval lval)
     expr_type <- getExprType expr
-    case unifyTypes lval_type expr_type of
-        "incompatitable" -> error $ "types " ++ lval_type ++ "and" ++ expr_type ++ " can't be assigned!"
-        _                -> return ()
+    case (lval_type, expr_type) of
+        ("int", "int")    ->  return ()
+        ("byte", "byte")  -> return ()
+        _                 -> error $ "Types " ++ lval_type ++ " and " ++ expr_type ++ "can't be assigned!"
 
+semStmt (Stmt_Cmp cmp_stmt) = do
+    semStmtList cmp_stmt
+    return ()
+
+-- WARNING: FN_CALL is incomplete (read specs page 9 )
+semStmt (Stmt_FCall ( Func_Call name args  ) ) = do
+     response <- checkSymbolError name  -- get the function defintion
+     case response of
+         F foo_info -> return ()
+         V voo_info -> error $ "you can't call a non-function like " ++ name
+-- WARNING:Continue from here!
+    -- case (ret_type ) of
+    --     "proc"  -> return ()
+    --     _       -> error $ "When we have a fun call as a statement, its type must be proc, not " ++ ret_type
+
+semStmt (Stmt_If cond stmt) = do
+    semCond cond   -- do the semantic analysis of the condition
+    semStmt stmt   -- do the semantic analysis of the statement
+    return ()      -- if they didn't fail, we don't fail
+
+semStmt (Stmt_IFE cond stmt1 stmt2 ) = do
+    semCond cond  -- same logic, we just check both statements
+    semStmt stmt1
+    semStmt stmt2
+    return ()
+
+semStmt (Stmt_Wh cond stmt) = do
+    semCond cond    -- do the semantic analysis of the condition
+    semStmt stmt    -- do the semantic analysis of the statement
+    return ()       -- if they didn't fail, we don't fail
+
+
+-- WARNING: Also incorrect, this needs a lot of work I think
+semStmt Stmt_Ret = return ()
+
+
+semStmt (  Stmt_Ret_Expr expr ) = return ()
 
 semStmt _ = return ()
+-- NOTE: again, if we have done our job properly, this
+-- should return "pattern match redundant"
 
+
+-- Checks if a condition is valid. If it is, it just returns.
+semCond :: Cond -> P ()
+semCond Cond_True = return ()
+semCond Cond_False = return ()
+-- in the simple cases, we just return
+
+semCond (Cond_Br cond) = do
+    semCond cond  -- if the analysis of the inner condition
+    return ()     -- doesn't fail, we don't
+
+semCond (Cond_Bang cond) = do
+    semCond cond  -- if the analysis of the inner condition
+    return ()     -- doesn't fail, we don't
+
+semCond (Cond_Eq expr1 expr2) = do
+    type1 <- getExprType expr1  -- check that the 2 operands being
+    type2 <- getExprType expr2  -- compared have  valid types for
+    case (type1, type2 ) of    -- an equality check
+        ("int", "int")     -> return ()
+        ("byte", "byte")   -> return ()
+
+semCond (Cond_Neq expr1 expr2) = do
+    type1 <- getExprType expr1
+    type2 <- getExprType expr2
+    case (type1, type2 ) of
+        ("int", "int")     -> return ()
+        ("byte", "byte")   -> return ()
+
+semCond (Cond_L expr1 expr2) = do
+    type1 <- getExprType expr1
+    type2 <- getExprType expr2
+    case (type1, type2 ) of
+        ("int", "int")     -> return ()
+        ("byte", "byte")   -> return ()
+
+semCond (Cond_G expr1 expr2) = do
+    type1 <- getExprType expr1
+    type2 <- getExprType expr2
+    case (type1, type2 ) of
+        ("int", "int")     -> return ()
+        ("byte", "byte")   -> return ()
+
+semCond (Cond_LE expr1 expr2) = do
+    type1 <- getExprType expr1
+    type2 <- getExprType expr2
+    case (type1, type2 ) of
+        ("int", "int")     -> return ()
+        ("byte", "byte")   -> return ()
+
+semCond (Cond_GE expr1 expr2) = do
+    type1 <- getExprType expr1
+    type2 <- getExprType expr2
+    case (type1, type2 ) of
+        ("int", "int")     -> return ()
+        ("byte", "byte")   -> return ()
+
+semCond (Cond_And c1 c2 ) = do
+    semCond c1  -- If neither of the inner conditions failed
+    semCond c2  -- we don't.
+    return ()
+
+semCond (Cond_Or c1 c2 ) = do  --same logic as and
+    semCond c1
+    semCond c2
+    return ()
+
+semCond _ = return () -- NOTE: This should return pattern match
+--redunadant, just a sanity check that we have covered every case.
 
 semStmtList :: Comp_Stmt -> P ()
 semStmtList (C_Stmt []) = do

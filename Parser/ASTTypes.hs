@@ -76,8 +76,8 @@ data L_Value = LV_Var String --
              deriving (Eq, Show)
 
 
-data Stmt = Stmt_Semi
-          | Stmt_Eq L_Value Expr
+data Stmt = Stmt_Semi  --
+          | Stmt_Eq L_Value Expr  --
           | Stmt_Cmp Comp_Stmt
           | Stmt_FCall Func_Call
           | Stmt_If Cond Stmt
@@ -89,16 +89,16 @@ data Stmt = Stmt_Semi
 
 
 
-data Cond = Cond_True
-          | Cond_False
-          | Cond_Br Cond
-          | Cond_Bang Cond
+data Cond = Cond_True  --
+          | Cond_False --
+          | Cond_Br Cond --
+          | Cond_Bang Cond --
           | Cond_Eq Expr Expr
           | Cond_Neq Expr Expr
           | Cond_L Expr Expr
           | Cond_G Expr Expr
           | Cond_LE Expr Expr
           | Cond_GE Expr Expr
-          | Cond_And Cond Cond
-          | Cond_Or Cond Cond
+          | Cond_And Cond Cond --
+          | Cond_Or Cond Cond --
           deriving (Eq, Show)
