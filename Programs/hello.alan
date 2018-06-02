@@ -3,21 +3,51 @@ hello () : proc
     guard : byte;
     n1 : int;
 
+    toUse (n : reference int) : int
+
+    { -- toUse
+        return 42;
+    }
+
+    toUse2 (n :  int) : proc
+
+    { -- toUse
+        return ;
+    }
+
+
 {
     -- writeString("Hello World\n");
-    -- Counter[1] = 5;
+
+    -- EVERYTHING HERE SHOULD WORK:
+     Counter[1] = 5;
+     n1 = 6 ;
+     Counter[0] = n1 ;
+     Counter[1] = 3 % 5 ;    -- Should work
+     Counter[2] = n1 % 5 ;    -- Should work
+     n1 = toUse(n1);
+     guard = 'a';       -- byte to byte
+
+
+
+     -- PROBLEMS WE HAVE:
+     toUse2() ;           -- calling a proc   without a proper arguement for some reason succeeds
+     toUse(n1) ;         -- calling a function that has non-void return for some reason succeeds 
+
 
     --These are the errors we can catch up to now
-    -- guard = 256;     -- byte > 255
+    -- guard = 256;     --  trying to assign int to byte!
     -- Counter = 5 + 5;     -- Table as var
-    -- Counter[0] = "erpis";
+    -- Counter[0] = "ermis";
     -- Counter[0] = "kimonas" + 5;
     -- Counter[1] = 1 + guard;  -- Int + Byte
     -- Counter[1] = Counter + 2;   -- Works from both sides
     --   guard[3] =  2;   -- Works from both sides
     -- Counter = Counter  ;    -- this should fail in the eq part
-    Counter[1] = 3 % 5 ;    -- Should work
     -- guard = 3 + 5 ;      -- THIS IS A PROBLEM, THIS SHOULD BE VIABLE
     -- "kimonas" = 5;
     -- ermis = 5;
+    --n1 = toUse(5)  ;    -- using a non-lvalue as reference
+    -- guard = toUse(n1) ;         -- type missmatch in asignment
+
 }

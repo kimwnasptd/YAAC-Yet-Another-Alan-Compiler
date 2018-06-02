@@ -122,8 +122,9 @@ createFunInfo func_name fun_args fun_res = FunInfo {
 
 createFType :: R_Type -> FunType  -- takes the token that corresponds to a functions return type
 createFType R_Type_Proc =  "proc" -- and returns its VarType string
-createFtype ( R_Type_DT (D_Type TInt ) ) =  "int"
-createFtype ( R_Type_DT (D_Type TByte ) ) =  "byte"
+createFType ( R_Type_DT (D_Type TInt ) ) =  "int"
+createFType ( R_Type_DT (D_Type TByte ) ) =  "byte"
+-- createFType sth = error $ "Create f type was called with " ++ (show sth )
 
 -- (Var Name, Var Type{int, byte}, Reference{T,F}, Table{T,F})
 createArgType:: FPar_Def -> (Name,VarType, Bool, Bool )    -- takes a function arguement from the ast and returns its sem tuple
@@ -428,7 +429,8 @@ semStmt (Stmt_Eq lval expr) = do
     case (lval_type, expr_type) of
         ("int", "int")    ->  return ()
         ("byte", "byte")  -> return ()
-        _                 -> error $ "Types " ++ lval_type ++ " and " ++ expr_type ++ "can't be assigned!"
+        _                 -> error $ ( "You are trying to assign something of type  " ++ expr_type ) ++ ( " to something of type " ++ lval_type )
+        -- _                 -> error $ "Types " ++ lval_type ++ " and " ++ expr_type ++ " can't be assigned!"
 
 semStmt (Stmt_Cmp cmp_stmt) = do
     semStmtList cmp_stmt
@@ -443,7 +445,7 @@ semStmt (Stmt_Cmp cmp_stmt) = do
 --              "proc" -> return ()
 --              _      -> error $ "you can't use a call of a non-proc fuction as a statement: " ++ name
 
--- NOTE: ABOVE SHOULD BE INSIDE, BUT IT ISN'T WORKING RIGHT NOW 
+-- NOTE: ABOVE SHOULD BE INSIDE, BUT IT ISN'T WORKING RIGHT NOW
 
 
 semStmt (Stmt_If cond stmt) = do
@@ -467,9 +469,9 @@ semStmt (Stmt_Wh cond stmt) = do
 semStmt (  Stmt_Ret_Expr expr ) = do
     expr_type <- getExprType expr -- get the type of the expression
     fn_name <- getScopeName       -- the name of the fuction we are in is the same as the name of the scope we are in!
-    info <- checkSymbolError getScopeName
+    info <- checkSymbolError fn_name
     case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
-        V var_info -> error $ "you tried to return" ++ (show expr) ++ " from something that wasn't even a function!"
+        V var_info -> error $ "you tried to return " ++ (show expr) ++ " from something that wasn't even a function!"
         F fun_info -> if ( result_type fun_info ==  expr_type ) then return ()
             else error $ "you are trying to return something of type " ++ expr_type ++ "from the function"  ++ fn_name++ "with declared type " ++ (result_type fun_info)
 
@@ -477,9 +479,9 @@ semStmt (  Stmt_Ret_Expr expr ) = do
 -- Same logic as above, the difference being that now the return type of the expression is proc by default
 semStmt Stmt_Ret = do
     fn_name <- getScopeName       -- the name of the fuction we are in is the same as the name of the scope we are in!
-    info <- checkSymbolError getScopeName
+    info <- checkSymbolError fn_name
     case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
-        V var_info -> error "you tried to return" ++ (show expr) ++ " from something that wasn't even a function!"
+        V var_info -> error "you tried to return from something that wasn't even a function!"
         F fun_info -> if ( result_type fun_info ==  "proc" ) then return ()
             else error $ "you are trying to return something of type proc from the function"  ++ fn_name++ "with declared type " ++ (result_type fun_info)
 
