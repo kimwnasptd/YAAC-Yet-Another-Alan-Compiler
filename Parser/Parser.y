@@ -1,12 +1,19 @@
 {
 module Parser where
-import Lexer 
+
+import AlexInterface
+import Tokens
+import Lexer
+import ASTTypes
 }
 
 
-%name nucky
+%name basicParser
 %tokentype { Token }
 %error { parseError }
+%monad {P}
+%lexer {lexer} {TEOF}
+
 
 %token
     byte                 {  TByte       }
@@ -22,6 +29,7 @@ import Lexer
 
 
     "."                  {  TPeriod     }
+    ":"                  {  TColon      }
     ";"                  {  TSemiColon  }
     "("                  {  TLeftParen  }
     ")"                  {  TRightParen }
@@ -30,12 +38,13 @@ import Lexer
     ","                  {  TComma      }
     "["                  {  TLeftBrack  }
     "]"                  {  TRightBrack }
+    "="                  {  TAssign     }
 
 
     "=="                 {  TComOp "==" }
     "!="                 {  TComOp "!=" }
-    ">="                 {  TComOp "("  }
-    "<="                 {  TComOp ")"  }
+    ">="                 {  TComOp ">=" }
+    "<="                 {  TComOp "<=" }
     ">"                  {  TComOp ">"  }
     "<"                  {  TComOp "<"  }
 
@@ -43,8 +52,10 @@ import Lexer
     "-"                  {  TOp    "-"  }
     "*"                  {  TOp    "*"  }
     "/"                  {  TOp    "/"  }
+    "%"                  {  TOp    "%"  }
     "&"                  {  TOp    "&"  }
     "|"                  {  TOp    "|"  }
+    "!"                  {  TOp    "!"  }
 
 
     char                { TChar           $$  }
@@ -59,105 +70,112 @@ import Lexer
 %nonassoc "<" ">" "<=" ">=" "==" "!="
 %left "+" "-"
 %left "*" "/" "%"
-%left NEG POS BANG
-
-
+%left "!" NEG POS BANG
 
 
 %%
 
--- Program: Func_Def
+-- It works up to here
 
--- Func_Def: 
---     var "(" ")" ":" R_Type L_Def_List Comp_Stmt           {- Empty -}     
---   | var "(" Fpar_List ")" ":" R_Type L_Def_List Comp_Stmt 
+Program: Func_Def                        { Prog   $1      }
 
--- L_Def_List: {- Empty -}             { [] }
---           | L_Def_List Local_Def    { $2 : $1 }
+Func_Def: var "(" FPar_List ")" ":" R_Type L_Def_List Comp_Stmt { F_Def $1 $3 $6 $7 $8 }
 
-
--- Fpar_List: Fpar_Def
---          | Fpar_List "," Fpar_Def
-
--- Fpar_Def: var ":" reference Type
---         | var ":" Type
-
--- Data_Type: int
---          | byte
-
--- Type: Data_Type
---     | Data_Type "[" "]"
-
--- R_Type: Data_Type
---       | proc
-
--- Local_Def: Func_Def
---          | Var_Def
-
--- Var_Def: var ":" Data_Type ";"
---        | var: Data_Type "[" int_literal "]" ";"
-
--- Stmt: ;
---     | L_Value "=" Expr ";"
---     | Comp_Stmt
---     | Func_Call ";"
---     | if "(" Cond ")" Stmt
---     | if "(" Cond ")" Stmt else Stmt
---     | while "(" Cond ")" Stmt
---     | return ";"
-
-Comp_Stmt: "{" Stmt_List "}"    { $2 }
-
-Stmt_List: {-Nothing -}         { [] }
-         | Stmt_List Stmt       { $2 : $1 }
+L_Def_List:                              {       []       }
+          | L_Def_List Local_Def         {     $1 ++ [$2]    }
 
 
-Expr : int_literal
-     | char
-     | L_Value
-     | "(" Expr ")"
-     | Func_Call
-     | "+" Expr %prec POS
-     | "-" Expr %prec NEG
-     | Expr "+" Expr
-     | Expr "-" Expr
-     | Expr "*" Expr
-     | Expr "/" Expr
-     | Expr "%" Expr
+FPar_List: {- Nothing -}                 {      []        }
+         | FPar_Def                      {      [$1]      }
+         | FPar_List "," FPar_Def        {     $1 ++ [$3]    }
 
-L_Value: var
-       | "[" Expr "]"
-       | string_literal
+FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
+        | var ":" Type                   { FPar_Def_NR $1 $3 }
+
+Data_Type: int                           { D_Type $1      }
+         | byte                          { D_Type $1      }
+
+Type: Data_Type                          { S_Type      $1 }
+    | Data_Type "[" "]"                  { Table_Type  $1 }
+
+R_Type: Data_Type                        { R_Type_DT   $1 }
+      | proc                             { R_Type_Proc    }
+
+Local_Def: Func_Def                      { Loc_Def_Fun $1 }
+         | Var_Def                       { Loc_Def_Var $1 }
+
+Var_Def: var ":" Data_Type ";"                      { VDef    $1 $3 }
+       | var ":" Data_Type "[" int_literal "]" ";"  { VDef_T  $1 $3 $5   }
 
 
-Cond: "true"
-    | "false"
-    | "(" Cond ")"
-    | "!" Cond %prec BANG
-    | Expr "==" Expr
-    | Expr "!=" Expr
-    | Expr "<"  Expr
-    | Expr ">"  Expr
-    | Expr "<=" Expr
-    | Expr ">=" Expr
-    | Cond "&"  Cond
-    | Cond "|"  Cond
+-- -------------------------------------------------
+-- -------------------------------------------------
 
-Func_Call: var "(" Expr_List ")"
-         | var "(" ")"
+Stmt: ";"                                { Stmt_Semi      }
+    | L_Value "=" Expr ";"               { Stmt_Eq  $1 $3 }
+    | Comp_Stmt                          { Stmt_Cmp  $1   }
+    | Func_Call ";"                      { Stmt_FCall $1  }
+    | if "(" Cond ")" Stmt               { Stmt_If  $3 $5 }
+    | if "(" Cond ")" Stmt else Stmt     { Stmt_IFE $3 $5 $7}
+    | while "(" Cond ")" Stmt            { Stmt_Wh  $3 $5 }
+    | return ";"                         { Stmt_Ret       }
+    | return Expr ";"                    { Stmt_Ret_Expr $2 }
 
-Expr_List: Expr
-         | Expr_List "," Expr
+Comp_Stmt: "{" Stmt_List "}"             { C_Stmt $2      }
+
+Stmt_List: {-Nothing -}                  {       []       }
+         | Stmt_List Stmt                {    $1 ++ [$2]  }  -- Probaby ALL LISTS NEED AMENDING
+
+
+Func_Call: var "(" Expr_List ")"         { Func_Call $1 $3 }
+
+Expr_List: {-Nothing -}                  {    []      }
+         | Expr                          {    [$1]    }
+         | Expr_List "," Expr            {    $1 ++ [$3]     }
+
+Expr : int_literal                       { Expr_Int   $1  }
+     | char                              { Expr_Char  $1  }
+     | L_Value                           { Expr_Lval  $1  }
+     | "(" Expr ")"                      { Expr_Brack $2  }
+     | Func_Call                         { Expr_Fcall $1  }
+     | "+" Expr %prec POS                { Expr_Pos   $2  }
+     | "-" Expr %prec NEG                { Expr_Neg   $2  }
+     | Expr "+" Expr                     { Expr_Add $1 $3 }
+     | Expr "-" Expr                     { Expr_Sub $1 $3 }
+     | Expr "*" Expr                     { Expr_Tms $1 $3 }
+     | Expr "/" Expr                     { Expr_Div $1 $3 }
+     | Expr "%" Expr                     { Expr_Mod $1 $3 }
+
+L_Value: var                             { LV_Var  $1     }
+       | var "[" Expr "]"                { LV_Tbl  $1 $3  }
+       | string_literal                  { LV_Lit  $1     }
+
+Cond: true                               { Cond_True      }
+    | false                              { Cond_False     }
+    | "(" Cond ")"                       { Cond_Br   $2   }
+    | "!" Cond %prec BANG                { Cond_Bang $2   }
+    | Expr "==" Expr                     { Cond_Eq  $1 $3 }
+    | Expr "!=" Expr                     { Cond_Neq $1 $3 }
+    | Expr "<"  Expr                     { Cond_L   $1 $3 }
+    | Expr ">"  Expr                     { Cond_G   $1 $3 }
+    | Expr "<=" Expr                     { Cond_LE  $1 $3 }
+    | Expr ">=" Expr                     { Cond_GE  $1 $3 }
+    | Cond "&"  Cond                     { Cond_And $1 $3 }
+    | Cond "|"  Cond                     { Cond_Or  $1 $3 }
+
 
 
 {
 
-parseError:: [Token]  -> a
-parseError _ = error "oopsie daisy "
+-- Basic Error Messages
+-- parseError:: [Token]  -> a
+-- parseError _ = error "oopsie daisy "
 
--- parseError :: [Token] -> a
--- parseError tokenList = let pos = tokenPosn(head(tokenList)) 
---   in 
---   error ("parse error at line " ++ show(getLineNum(pos)) ++ " and column " ++ show(getColumnNum(pos)))
+parseError _ = do
+  lno <- getLineNo
+  error $ "Parse error on line "++ show lno
+
+-- parse::String->Program (AST)
+parse s = evalP basicParser s
 
 }

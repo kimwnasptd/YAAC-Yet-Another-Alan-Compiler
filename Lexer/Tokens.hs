@@ -13,7 +13,8 @@ data Token
   | TWhile                  
   | TTrue                   
   | TPeriod                 
-  | TSemiColon              
+  | TSemiColon 
+  | TColon              
   | TLeftParen              
   | TRightParen             
   | TComma                  

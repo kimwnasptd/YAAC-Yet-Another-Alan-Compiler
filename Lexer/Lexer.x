@@ -1,11 +1,14 @@
--- TODO: Operators (all)    Missing only ( ! )
---       Fix missing escape characters  Medium
---       Comments   NP Hard xD
+-- TODO: Operators (all)    Missing only ( ! )          --> DONE
+--       Fix missing escape characters  Medium          --> DONE
+--       Comments   NP Hard xD                          --> DONE
+--       Feed to the parser a line token, so that we can show
+--       Lines on syntactic/ semantic erros
+
 
 {
 module Lexer (
   lexer, lexDummy, runner
-  ) 
+  )
 where
 
 import Control.Monad
@@ -17,11 +20,12 @@ import Tokens
 $digit = 0-9            -- digits
 $alpha = [a-zA-Z]       -- alphabetic characters
 $hexdig = [0-9A-Fa-f]
-$special = [\.\;\,\$\|\*\+\?\#\~\-\{\}\(\)\[\]\^\/]
-$esc_seq    = [\n \t \r \0 \\ \' \xnn \"  ]   -- DOES THIS PLAY???
+$quotable = $printable # \"                                        -- Any printable character except "
+$esc_seq = [\n \t \r]
 
-@string     = \" ($printable | \" | $esc_seq)* \"               -- Printable contains $white
-@chars      = \' ($alpha | $digit | $esc_seq | $special) \'     -- Missing some characters
+@string_sp  = \\\" | \\\' | \\$quotable | \\x $hexdig $hexdig                              --"
+@string     = \" ( $quotable | @string_sp )* \"               -- Printable contains $white  " just fixed all the coments for you <3
+@chars      = \' ($alpha | $digit  | @string_sp) \'     -- Missing some characters
 @name       = $alpha[$alpha $digit \_]*
 
 tokens :-
@@ -39,7 +43,7 @@ tokens :-
   "while"               { getToken $ TWhile       }
   "true"                { getToken $ TTrue        }
 
-  $esc_seq              ;
+  $esc_seq              ;                           -- Pretty sure that's a bad idea.
 
   [\+\-\*\/]            { getToken $ TOp ""       }
   "&"                   { getToken $ TOp ""       }
@@ -53,9 +57,10 @@ tokens :-
   ">="                  { getToken $ TComOp ""    }
   "<="                  { getToken $ TComOp ""    }
   ">"                   { getToken $ TComOp ""    }
-  "<"                   { getToken $ TComOp ""    } 
+  "<"                   { getToken $ TComOp ""    }
 
   "."                   { getToken $ TPeriod      }
+  ":"                   { getToken $ TColon       }
   ";"                   { getToken $ TSemiColon   }
   "("                   { getToken $ TLeftParen   }
   ")"                   { getToken $ TRightParen  }
@@ -65,15 +70,17 @@ tokens :-
   "["                   { getToken $ TLeftBrack   }
   "]"                   { getToken $ TRightBrack  }
 
-  @chars                { getToken $ TChar ""     }
+  \-\-.*                ;                                 -- If we come across a comment of that type, we ignore everything till the end of the line "
+
+  @chars                { getToken $ TChar ""     }       -- "
   $digit+               { getToken $ TIntLiteral 0}
   @name                 { getToken $ TName ""     }
   @string               { getToken $ TStringLiteral  ""  }    -- remove the leading " and trailing "
-  -- .                     { getToken $ TErrorSymbol s }
+  -- .                  { getToken $ TErrorSymbol s }
 }
 
 -- The rules here apply for all the States of Lexer
-\-\-.*\n              ;
+-- \-\-.*\n              ;                                   --Nope: That rule should only apply if we are not already in a comment. Check the record.
 "(*"                  { beginComment }
 
 -- The 'Comment' State of Lexer
@@ -87,18 +94,29 @@ tokens :-
 
 -- Int -> Chars Matched
 -- String -> String Matched
--- This is the type that returns exery time a string is matched
+-- This is the type that returns every time a string is matched
 type Action = Int -> String -> P (Maybe Token)
 
 -- Converts the corresponding Token to Action type for the { }
 getToken :: Token -> Action
 getToken (TOp _) _ s            = return $ Just $ TOp s
 getToken (TComOp _) _ s         = return $ Just $ TComOp s
-getToken (TStringLiteral _) _ s = return $ Just $ TStringLiteral $ init $ tail s
+getToken (TStringLiteral _) _ s = return $ Just $ TStringLiteral $ convEsc (init $ tail s)
 getToken (TName _) _ s          = return $ Just $ TName s
 getToken (TIntLiteral _) _ s    = return $ Just $ TIntLiteral $ read s
-getToken (TChar _) _ s          = return $ Just $ TChar $ init $ tail s
+getToken (TChar _) _ s          = return $ Just $ TChar $ convEsc (init $ tail s)
 getToken t _ _ = return (Just t)
+
+-- Convert the mathced weird characters (\\n) to their coresponding ones
+convEsc :: String -> String
+convEsc ( '\\' : 'n' : s )       = '\n' : convEsc s
+convEsc ( '\\' : 't' : s )       = '\t' : convEsc s
+convEsc ( '\\' : 'r' : s )       = '\r' : convEsc s
+convEsc ( '\\' : '\"' : s )      = '\"' : convEsc s
+convEsc ( '\\' : '\'' : s )      = '\'' : convEsc s
+convEsc ( '\\' : 'x' : s )       = '\\' : 'x' : convEsc s   -- Here we have to decide what to do with these
+convEsc ( a : s )                = a : convEsc s
+convEsc []                       = []
 
 beginComment :: Action
 beginComment _ _ = do
@@ -124,15 +142,15 @@ readToken = do
     AlexEOF -> return TEOF
 
     -- We need to talk about this :P
-    AlexError inp' -> error $ "Lexical error on line "++ (show $ ailineno inp')      
-    
+    AlexError inp' -> error $ "Lexical error on line "++ (show $ ailineno inp')      -- ' should be removed '
+
     -- It's the characters that have as action the ;
-    AlexSkip inp' _ -> do    
+    AlexSkip inp' _ -> do
       put s{input = inp'}
       readToken
 
     -- Found Token, the new input is inp, read n bytes, and got act (Action)
-    AlexToken inp' n act -> do 
+    AlexToken inp' n act -> do
       let (AlexInput{airest=buf}) = input s
       put s{input = inp'}
       res <- act n (take n buf)
@@ -150,8 +168,7 @@ lexDummy :: P [Token]
 lexDummy = do
     tok <- readToken
     if tok == TEOF
-        then do let toks = []
-                return (tok : toks)
+        then return [tok]
         else do toks <- lexDummy
                 return (tok : toks)
 

@@ -1,0 +1,11 @@
+Lexer/*.o
+Lexer/*.hi
+Lexer/*.info
+
+Parser/*.o
+Parser/*.hi
+Parser/*.info
+
+Semantic/*.o
+Semantic/*.hi
+Semantic/*.info
