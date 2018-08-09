@@ -25,28 +25,22 @@ getScopeName = do
 
 -- Looks up for a definition of a name in all scopes, and returs its defintion,
 -- the name of the scope it was found in, and whether that was the current scope or not
-checkSymbol:: Name -> P ( Maybe G_Info )
+checkSymbol:: Name -> P G_Info
 checkSymbol var_name = do
     s <- get
     let curr_scope = currentScope s
     case var_name `Map.lookup` (symbols curr_scope) of
-        Just info -> return $ Just info  -- the variable is in the current scope
+        Just info -> return info  -- the variable is in the current scope
         Nothing   ->  do   -- the variable isn't defined in the current scope
             case var_name `Map.lookup` (symbolTable s) of
-                Nothing -> return Nothing -- the variable is nowhere to be found
-                Just [] -> return Nothing -- the variable is nowhere to be found (it was previously declared, but deleted )
+                Nothing -> error error_msg -- the variable is nowhere to be found
+                Just [] -> error error_msg -- the variable is nowhere to be found (it was previously declared, but deleted )
                 Just (scp:scps) -> case var_name `Map.lookup` (symbols scp) of
-                    Just info -> return ( Just info )
-                    Nothing   -> error $ "go home, you're drunk " ++ var_name       -- NOTE: I think this should throw an error
-                    -- Nothing   -> return Nothing       -- Original
+                    Just info -> return info
+                    Nothing   -> error error_msg
+    where
+        error_msg = "Symbol " ++ var_name ++ " is not defined!"
 
--- To save ourselfes writing "case" again and again
-checkSymbolError :: Name -> P G_Info
-checkSymbolError symbol = do
-    symbol_check <- checkSymbol symbol
-    case symbol_check of
-        Nothing     -> error $ "Symbol " ++ symbol ++ " is not defined!"
-        Just def    -> return def
 -- ------------------------------------------------------- --
 -- ----------------------Scope Functions------------------ --
 
@@ -63,9 +57,8 @@ openScope name = do
         curr_name = scp_name curr_scope
     case curr_name of
         "" -> put s { currentScope = emptyScope { scp_name = name } }  -- if we are the INITIAL scope, we just change the scope's name
-        _  -> put s {   -- Put as a State the current one
-                      currentScope = emptyScope { -- But as a currentScope we put an empty one
-                      parent_scope = (Just $ curr_scope)  -- And change its parent
+        _  -> put s { currentScope = emptyScope { -- But as a currentScope we put an empty one
+                        parent_scope = (Just $ curr_scope)  -- And change its parent
                       , scp_name = name
                       }
                     }
@@ -184,8 +177,8 @@ addSymbol symbol_name symbol_info = do
         newSymbols = Map.insert symbol_name symbol_info currSymbols -- we update our symbol table
         newScope = currScope { symbols = newSymbols }   -- we updated our scope
 
-    put s    { symbolTable  = Map.insertWith (++) symbol_name [newScope] symb_t
-             , currentScope = newScope
+    put s { symbolTable  = Map.insertWith (++) symbol_name [newScope] symb_t
+          , currentScope = newScope
     }
     -- NOTE : We also need to update our behind the scenes scopes! If you have an issue with that Kimonas,
     -- my biceps are bigger than yours, just saying...
@@ -321,7 +314,7 @@ getExprType (Expr_Neg num ) = do
 getExprType (Expr_Lval (LV_Lit str)) = return "table byte"
 
 getExprType (Expr_Lval (LV_Var var)) = do
-    V var_info <- checkSymbolError var
+    V var_info <- checkSymbol var
     return $ var_type var_info
 -- in case we encounter something that looks like a variable, we do simple stuff:
 -- we just check our symbol table, and return its type, regarldess of what
@@ -330,7 +323,7 @@ getExprType (Expr_Lval (LV_Var var)) = do
 
 getExprType (Expr_Lval (LV_Tbl var dim)) = do
     dim_type <- getExprType dim
-    V table_info <- checkSymbolError var
+    V table_info <- checkSymbol var
     case (dim_type , var_type table_info ) of
         ("int", "table int" )  -> return "int"
         ("int", "table byte")  -> return "byte"
@@ -347,7 +340,7 @@ getExprType (Expr_Lval (LV_Tbl var dim)) = do
 getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
     actual_types <- get_actual_types fargs [] -- get the list of types of the given arguements
     formal_types <- get_formal_types fname
-    F foo_info <- checkSymbolError fname
+    F foo_info <- checkSymbol fname
     if ( formal_types ==  actual_types ) then return $ result_type foo_info
     else  error $ "arg missmatch in function " ++ fname
 -- Simple enough: If the type of all the actual paramters a function
@@ -357,26 +350,9 @@ getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
 -- declared by reference, the value passed as argument is a left value
 
 
-getExprType _ = return ""   -- NOTE: The compiler should return this pattern is redundant here
+-- getExprType _ = return ""   -- NOTE: The compiler should return this pattern is redundant here
 -- which it does, because we have tested all the cases.
 
-
--------------  GRAVEYARD OF BROKEN IDEAS -----------
-
-
--- NOTE: It was fun while it lasted, but this langauge has no type interpatation.
--- salute to the fallen soldier
--- tries to take care of the int/byte problem
--- unifyTypes:: String -> String -> String
--- unifyTypes "int" "int" = "int"
--- unifyTypes "byte" "byte" = "byte"
--- unifyTypes "int" "int or byte" = "int"
--- unifyTypes "byte" "int or byte" =   "byte"
--- unifyTypes "int or byte" "int or byte" =  "int or byte"
--- unifyTypes first second = "incompatitable"
-
-
-------------- GRAVEYARD'S END  --- -----------------e
 
 -- Takes an expression and checks whether it's a valid left value
 getRef :: Expr -> Bool
@@ -399,7 +375,7 @@ get_actual_types (expr:rest) types = do
 -- of (arg type, by reference ) tuple,  in the proper order
 get_formal_types:: String -> P [(String, Bool)]
 get_formal_types fn_name = do
-    F fn_info <- checkSymbolError fn_name -- lookup the function on the symbol table
+    F fn_info <- checkSymbol fn_name -- lookup the function on the symbol table
     return $ map get_vartype (args fn_info)
     where get_vartype (a,b,c,d) = (b,c)
 
@@ -438,7 +414,7 @@ semStmt (Stmt_Cmp cmp_stmt) = do
 
 -- WARNING: FN_CALL is incomplete (read specs page 9 )
 -- semStmt (Stmt_FCall ( Func_Call name args  ) ) = do
---      response <- checkSymbolError name  -- get the function defintion
+--      response <- checkSymbol name  -- get the function defintion
 --      case response of
 --          V voo_info -> error $ "you can't call a non-function like " ++ name
 --          F foo_info -> case (getExprType (Expr_Fcall ( Func_Call name args) ) ) of
@@ -469,7 +445,7 @@ semStmt (Stmt_Wh cond stmt) = do
 semStmt (  Stmt_Ret_Expr expr ) = do
     expr_type <- getExprType expr -- get the type of the expression
     fn_name <- getScopeName       -- the name of the fuction we are in is the same as the name of the scope we are in!
-    info <- checkSymbolError fn_name
+    info <- checkSymbol fn_name
     case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
         V var_info -> error $ "you tried to return " ++ (show expr) ++ " from something that wasn't even a function!"
         F fun_info -> if ( result_type fun_info ==  expr_type ) then return ()
@@ -479,7 +455,7 @@ semStmt (  Stmt_Ret_Expr expr ) = do
 -- Same logic as above, the difference being that now the return type of the expression is proc by default
 semStmt Stmt_Ret = do
     fn_name <- getScopeName       -- the name of the fuction we are in is the same as the name of the scope we are in!
-    info <- checkSymbolError fn_name
+    info <- checkSymbol fn_name
     case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
         V var_info -> error "you tried to return from something that wasn't even a function!"
         F fun_info -> if ( result_type fun_info ==  "proc" ) then return ()
@@ -557,7 +533,7 @@ semCond (Cond_Or c1 c2 ) = do  --same logic as and
     semCond c2
     return ()
 
-semCond _ = return () -- NOTE: This should return pattern match
+-- semCond _ = return () -- NOTE: This should return pattern match
 --redunadant, just a sanity check that we have covered every case.
 
 semStmtList :: Comp_Stmt -> P ()

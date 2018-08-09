@@ -6,7 +6,7 @@ hello () : proc
     toUse (n : reference int) : int
 
     { -- toUse
-        return 42;
+        return n2;
     }
 
     toUse2 (n :  int) : proc
