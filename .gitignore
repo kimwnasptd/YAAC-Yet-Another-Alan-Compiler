@@ -9,3 +9,7 @@ Parser/*.info
 Semantic/*.o
 Semantic/*.hi
 Semantic/*.info
+
+*.o
+*.hi
+*.info
