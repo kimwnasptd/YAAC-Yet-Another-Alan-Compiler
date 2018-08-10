@@ -12,37 +12,13 @@ import Control.Monad
 
 -- Write a Log Message
 writeLog :: String -> P ()
-writeLog line = do
-    s <- get
-    put s { logger = (logger s) ++ line ++ ['\n'] }
-    return ()
+writeLog line = modify $ \s -> s { logger = (logger s) ++ line ++ ['\n'] }
 
+--------------------------------------------------------------------------------
+-- Scope Functions
+--------------------------------------------------------------------------------
 getScopeName :: P String
-getScopeName = do
-    s <- get
-    return (scp_name $ currentScope s)
-
-
--- Looks up for a definition of a name in all scopes, and returs its defintion,
--- the name of the scope it was found in, and whether that was the current scope or not
-checkSymbol:: Name -> P G_Info
-checkSymbol var_name = do
-    s <- get
-    let curr_scope = currentScope s
-    case var_name `Map.lookup` (symbols curr_scope) of
-        Just info -> return info  -- the variable is in the current scope
-        Nothing   ->  do   -- the variable isn't defined in the current scope
-            case var_name `Map.lookup` (symbolTable s) of
-                Nothing -> error error_msg -- the variable is nowhere to be found
-                Just [] -> error error_msg -- the variable is nowhere to be found (it was previously declared, but deleted )
-                Just (scp:scps) -> case var_name `Map.lookup` (symbols scp) of
-                    Just info -> return info
-                    Nothing   -> error error_msg
-    where
-        error_msg = "Symbol " ++ var_name ++ " is not defined!"
-
--- ------------------------------------------------------- --
--- ----------------------Scope Functions------------------ --
+getScopeName = gets currentScope >>= return . scp_name
 
 -- Opens a new scope, we just edit
 -- the currentScope in our State
@@ -52,8 +28,7 @@ openScope name = do
     writeLog $ "The keys of the scope we were in are: " ++ (show $ Map.keys $ symbols $ currentScope s)
     writeLog $ "Opening a new Scope for " ++ name
     s <- get
-    let
-        curr_scope = currentScope s
+    let curr_scope = currentScope s
         curr_name = scp_name curr_scope
     case curr_name of
         "" -> put s { currentScope = emptyScope { scp_name = name } }  -- if we are the INITIAL scope, we just change the scope's name
@@ -71,8 +46,6 @@ closeScope = do
     scpnm <- getScopeName
     writeLog $ "Closing the Scope for " ++ scpnm
     s <- get
-    -- NOTE: If you are using more than one in the same function, chances
-    -- are people (redditors at least ) will make fun of you.
     let symbol_names = Map.keys $ symbols (currentScope s)
     removeScopeSymbols symbol_names scpnm
     s <- get
@@ -80,7 +53,6 @@ closeScope = do
     case parent_scope (currentScope s) of
         Nothing  -> return ()
         Just scp -> put s { currentScope = scp }
-
 
 -- Removes the variables from all the appropriate scopes
 cleanup :: SymbolTable -> [Name] -> SymbolTable
@@ -90,8 +62,6 @@ cleanup symb_t (var:vars) =
         Nothing         -> cleanup symb_t vars
         Just []         -> cleanup symb_t vars
         Just (scp:scps) -> cleanup ( Map.insert var scps symb_t ) vars
-        -- Just pop the last scope from the list
-        -- NOTE: You have Ermis' seal of approval here. Well done sir.
 
 removeScopeSymbols :: [Name] -> Name ->  P ()
 removeScopeSymbols [] nm  = do
@@ -102,16 +72,17 @@ removeScopeSymbols symbol_lst nm = do
     let cleanSymbolTable = cleanup (symbolTable s) symbol_lst  -- clean it up
     put s { symbolTable = cleanSymbolTable }  -- put the clean symbol table back in the state.
 
--- ------------------------------------------------------- --
--- ----------------Transofrmation Functions--------------- --
------                  ---  (ArgName, Type )
+
+--------------------------------------------------------------------------------
+-- Transofrmation Functions (Convrsions for argument types)
+--------------------------------------------------------------------------------
 createFunInfo :: Name -> [(Name,VarType,Bool,Bool)]  ->  FunType -> FunInfo
 createFunInfo func_name fun_args fun_res = FunInfo {
       fn_name = func_name
     , result_type = fun_res
     , args = fun_args
     , forward_dec = False
-}   -- we simply get all fileds already computed and package them in a FunInfo Struct
+}   -- we simply get all fields already computed and package them in a FunInfo Struct
 
 createFType :: R_Type -> FunType  -- takes the token that corresponds to a functions return type
 createFType R_Type_Proc =  "proc" -- and returns its VarType string
@@ -129,7 +100,6 @@ createArgType ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = (str, "int" , F
 createArgType ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = (str, "byte", False, False)
 createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, "table int" , False, True)
 createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, "table byte", False, True)
-
 
 createVar_from_Def :: Var_Def -> VarInfo
 createVar_from_Def ( VDef str (D_Type TInt) )  = createVarInfo str "int"  0 Nothing False
@@ -161,17 +131,33 @@ createVarInfo  nm_str vt idv dimension_num by_ref_bool =  VarInfo {
     , id_num = idv
     , dimension = dimension_num
     , byreference = by_ref_bool
-}   -- we get all fields of a VarInfo and package them accordingly
+}
 
--- ------------------------------------------------------- --
--- ------------Symbol Manipulation Functions-------------- --
+--------------------------------------------------------------------------------
+-- Symbol Table Functions
+--------------------------------------------------------------------------------
+-- Looks up for a definition of a name in all scopes, and returs its defintion,
+-- the name of the scope it was found in, and whether that was the current scope or not
+checkSymbol:: Name -> P G_Info
+checkSymbol var_name = do
+    s <- get
+    let curr_scope = currentScope s
+    case var_name `Map.lookup` (symbols curr_scope) of
+        Just info -> return info  -- the variable is in the current scope
+        Nothing   ->  do   -- the variable isn't defined in the current scope
+            case var_name `Map.lookup` (symbolTable s) of
+                Nothing -> error error_msg
+                Just [] -> error error_msg
+                Just (scp:scps) -> case var_name `Map.lookup` (symbols scp) of
+                    Just info -> return info
+                    Nothing   -> error error_msg
+    where
+        error_msg = "Symbol " ++ var_name ++ " is not defined!"
 
--- We need to add a symbol with addFunc, addVar, addFArgs
 addSymbol :: Name -> G_Info -> P ()
 addSymbol symbol_name symbol_info = do
     s <- get
-    let
-        currScope = currentScope s                -- get the current scope
+    let currScope = currentScope s                -- get the current scope
         currSymbols = symbols currScope           -- get the current symbol table, from the current scope
         symb_t = symbolTable s               -- get our backend implementation of nested scopes
         newSymbols = Map.insert symbol_name symbol_info currSymbols -- we update our symbol table
@@ -180,16 +166,13 @@ addSymbol symbol_name symbol_info = do
     put s { symbolTable  = Map.insertWith (++) symbol_name [newScope] symb_t
           , currentScope = newScope
     }
-    -- NOTE : We also need to update our behind the scenes scopes! If you have an issue with that Kimonas,
-    -- my biceps are bigger than yours, just saying...
 
 -- Takes the necessary fields from a function defintion, and adds a fun_info struct to the current scope
 addFunc :: Name ->  FPar_List  ->  R_Type -> P ()
 addFunc name args_lst f_type = do
     scpnm <- getScopeName
     writeLog $ "add function was called from scope " ++ scpnm ++ " for function " ++ name
-    let
-        our_ret = createFType f_type   -- we format all of the function stuff properly
+    let our_ret = createFType f_type   -- we format all of the function stuff properly
         fun_args = map createArgType args_lst
         fn_info = createFunInfo name fun_args our_ret
     addSymbol (fn_name fn_info) (F fn_info)
@@ -208,118 +191,80 @@ addFArgs (arg:args) = do
     writeLog $ "Adding Func Param " ++ (var_name param) ++ " to the scope"
     addSymbol (var_name param) (V param)
     addFArgs args
-addFArgs [] = do
-    return ()
+addFArgs [] = return ()
 
 addLDef :: Local_Def -> P ()
-addLDef def = do
-  case def of
-    Loc_Def_Fun fun -> semFuncDef fun
-    Loc_Def_Var var -> addVar var
+addLDef (Loc_Def_Fun fun) = semFuncDef fun
+addLDef (Loc_Def_Var var) = addVar var
 
 -- Check it at night. -> Looks fine to me.
 addLDefLst :: [Local_Def] -> P  ()
-addLDefLst [] = do { return () }
-addLDefLst (def:defs) = do
-    addLDef def
-    addLDefLst defs
+addLDefLst defs = mapM addLDef defs >> return ()
 
--- ------------------------------------------------------- --
--- ----------------Top Level Functions-------------------- --
+--------------------------------------------------------------------------------
+-- Get Type of Expr
+--------------------------------------------------------------------------------
+-- Takes an expression and checks whether it's a valid left value
+checkRef :: Expr -> Bool
+checkRef (Expr_Lval sth ) = True
+checkRef _ = False
 
--- Used to ensure that variables are used as variables
--- and tables as tables - Kimon
+-- Takes a list of actual types of a fuction, and returns
+-- a list of tuples of (actual type,whether it's  left_value )
+get_actual_types::[Expr] -> [(String, Bool)] ->  P [(String, Bool)]
+get_actual_types [] types = return $ reverse types
+get_actual_types (expr:rest) types = do
+    act_type <- getExprType expr -- take the type of the expression at the head of the list for interpretation
+    let left_flag = checkRef expr      -- check if the expression is a left value
+    get_actual_types rest ( (act_type, left_flag ) : types )  -- keep interpeting
 
--- That function is completely gone, but the redundant comments survived
--- in its memory
+-- takes the name of a function, and returns a list
+-- of (arg type, by reference ) tuple,  in the proper order
+get_formal_types:: String -> P [(String, Bool)]
+get_formal_types fn_name = do
+    F fn_info <- checkSymbol fn_name -- lookup the function on the symbol table
+    return $ map get_vartype (args fn_info)
+        where get_vartype (a,b,c,d) = (b,c)
 
---NOTE : Checks that soething that looks like a table
--- is a talbe, and soething that looks like a var, is a var
---  -Ermis
+-- Helper function for repetetive stuff
+type_check :: Expr -> Expr -> String -> P String
+type_check left right fn = do
+    left_type  <- getExprType left
+    right_type <- getExprType right
+    case (left_type, right_type) of
+        ("int", "int") -> return "int"
+        ("byte", "byte") -> return "int"
+        _ -> error $ "Can't " ++ fn ++ " a " ++ left_type ++ " with a " ++ right_type
 
 -- Recursively check the type of the expression, and return it
 getExprType :: Expr -> P String
--- getExprType (Expr_Int _) = return "int"
 getExprType (Expr_Int num ) = return "int"
-
 getExprType (Expr_Char _)= return "byte"
 getExprType (Expr_Brack expr) = getExprType expr
-
-
--- The types about operations are simple: We just check that both operands are of the same type,
--- int or byte, and return that type.
-getExprType (Expr_Add left right ) = do
-    left_type  <- getExprType left
-    right_type <- getExprType right
-    case (left_type, right_type) of
-        ("int", "int") -> return "int"
-        ("byte", "byte") -> return "int"
-        _ -> error $ "Types " ++ left_type ++ "and " ++ right_type ++ "can't be added together!"
-
-
-getExprType (Expr_Sub left right ) = do
-    left_type  <- getExprType left
-    right_type <- getExprType right
-    case (left_type, right_type) of
-        ("int", "int") -> return "int"
-        ("byte", "byte") -> return "int"
-        _ -> error $ "You can't subtract a " ++ left_type ++ " from a " ++ right_type ++"!"
-
-
-getExprType (Expr_Tms left right ) = do
-    left_type  <- getExprType left
-    right_type <- getExprType right
-    case (left_type, right_type) of
-        ("int", "int") -> return "int"
-        ("byte", "byte") -> return "int"
-        _ -> error $ "You can't multiply a " ++ left_type ++ " with a " ++ right_type ++"!"
-
-
-getExprType (Expr_Mod left right ) = do
-    left_type  <- getExprType left
-    right_type <- getExprType right
-    case (left_type, right_type) of
-        ("int", "int") -> return "int"
-        ("byte", "byte") -> return "int"
-        _ -> error $ "You can't mod a " ++ left_type ++ " from a " ++ right_type ++"!"
-
-getExprType (Expr_Div left right ) = do
-    left_type  <- getExprType left
-    right_type <- getExprType right
-    case (left_type, right_type) of
-        ("int", "int") -> return "int"
-        ("byte", "byte") -> return "int"
-        _ -> error $ "You can't divide a " ++ left_type ++ " by a " ++ right_type ++"!"
+getExprType (Expr_Add left right ) = type_check left right "add"
+getExprType (Expr_Sub left right ) = type_check left right "substract"
+getExprType (Expr_Tms left right ) = type_check left right "multiply"
+getExprType (Expr_Mod left right ) = type_check left right "mod"
+getExprType (Expr_Div left right ) = type_check left right "divide"
+getExprType (Expr_Lval (LV_Lit str)) = return "table byte"
+getExprType (Expr_Lval (LV_Var var)) = do
+    V var_info <- checkSymbol var
+    return $ var_type var_info
 
 getExprType (Expr_Pos num ) = do
     num  <- getExprType num
     case num of
-        "int"           -> return "int"
-        _ -> error $ "Type " ++ num  ++  " has no positive (only ints do)."
--- the only types that can have a positive or negative sign are int and byte
--- the resulting type must be the same as the initial
+        "int" -> return "int"
+        _     -> error $ "Type " ++ num  ++  " has no positive (only ints do)."
 
-
--- NOTE: Not sure what we must do about that. Bytes have no negative?
--- > Reminder to self: Next time, read the manual before you start doing your own
--- thing. This is Alan, not erml
 getExprType (Expr_Neg num ) = do
     num  <- getExprType num
     case num of
-        "int"  -> return "int"
-        _ -> error $ "Type " ++ num  ++  " has no negative (only ints do)."
--- the only types that can have a positive or negative sign are int and byte
--- the resulting type must be the same as the initial
-
-getExprType (Expr_Lval (LV_Lit str)) = return "table byte"
-
-getExprType (Expr_Lval (LV_Var var)) = do
-    V var_info <- checkSymbol var
-    return $ var_type var_info
+        "int" -> return "int"
+        _     -> error $ "Type " ++ num  ++  " has no negative (only ints do)."
 -- in case we encounter something that looks like a variable, we do simple stuff:
 -- we just check our symbol table, and return its type, regarldess of what
 -- that type might be
-
 
 getExprType (Expr_Lval (LV_Tbl var dim)) = do
     dim_type <- getExprType dim
@@ -329,14 +274,6 @@ getExprType (Expr_Lval (LV_Tbl var dim)) = do
         ("int", "table byte")  -> return "byte"
         ( _ , _)               -> error  $ "Something sketchy is going on with the " ++ var ++ " table!"
 
-
-
--- NOTE: late night, maybe this should be beautified, but definetely not now
--- NOTE: Not sure if the check here is proper!  --> Fixed.
--- NOTE: More fixes are required
--- NOTE: getExprType for function calls is very powerful:
--- it does all the necessary checks that a function requires
--- so we don't have to worry about that later
 getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
     actual_types <- get_actual_types fargs [] -- get the list of types of the given arguements
     formal_types <- get_formal_types fname
@@ -349,200 +286,75 @@ getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
 -- We also pay special attention to the fact that for every actual paramter that was
 -- declared by reference, the value passed as argument is a left value
 
-
--- getExprType _ = return ""   -- NOTE: The compiler should return this pattern is redundant here
--- which it does, because we have tested all the cases.
-
-
--- Takes an expression and checks whether it's a valid left value
-getRef :: Expr -> Bool
-getRef (Expr_Lval sth ) = True
-getRef _ = False
-
--- Takes a list of actual types of a fuction, and returns
--- a list of tuples of (actual type,whether it's  left_value )
-get_actual_types::[Expr] -> [(String, Bool)] ->  P [(String, Bool)]
-get_actual_types [] types = return $ reverse types
-get_actual_types (expr:rest) types = do
-    act_type <- getExprType expr -- take the type of the expression at the head of the list for interpretation
-    let
-        left_flag = getRef expr      -- check if the expression is a left value
-    get_actual_types rest ( (act_type, left_flag ) : types )  -- keep interpeting
-
-
-
--- takes the name of a function, and returns a list
--- of (arg type, by reference ) tuple,  in the proper order
-get_formal_types:: String -> P [(String, Bool)]
-get_formal_types fn_name = do
-    F fn_info <- checkSymbol fn_name -- lookup the function on the symbol table
-    return $ map get_vartype (args fn_info)
-    where get_vartype (a,b,c,d) = (b,c)
-
--- Takes the list of types of the formal parameters,
--- and the list of types of the arguements, and checks whether they
--- can be unified
-
-
-
-
--- NOTE Up to now Smt_Eq only works
--- check getExprType which check if an Expr is well defined and returns its type
--- Haven't touched function checking (params, return vals etc)  -- > Done.
+--------------------------------------------------------------------------------
+-- Semantic Analysis of statements
+--------------------------------------------------------------------------------
 semStmt :: Stmt -> P ()
--- Just a ; do nothing
 semStmt Stmt_Semi = return ()
-
--- Case where L_Value = Expr (Stmt_Eq)
-semStmt (Stmt_Eq (LV_Lit str) expr) =
-    error $ "Cannot assign value to string: " ++ str
--- NOTE: Now we don't need special case for this:
-
-
+semStmt (Stmt_Cmp cmp_stmt) = semStmtList cmp_stmt
+semStmt (Stmt_If cond stmt) = semCond cond >> semStmt stmt
+semStmt (Stmt_IFE cond stmt1 stmt2 ) = semCond cond >> semStmt stmt1 >> semStmt stmt2
+semStmt (Stmt_Wh cond stmt) = semCond cond >> semStmt stmt
 semStmt (Stmt_Eq lval expr) = do
     lval_type <- getExprType (Expr_Lval lval)
     expr_type <- getExprType expr
     case (lval_type, expr_type) of
         ("int", "int")    ->  return ()
         ("byte", "byte")  -> return ()
-        _                 -> error $ ( "You are trying to assign something of type  " ++ expr_type ) ++ ( " to something of type " ++ lval_type )
-        -- _                 -> error $ "Types " ++ lval_type ++ " and " ++ expr_type ++ " can't be assigned!"
-
-semStmt (Stmt_Cmp cmp_stmt) = do
-    semStmtList cmp_stmt
-    return ()
-
--- WARNING: FN_CALL is incomplete (read specs page 9 )
--- semStmt (Stmt_FCall ( Func_Call name args  ) ) = do
---      response <- checkSymbol name  -- get the function defintion
---      case response of
---          V voo_info -> error $ "you can't call a non-function like " ++ name
---          F foo_info -> case (getExprType (Expr_Fcall ( Func_Call name args) ) ) of
---              "proc" -> return ()
---              _      -> error $ "you can't use a call of a non-proc fuction as a statement: " ++ name
-
--- NOTE: ABOVE SHOULD BE INSIDE, BUT IT ISN'T WORKING RIGHT NOW
-
-
-semStmt (Stmt_If cond stmt) = do
-    semCond cond   -- do the semantic analysis of the condition
-    semStmt stmt   -- do the semantic analysis of the statement
-    return ()      -- if they didn't fail, we don't fail
-
-semStmt (Stmt_IFE cond stmt1 stmt2 ) = do
-    semCond cond  -- same logic, we just check both statements
-    semStmt stmt1
-    semStmt stmt2
-    return ()
-
-semStmt (Stmt_Wh cond stmt) = do
-    semCond cond    -- do the semantic analysis of the condition
-    semStmt stmt    -- do the semantic analysis of the statement
-    return ()       -- if they didn't fail, we don't fail
-
-
+        _                 -> error $ "Can't assign type  " ++ expr_type ++ " to type " ++ lval_type
 
 semStmt (  Stmt_Ret_Expr expr ) = do
     expr_type <- getExprType expr -- get the type of the expression
-    fn_name <- getScopeName       -- the name of the fuction we are in is the same as the name of the scope we are in!
+    fn_name <- getScopeName       -- current function = current scope
     info <- checkSymbol fn_name
     case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
-        V var_info -> error $ "you tried to return " ++ (show expr) ++ " from something that wasn't even a function!"
+        V var_info -> error $ "Can't return " ++ (show expr)
         F fun_info -> if ( result_type fun_info ==  expr_type ) then return ()
-            else error $ "you are trying to return something of type " ++ expr_type ++ "from the function"  ++ fn_name++ "with declared type " ++ (result_type fun_info)
+            else error $ "Can't return " ++ expr_type ++ " from func " ++ fn_name
 
-
--- Same logic as above, the difference being that now the return type of the expression is proc by default
+-- Same logic as above, the difference being that now
+-- the return type of the expression is proc by default
 semStmt Stmt_Ret = do
-    fn_name <- getScopeName       -- the name of the fuction we are in is the same as the name of the scope we are in!
+    fn_name <- getScopeName       -- current function = current scope
     info <- checkSymbol fn_name
     case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
-        V var_info -> error "you tried to return from something that wasn't even a function!"
+        V var_info -> error $ "Can't return from a variable."
         F fun_info -> if ( result_type fun_info ==  "proc" ) then return ()
-            else error $ "you are trying to return something of type proc from the function"  ++ fn_name++ "with declared type " ++ (result_type fun_info)
+            else error $ "Must return a value from a non void function"
 
+semStmtList :: Comp_Stmt -> P ()
+semStmtList (C_Stmt stmts) = mapM semStmt stmts >> return ()
 
-semStmt _ = return ()
--- NOTE: again, if we have done our job properly, this
--- should return "pattern match redundant"
-
-
--- Checks if a condition is valid. If it is, it just returns.
-semCond :: Cond -> P ()
-semCond Cond_True = return ()
-semCond Cond_False = return ()
--- in the simple cases, we just return
-
-semCond (Cond_Br cond) = do
-    semCond cond  -- if the analysis of the inner condition
-    return ()     -- doesn't fail, we don't
-
-semCond (Cond_Bang cond) = do
-    semCond cond  -- if the analysis of the inner condition
-    return ()     -- doesn't fail, we don't
-
-semCond (Cond_Eq expr1 expr2) = do
+--------------------------------------------------------------------------------
+-- Semantic Analysis of Conditions
+--------------------------------------------------------------------------------
+check_conditions :: Expr -> Expr -> P ()
+check_conditions expr1 expr2 = do
     type1 <- getExprType expr1  -- check that the 2 operands being
     type2 <- getExprType expr2  -- compared have  valid types for
     case (type1, type2 ) of    -- an equality check
         ("int", "int")     -> return ()
         ("byte", "byte")   -> return ()
+        _                  -> error $ "Wrong condition check"
 
-semCond (Cond_Neq expr1 expr2) = do
-    type1 <- getExprType expr1
-    type2 <- getExprType expr2
-    case (type1, type2 ) of
-        ("int", "int")     -> return ()
-        ("byte", "byte")   -> return ()
+-- Checks if a condition is valid. If it is, it just returns.
+semCond :: Cond -> P ()
+semCond Cond_True = return ()
+semCond Cond_False = return ()
+semCond (Cond_Br cond) = semCond cond
+semCond (Cond_Bang cond) = semCond cond
+semCond (Cond_Eq expr1 expr2) = check_conditions expr1 expr2
+semCond (Cond_Neq expr1 expr2) = check_conditions expr1 expr2
+semCond (Cond_L expr1 expr2) = check_conditions expr1 expr2
+semCond (Cond_G expr1 expr2) = check_conditions expr1 expr2
+semCond (Cond_LE expr1 expr2) = check_conditions expr1 expr2
+semCond (Cond_GE expr1 expr2) = check_conditions expr1 expr2
+semCond (Cond_And c1 c2 ) = semCond c1 >> semCond c2
+semCond (Cond_Or c1 c2 ) = semCond c1 >> semCond c2
 
-semCond (Cond_L expr1 expr2) = do
-    type1 <- getExprType expr1
-    type2 <- getExprType expr2
-    case (type1, type2 ) of
-        ("int", "int")     -> return ()
-        ("byte", "byte")   -> return ()
-
-semCond (Cond_G expr1 expr2) = do
-    type1 <- getExprType expr1
-    type2 <- getExprType expr2
-    case (type1, type2 ) of
-        ("int", "int")     -> return ()
-        ("byte", "byte")   -> return ()
-
-semCond (Cond_LE expr1 expr2) = do
-    type1 <- getExprType expr1
-    type2 <- getExprType expr2
-    case (type1, type2 ) of
-        ("int", "int")     -> return ()
-        ("byte", "byte")   -> return ()
-
-semCond (Cond_GE expr1 expr2) = do
-    type1 <- getExprType expr1
-    type2 <- getExprType expr2
-    case (type1, type2 ) of
-        ("int", "int")     -> return ()
-        ("byte", "byte")   -> return ()
-
-semCond (Cond_And c1 c2 ) = do
-    semCond c1  -- If neither of the inner conditions failed
-    semCond c2  -- we don't.
-    return ()
-
-semCond (Cond_Or c1 c2 ) = do  --same logic as and
-    semCond c1
-    semCond c2
-    return ()
-
--- semCond _ = return () -- NOTE: This should return pattern match
---redunadant, just a sanity check that we have covered every case.
-
-semStmtList :: Comp_Stmt -> P ()
-semStmtList (C_Stmt []) = do
-    return ()
-semStmtList (C_Stmt (stmt:rest)) = do
-    semStmt stmt
-    semStmtList (C_Stmt rest)    -- this will be beautified with a nice fmap
-
+--------------------------------------------------------------------------------
+-- Top level Semantic Analysis
+--------------------------------------------------------------------------------
 semFuncDef :: Func_Def -> P ()
 semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
     addFunc name args_lst f_type      -- > we add the function to our CURRENT scope, so the one who defined the function can then call her.
@@ -553,13 +365,10 @@ semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
     closeScope                        -- > close the function' s scope
 
-
 ast_sem :: Program -> P String
 ast_sem (Prog main) = do
     semFuncDef main
-    s <- get
-    return (logger s)
-
+    gets logger >>= return
 
 run_sem :: Program -> String
 run_sem alan = evalState (ast_sem alan) initialSemState
