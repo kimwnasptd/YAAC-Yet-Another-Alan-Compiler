@@ -17,6 +17,7 @@ import Control.Applicative
 import LLVM.AST
 import LLVM.AST.Global
 import LLVM.Prelude
+import LLVM.AST.Type
 import qualified LLVM.AST as AST
 
 import qualified LLVM.AST.Linkage as L
@@ -34,6 +35,35 @@ toShort s = BS.toShort $ BS8.pack s
 
 toString :: ShortByteString -> String
 toString bs = BS8.unpack $ BS.fromShort bs
+
+---------------------------------------------------------------------------------
+-- Types and Operands
+-------------------------------------------------------------------------------
+
+-- IEEE 754 double
+-- double :: Type
+-- double = FloatingPointType DoubleFP
+
+funct :: Type
+funct = FunctionType i32 [] False
+
+int :: Type
+int = i32
+
+toInt :: Int -> Operand
+toInt int = cons $ C.Int 32 (toInteger int)
+
+one :: Operand
+one = cons $ C.Int 32 1
+
+zero :: Operand
+zero = cons $ C.Int 32 0
+
+false :: Operand
+false = zero
+
+true :: Operand
+true = one
 
 -------------------------------------------------------------------------------
 -- Module Level
@@ -72,16 +102,6 @@ external retty label argtys = addDefn $
   , basicBlocks = []
   }
 
----------------------------------------------------------------------------------
--- Types
--------------------------------------------------------------------------------
-
--- IEEE 754 double
-double :: Type
-double = FloatingPointType DoubleFP
-
-funct :: Type
-funct = FunctionType double [] False
 
 -------------------------------------------------------------------------------
 -- Names
@@ -242,29 +262,29 @@ getvar var = do
 
 -- References
 local ::  Name -> Operand
-local = LocalReference double
+local = LocalReference i32
 
 global ::  Name -> C.Constant
-global = C.GlobalReference double
+global = C.GlobalReference i32
 
 externf :: Name -> Operand
-externf = ConstantOperand . C.GlobalReference double
+externf = ConstantOperand . C.GlobalReference i32
 
 -- Arithmetic and Constants
-fadd :: Operand -> Operand -> Codegen Operand
-fadd a b = instr $ FAdd noFastMathFlags a b []
+add :: Operand -> Operand -> Codegen Operand
+add a b = instr $ Add True True a b []
 
-fsub :: Operand -> Operand -> Codegen Operand
-fsub a b = instr $ FSub noFastMathFlags a b []
+sub :: Operand -> Operand -> Codegen Operand
+sub a b = instr $ Sub True True a b []
 
-fmul :: Operand -> Operand -> Codegen Operand
-fmul a b = instr $ FMul noFastMathFlags a b []
+mul :: Operand -> Operand -> Codegen Operand
+mul a b = instr $ Mul True True a b []
 
-fdiv :: Operand -> Operand -> Codegen Operand
-fdiv a b = instr $ FDiv noFastMathFlags a b []
+udiv :: Operand -> Operand -> Codegen Operand
+udiv a b = instr $ UDiv True a b []
 
-fcmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Codegen Operand
-fcmp cond a b = instr $ FCmp cond a b []
+cmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Codegen Operand
+cmp cond a b = instr $ FCmp cond a b []
 
 cons :: C.Constant -> Operand
 cons = ConstantOperand
@@ -294,6 +314,9 @@ br val = terminator $ Do $ Br val []
 
 cbr :: Operand -> Name -> Name -> Codegen (Named Terminator)
 cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
+
+phi :: Type -> [(Operand, Name)] -> Codegen Operand
+phi ty incoming = instr $ Phi ty incoming []
 
 ret_val :: Operand -> Codegen (Named Terminator)
 ret_val val = terminator $ Do $ Ret (Just val) []

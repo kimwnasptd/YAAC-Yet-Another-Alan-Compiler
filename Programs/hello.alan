@@ -6,7 +6,7 @@ hello () : proc
     toUse (n : reference int) : int
 
     { -- toUse
-        return n2;
+        return 1;
     }
 
     toUse2 (n :  int) : proc
@@ -22,7 +22,7 @@ hello () : proc
     -- EVERYTHING HERE SHOULD WORK:
      Counter[1] = 5;
      n1 = 6 ;
-     Counter[0] = n1 ;
+     -- Counter[0] = n1 ;
      Counter[1] = 3 % 5 ;    -- Should work
      Counter[2] = n1 % 5 ;    -- Should work
      n1 = toUse(n1);
