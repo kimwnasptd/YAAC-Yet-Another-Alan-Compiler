@@ -4,9 +4,16 @@ hello () : proc
     n1 : int;
 
     toUse (n : reference int) : int
+        guard1 : byte;
+        -- test : int;
+
+        toUse3 (n :  int) : int
+        { -- toUse3
+            return n;
+        }
 
     { -- toUse
-        return 1;
+        return n1;
     }
 
     toUse2 (n :  int) : proc
@@ -18,21 +25,21 @@ hello () : proc
 
 {
     -- writeString("Hello World\n");
-
+    -- kim = 5;
     -- EVERYTHING HERE SHOULD WORK:
-     Counter[1] = 5;
-     n1 = 6 ;
+     -- Counter[1] = 5;
+     -- n1 = 6 ;
      -- Counter[0] = n1 ;
-     Counter[1] = 3 % 5 ;    -- Should work
-     Counter[2] = n1 % 5 ;    -- Should work
-     n1 = toUse(n1);
-     guard = 'a';       -- byte to byte
+     -- Counter[1] = 3 % 5 ;    -- Should work
+     -- Counter[2] = n1 % 5 ;    -- Should work
+     -- n1 = toUse(n1);
+     -- guard = 'a';       -- byte to byte
 
 
 
      -- PROBLEMS WE HAVE:
-     toUse2() ;           -- calling a proc   without a proper arguement for some reason succeeds
-     toUse(n1) ;         -- calling a function that has non-void return for some reason succeeds 
+     -- toUse2() ;           -- calling a proc   without a proper arguement for some reason succeeds
+     -- toUse(n1) ;         -- calling a function that has non-void return for some reason succeeds
 
 
     --These are the errors we can catch up to now
@@ -49,5 +56,5 @@ hello () : proc
     -- ermis = 5;
     --n1 = toUse(5)  ;    -- using a non-lvalue as reference
     -- guard = toUse(n1) ;         -- type missmatch in asignment
-
+    return;
 }

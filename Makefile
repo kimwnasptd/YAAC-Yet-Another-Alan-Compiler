@@ -17,7 +17,9 @@ CLEAN_DIRS = . Lexer Parser Semantic Codegen
 
 # ------------------------
 
-default: parts  compiler
+default: compiler
+
+all: parts compiler
 
 parts: lexer parser
 

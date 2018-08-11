@@ -18,7 +18,7 @@ data VarInfo = VarInfo {
       var_name    :: Name              -- the variable name
     , var_type    :: VarType
     , id_num      :: Int               -- we'll probably need this field later
-    , dimension   :: Maybe Int         -- its dimensions, if it's a table NOTE: It's nothing, if we arent' a table 
+    , dimension   :: Maybe Int         -- its dimensions, if it's a table NOTE: It's nothing, if we arent' a table
     , byreference :: Bool              -- if it was passed by reference (if it is a function arg)
   }
   deriving Show
@@ -26,18 +26,18 @@ data VarInfo = VarInfo {
 data FunInfo = FunInfo {
       fn_name        :: Name
     , result_type    :: FunType
-    , args           :: [(Name,VarType,Bool,Bool)]  -- NOTE: for every argument, we know if its by reference or not
+    , args           :: [(Name,VarType,Bool,Bool)] -- (name, type, ref, table)
     , forward_dec    :: Bool
   }
   deriving Show
 
-data G_Info = V VarInfo
+data Symbol = V VarInfo
             | F FunInfo
             deriving Show
 
 data Scope = Scope {
       scp_name        :: Name
-    , symbols         :: Map.HashMap Name G_Info     -- args and local vars go here
+    , symbols         :: Map.HashMap Name Symbol     -- args and local vars go here
     , parent_scope    :: Maybe Scope  -- Used when we close a scope
   }
   deriving Show
@@ -48,6 +48,7 @@ data SemState = SemState {
     -- symbolTable :: SymbolTable
       symbolTable   :: SymbolTable
     , currentScope  :: Scope   -- > We always keep the current scope close to our chest.
+    , main          :: String  -- we need the name of the main function
     , logger        :: String
   }
   deriving Show
@@ -61,10 +62,11 @@ emptyScope = Scope {
 
 initialSemState :: SemState
 initialSemState = SemState {
-      symbolTable = Map.empty
+      symbolTable = Map.empty   -- Scopes vars are defined
     , currentScope = emptyScope
+    , main = ""
     , logger = ""
   }
 
 -- Our Semantic Monad
-type P a = State SemState a
+type Semantic a = State SemState a

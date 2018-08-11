@@ -256,7 +256,7 @@ getvar var = do
   syms <- gets symtab
   case lookup var syms of
     Just x  -> return x
-    Nothing -> error $ "Local variable not in scope: " ++ show var
+    Nothing -> error $ "(S)Local variable not in scope: " ++ show var
 
 -------------------------------------------------------------------------------
 
