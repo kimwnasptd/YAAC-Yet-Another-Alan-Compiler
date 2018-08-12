@@ -27,7 +27,7 @@ writeLog line = modify $ \s -> s { logger = (logger s) ++ line ++ ['\n'] }
 --------------------------------------------------------------------------------
 -- Transofrmation Functions (Convrsions for argument types)
 --------------------------------------------------------------------------------
-createFunInfo :: Name -> [(Name,VarType,Bool,Bool)]  ->  FunType -> FunInfo
+createFunInfo :: Name -> [(Name,SymbolType,Bool,Bool)]  ->  SymbolType -> FunInfo
 createFunInfo func_name fun_args fun_res = FunInfo {
       fn_name = func_name
     , result_type = fun_res
@@ -35,28 +35,28 @@ createFunInfo func_name fun_args fun_res = FunInfo {
     , forward_dec = False
 }   -- we simply get all fields already computed and package them in a FunInfo Struct
 
-createFType :: R_Type -> FunType  -- takes the token that corresponds to a functions return type
-createFType R_Type_Proc =  "proc" -- and returns its VarType string
-createFType ( R_Type_DT (D_Type TInt ) ) =  "int"
-createFType ( R_Type_DT (D_Type TByte ) ) =  "byte"
+createFType :: R_Type -> SymbolType  -- takes the token that corresponds to a functions return type
+createFType R_Type_Proc =  ProcType
+createFType ( R_Type_DT (D_Type TInt ) ) =  IntType
+createFType ( R_Type_DT (D_Type TByte ) ) =  ByteType
 -- createFType sth = error $ "Create f type was called with " ++ (show sth )
 
 -- (Var Name, Var Type{int, byte}, Reference{T,F}, Table{T,F})
-createArgType:: FPar_Def -> (Name,VarType, Bool, Bool )    -- takes a function arguement from the ast and returns its sem tuple
-createArgType ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = (str, "int" , True, False)
-createArgType ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = (str, "byte", True, False)
-createArgType ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = (str, "table int" , True, True)
-createArgType ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = (str, "table byte", True, True)
-createArgType ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = (str, "int" , False, False)
-createArgType ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = (str, "byte", False, False)
-createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, "table int" , False, True)
-createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, "table byte", False, True)
+createArgType:: FPar_Def -> (Name,SymbolType, Bool, Bool )    -- takes a function arguement from the ast and returns its sem tuple
+createArgType ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = (str, IntType , True, False)
+createArgType ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = (str, ByteType, True, False)
+createArgType ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = (str, TableIntType , True, True)
+createArgType ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = (str, TableByteType, True, True)
+createArgType ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = (str, IntType , False, False)
+createArgType ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = (str, ByteType, False, False)
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, TableIntType , False, True)
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, TableByteType, False, True)
 
 createVar_from_Def :: Var_Def -> VarInfo
-createVar_from_Def ( VDef str (D_Type TInt) )         = createVarInfo str "int"  0 Nothing False
-createVar_from_Def ( VDef str (D_Type TByte) )        = createVarInfo str "byte" 0 Nothing False
-createVar_from_Def ( VDef_T str (D_Type TInt) dim  )  = createVarInfo str "table int"  0 (Just dim) False
-createVar_from_Def ( VDef_T str (D_Type TByte) dim )  = createVarInfo str "table byte" 0 (Just dim) False
+createVar_from_Def ( VDef str (D_Type TInt) )         = createVarInfo str IntType  0 Nothing False
+createVar_from_Def ( VDef str (D_Type TByte) )        = createVarInfo str ByteType 0 Nothing False
+createVar_from_Def ( VDef_T str (D_Type TInt) dim  )  = createVarInfo str TableIntType  0 (Just dim) False
+createVar_from_Def ( VDef_T str (D_Type TByte) dim )  = createVarInfo str TableByteType 0 (Just dim) False
 -- Whenever we create a variable from a Var_Def, it's always NOT by reference
 -- If it's a table, we know a priori its size, so we add it
 -- Else, we add Nothing to the dimension
@@ -64,18 +64,18 @@ createVar_from_Def ( VDef_T str (D_Type TByte) dim )  = createVarInfo str "table
 -- NOTE: When we are inside a function, we treat this functions arguments as normal parameters,
 -- so we keep a var_info type for all of them
 createVar_from_Arg :: FPar_Def -> VarInfo
-createVar_from_Arg ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = createVarInfo str "int" 0 Nothing True
-createVar_from_Arg ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = createVarInfo str "byte" 0 Nothing True
-createVar_from_Arg ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = createVarInfo str "table int" 0 (Just 0) True
-createVar_from_Arg ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = createVarInfo str "table byte" 0 (Just 0) True
-createVar_from_Arg ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = createVarInfo str "int" 0 Nothing False
-createVar_from_Arg ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = createVarInfo str "byte" 0 Nothing False
-createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = createVarInfo str "table int" 0 (Just 0) False
-createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = createVarInfo str "table byte" 0 (Just 0 ) False
+createVar_from_Arg ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = createVarInfo str IntType 0 Nothing True
+createVar_from_Arg ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = createVarInfo str ByteType 0 Nothing True
+createVar_from_Arg ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = createVarInfo str TableIntType 0 (Just 0) True
+createVar_from_Arg ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = createVarInfo str TableByteType 0 (Just 0) True
+createVar_from_Arg ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = createVarInfo str IntType 0 Nothing False
+createVar_from_Arg ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = createVarInfo str ByteType 0 Nothing False
+createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = createVarInfo str TableIntType 0 (Just 0) False
+createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = createVarInfo str TableByteType 0 (Just 0 ) False
 -- NOTE: A VarInfo table having as dimensions JUST 0 has special meaning:
 -- it means that we are indeed talking about a table, but we don't know its size yet
 
-createVarInfo:: Name -> VarType -> Int ->  Maybe Int -> Bool -> VarInfo
+createVarInfo:: Name -> SymbolType -> Int ->  Maybe Int -> Bool -> VarInfo
 createVarInfo  nm vt idv dim byref =  VarInfo {
       var_name = nm
     , var_type = vt
@@ -94,37 +94,35 @@ checkRef _ = False
 
 -- Takes a list of actual types of a fuction, and returns
 -- a list of tuples of (actual type,whether it's  left_value )
-get_actual_types::[Expr] -> [(String, Bool)] ->  Semantic [(String, Bool)]
-get_actual_types [] types = return $ reverse types
-get_actual_types (expr:rest) types = do
-    act_type <- getExprType expr -- take the type of the expression at the head of the list for interpretation
-    let left_flag = checkRef expr      -- check if the expression is a left value
-    get_actual_types rest ( (act_type, left_flag ) : types )  -- keep interpeting
+get_expr_types::[Expr] -> Semantic [(SymbolType, Bool)]
+get_expr_types exprs = forM exprs $ \expr -> do
+    act_type <- getExprType expr
+    return (act_type, checkRef expr)
 
 -- takes the name of a function, and returns a list
 -- of (arg type, by reference ) tuple,  in the proper order
-get_formal_types:: String -> Semantic [(String, Bool)]
-get_formal_types fn_name = do
+get_fnargs_types:: String -> Semantic [(SymbolType, Bool)]
+get_fnargs_types fn_name = do
     F fn_info <- checkSymbol fn_name -- lookup the function on the symbol table
     return $ map get_vartype (args fn_info)
         where get_vartype (a,b,c,d) = (b,c)
 
 -- Helper function for repetetive stuff
-type_check :: Expr -> Expr -> String -> Semantic String
+type_check :: Expr -> Expr -> String -> Semantic SymbolType
 type_check left right fn = do
     left_type  <- getExprType left
     right_type <- getExprType right
     case (left_type, right_type) of
-        ("int", "int") -> return "int"
-        ("byte", "byte") -> return "int"
-        _ -> error $ "Can't " ++ fn ++ " a " ++ left_type ++ " with a " ++ right_type
+        (IntType, IntType) -> return IntType
+        (ByteType, ByteType) -> return IntType
+        _ -> error $ "Can't " ++ fn ++ " a " ++ (show left_type) ++ " with a " ++ (show right_type)
 
 -- Left Values
 -- in case we encounter something that looks like a variable, we do simple stuff:
 -- we just check our symbol table, and return its type, regarldess of what
 -- that type might be
-getLvalType :: L_Value -> Semantic String
-getLvalType (LV_Lit str) = return "table byte"
+getLvalType :: L_Value -> Semantic SymbolType
+getLvalType (LV_Lit str) = return TableByteType
 getLvalType (LV_Var var) = do
     V var_info <- checkSymbol var
     return $ var_type var_info
@@ -132,14 +130,14 @@ getLvalType (LV_Tbl var dim) = do
     dim_type <- getExprType dim
     V table_info <- checkSymbol var
     case (dim_type , var_type table_info ) of
-        ("int", "table int" )  -> return "int"
-        ("int", "table byte")  -> return "byte"
+        (IntType, TableIntType )  -> return IntType
+        (IntType, TableByteType)  -> return ByteType
         ( _ , _)               -> error  $ "Something sketchy is going on with the " ++ var ++ " table!"
 
 -- Expressions
-getExprType :: Expr -> Semantic String
-getExprType (Expr_Int num ) = return "int"
-getExprType (Expr_Char _)= return "byte"
+getExprType :: Expr -> Semantic SymbolType
+getExprType (Expr_Int num ) = return IntType
+getExprType (Expr_Char _)= return ByteType
 getExprType (Expr_Brack expr) = getExprType expr
 getExprType (Expr_Add left right ) = type_check left right "add"
 getExprType (Expr_Sub left right ) = type_check left right "substract"
@@ -150,16 +148,16 @@ getExprType (Expr_Lval lval) = getLvalType lval
 getExprType (Expr_Pos num ) = do
     num  <- getExprType num
     case num of
-        "int" -> return "int"
-        _     -> error $ "Type " ++ num  ++  " has no positive (only ints do)."
+        IntType -> return IntType
+        _     -> error $ "Type " ++ (show num)  ++  " has no positive (only ints do)."
 getExprType (Expr_Neg num ) = do
     num  <- getExprType num
     case num of
-        "int" -> return "int"
-        _     -> error $ "Type " ++ num  ++  " has no negative (only ints do)."
+        IntType -> return IntType
+        _     -> error $ "Type " ++ (show num)  ++  " has no negative (only ints do)."
 getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
-    actual_types <- get_actual_types fargs []   -- [(getExprType, Ref)]
-    formal_types <- get_formal_types fname      -- []
+    actual_types <- get_expr_types fargs      -- [(SymbolType,Reference)]
+    formal_types <- get_fnargs_types fname    -- [(SymbolType, Reference)]
     F foo_info <- checkSymbol fname
     if ( formal_types ==  actual_types ) then return $ result_type foo_info
     else  error $ "arg missmatch in function " ++ fname
@@ -177,8 +175,8 @@ check_conditions expr1 expr2 = do
     type1 <- getExprType expr1  -- check that the 2 operands being
     type2 <- getExprType expr2  -- compared have  valid types for
     case (type1, type2 ) of    -- an equality check
-        ("int", "int")     -> return ()
-        ("byte", "byte")   -> return ()
+        (IntType, IntType)     -> return ()
+        (ByteType, ByteType)   -> return ()
         _                  -> error $ "Wrong condition types"
 
 semCond :: Cond -> Semantic ()
@@ -344,10 +342,11 @@ semStmt (Stmt_Wh cond stmt) = semCond cond >> semStmt stmt
 semStmt (Stmt_Eq lval expr) = do
     lval_type <- getLvalType lval
     expr_type <- getExprType expr
+    let err = "Can't assign type  " ++ (show expr_type) ++ " to type " ++ (show lval_type)
     case (lval_type, expr_type) of
-        ("int", "int")    ->  return ()
-        ("byte", "byte")  -> return ()
-        _                 -> error $ "Can't assign type  " ++ expr_type ++ " to type " ++ lval_type
+        (IntType, IntType)    ->  return ()
+        (ByteType, ByteType)  -> return ()
+        _                 -> error $ err
 
 semStmt (Stmt_Ret_Expr expr) = do
     expr_type <- getExprType expr -- get the type of the expression
@@ -356,7 +355,7 @@ semStmt (Stmt_Ret_Expr expr) = do
     case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
         V var_info -> error $ "Can't return " ++ (show expr)
         F fun_info -> if ( result_type fun_info ==  expr_type ) then return ()
-            else error $ "Can't return " ++ expr_type ++ " from func " ++ fn_name
+            else error $ "Can't return " ++ (show expr_type) ++ " from func " ++ fn_name
 
 -- Same logic as above, the difference being that now
 -- the return type of the expression is proc by default
@@ -365,8 +364,9 @@ semStmt Stmt_Ret = do
     info <- checkSymbol fn_name
     case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
         V var_info -> error $ "Can't return from a variable."
-        F fun_info -> if ( result_type fun_info ==  "proc" ) then return ()
-            else error $ "Must return a value from a non void function"
+        F fun_info -> case result_type fun_info of
+            ProcType -> return ()
+            _        -> error $ "Must return a value from a non void function"
 
 semStmtList :: Comp_Stmt -> Semantic ()
 semStmtList (C_Stmt stmts) = mapM semStmt stmts >> return ()

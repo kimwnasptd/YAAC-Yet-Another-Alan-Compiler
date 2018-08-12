@@ -5,18 +5,14 @@ import Control.Monad
 import qualified Data.HashMap.Strict as Map
 
 type SymbolTable = Map.HashMap Name [Scope]
--- we give it the SCOPE NAME and it gives us the actual scope
-
--- type NameTable = Map.Map Name [ScopeID]     -- Key: Variable Name, Val: Scope Key
--- type ScopeTable = Map.Map ScopeID Scope     -- (Used to search them in their own Map)
-
 type Name = String
-type VarType = String   -- int, byte, t_byte, t_int (with "")
-type FunType = String   -- int, byte, proc
+data SymbolType = IntType | ByteType | ProcType -- Fun Types
+                | TableIntType | TableByteType  -- + Var Types
+    deriving (Show, Eq)
 
 data VarInfo = VarInfo {
       var_name    :: Name              -- the variable name
-    , var_type    :: VarType
+    , var_type    :: SymbolType
     , id_num      :: Int               -- we'll probably need this field later
     , dimension   :: Maybe Int         -- its dimensions, if it's a table NOTE: It's nothing, if we arent' a table
     , byreference :: Bool              -- if it was passed by reference (if it is a function arg)
@@ -25,8 +21,8 @@ data VarInfo = VarInfo {
 
 data FunInfo = FunInfo {
       fn_name        :: Name
-    , result_type    :: FunType
-    , args           :: [(Name,VarType,Bool,Bool)] -- (name, type, ref, table)
+    , result_type    :: SymbolType
+    , args           :: [(Name,SymbolType,Bool,Bool)] -- (name, type, ref, table)
     , forward_dec    :: Bool
   }
   deriving Show
