@@ -1,7 +1,8 @@
 import ASTTypes
 import Parser
 import SemanticFunctions
-import Codegen
+-- import Codegen
+import SymbolTableTypes
 import Emit
 
 import Control.Monad.Trans
@@ -11,6 +12,7 @@ import System.Environment
 import System.Console.Haskeline
 
 import qualified LLVM.AST as AST
+
 initModule :: AST.Module
 initModule = emptyModule "I'm really happy right now"
 

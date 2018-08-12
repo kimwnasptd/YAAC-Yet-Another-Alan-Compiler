@@ -3,7 +3,7 @@ module SemanticFunctions (run_sem, ast_sem) where
 import Tokens
 import ASTTypes
 import SymbolTableTypes
-import qualified Data.HashMap.Strict as Map
+import qualified Data.Map as Map
 import Control.Monad.State
 import Control.Monad
 
@@ -21,16 +21,17 @@ import Control.Monad
 -- Helper Functions
 --------------------------------------------------------------------------------
 -- Write a Log Message
-writeLog :: String -> Semantic ()
+writeLog :: String -> Codegen ()
 writeLog line = modify $ \s -> s { logger = (logger s) ++ line ++ ['\n'] }
 
 --------------------------------------------------------------------------------
 -- Transofrmation Functions (Convrsions for argument types)
 --------------------------------------------------------------------------------
-createFunInfo :: Name -> [(Name,SymbolType,Bool,Bool)]  ->  SymbolType -> FunInfo
+createFunInfo :: SymbolName -> [(SymbolName,SymbolType,Bool,Bool)]  ->  SymbolType -> FunInfo
 createFunInfo func_name fun_args fun_res = FunInfo {
       fn_name = func_name
     , result_type = fun_res
+    , fun_operand = Nothing
     , args = fun_args
     , forward_dec = False
 }   -- we simply get all fields already computed and package them in a FunInfo Struct
@@ -41,8 +42,8 @@ createFType ( R_Type_DT (D_Type TInt ) ) =  IntType
 createFType ( R_Type_DT (D_Type TByte ) ) =  ByteType
 -- createFType sth = error $ "Create f type was called with " ++ (show sth )
 
--- (Var Name, Var Type{int, byte}, Reference{T,F}, Table{T,F})
-createArgType:: FPar_Def -> (Name,SymbolType, Bool, Bool )    -- takes a function arguement from the ast and returns its sem tuple
+-- (Var SymbolName, Var Type{int, byte}, Reference{T,F}, Table{T,F})
+createArgType:: FPar_Def -> (SymbolName,SymbolType, Bool, Bool )    -- takes a function arguement from the ast and returns its sem tuple
 createArgType ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = (str, IntType , True, False)
 createArgType ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = (str, ByteType, True, False)
 createArgType ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = (str, TableIntType , True, True)
@@ -75,10 +76,11 @@ createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = createVarI
 -- NOTE: A VarInfo table having as dimensions JUST 0 has special meaning:
 -- it means that we are indeed talking about a table, but we don't know its size yet
 
-createVarInfo:: Name -> SymbolType -> Int ->  Maybe Int -> Bool -> VarInfo
+createVarInfo:: SymbolName -> SymbolType -> Int ->  Maybe Int -> Bool -> VarInfo
 createVarInfo  nm vt idv dim byref =  VarInfo {
       var_name = nm
     , var_type = vt
+    , var_operand = Nothing
     , id_num = idv
     , dimension = dim
     , byreference = byref
@@ -94,21 +96,21 @@ checkRef _ = False
 
 -- Takes a list of actual types of a fuction, and returns
 -- a list of tuples of (actual type,whether it's  left_value )
-get_expr_types::[Expr] -> Semantic [(SymbolType, Bool)]
+get_expr_types::[Expr] -> Codegen [(SymbolType, Bool)]
 get_expr_types exprs = forM exprs $ \expr -> do
     act_type <- getExprType expr
     return (act_type, checkRef expr)
 
 -- takes the name of a function, and returns a list
 -- of (arg type, by reference ) tuple,  in the proper order
-get_fnargs_types:: String -> Semantic [(SymbolType, Bool)]
+get_fnargs_types:: String -> Codegen [(SymbolType, Bool)]
 get_fnargs_types fn_name = do
-    F fn_info <- checkSymbol fn_name -- lookup the function on the symbol table
+    F fn_info <- getSymbol fn_name -- lookup the function on the symbol table
     return $ map get_vartype (args fn_info)
         where get_vartype (a,b,c,d) = (b,c)
 
 -- Helper function for repetetive stuff
-type_check :: Expr -> Expr -> String -> Semantic SymbolType
+type_check :: Expr -> Expr -> String -> Codegen SymbolType
 type_check left right fn = do
     left_type  <- getExprType left
     right_type <- getExprType right
@@ -121,21 +123,21 @@ type_check left right fn = do
 -- in case we encounter something that looks like a variable, we do simple stuff:
 -- we just check our symbol table, and return its type, regarldess of what
 -- that type might be
-getLvalType :: L_Value -> Semantic SymbolType
+getLvalType :: L_Value -> Codegen SymbolType
 getLvalType (LV_Lit str) = return TableByteType
 getLvalType (LV_Var var) = do
-    V var_info <- checkSymbol var
+    V var_info <- getSymbol var
     return $ var_type var_info
-getLvalType (LV_Tbl var dim) = do
-    dim_type <- getExprType dim
-    V table_info <- checkSymbol var
-    case (dim_type , var_type table_info ) of
+getLvalType (LV_Tbl var ind) = do
+    ind_type <- getExprType ind
+    V table_info <- getSymbol var
+    case (ind_type , var_type table_info ) of
         (IntType, TableIntType )  -> return IntType
         (IntType, TableByteType)  -> return ByteType
         ( _ , _)               -> error  $ "Something sketchy is going on with the " ++ var ++ " table!"
 
 -- Expressions
-getExprType :: Expr -> Semantic SymbolType
+getExprType :: Expr -> Codegen SymbolType
 getExprType (Expr_Int num ) = return IntType
 getExprType (Expr_Char _)= return ByteType
 getExprType (Expr_Brack expr) = getExprType expr
@@ -158,7 +160,7 @@ getExprType (Expr_Neg num ) = do
 getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
     actual_types <- get_expr_types fargs      -- [(SymbolType,Reference)]
     formal_types <- get_fnargs_types fname    -- [(SymbolType, Reference)]
-    F foo_info <- checkSymbol fname
+    F foo_info <- getSymbol fname
     if ( formal_types ==  actual_types ) then return $ result_type foo_info
     else  error $ "arg missmatch in function " ++ fname
 -- Simple enough: If the type of all the actual paramters a function
@@ -170,7 +172,7 @@ getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
 --------------------------------------------------------------------------------
 -- Semantic Analysis of Conditions
 --------------------------------------------------------------------------------
-check_conditions :: Expr -> Expr -> Semantic ()
+check_conditions :: Expr -> Expr -> Codegen ()
 check_conditions expr1 expr2 = do
     type1 <- getExprType expr1  -- check that the 2 operands being
     type2 <- getExprType expr2  -- compared have  valid types for
@@ -179,7 +181,7 @@ check_conditions expr1 expr2 = do
         (ByteType, ByteType)   -> return ()
         _                  -> error $ "Wrong condition types"
 
-semCond :: Cond -> Semantic ()
+semCond :: Cond -> Codegen ()
 semCond Cond_True = return ()
 semCond Cond_False = return ()
 semCond (Cond_Br cond) = semCond cond
@@ -197,10 +199,10 @@ semCond (Cond_Or c1 c2 ) = semCond c1 >> semCond c2
 -- Symbol Table Functions
 --------------------------------------------------------------------------------
 -- Checks if var is defined in main
-checkGlobalVar :: Name -> Semantic (Maybe Symbol)
+checkGlobalVar :: SymbolName -> Codegen (Maybe Symbol)
 checkGlobalVar var = do
     symtable <- gets symbolTable
-    main_scp <- gets main
+    main_scp <- gets mainfn
     case var `Map.lookup` symtable of
         Nothing -> error $ error_msg
         Just [] -> error $ error_msg
@@ -212,8 +214,8 @@ checkGlobalVar var = do
     where
         error_msg = "Symbol " ++ var ++ " is not defined as global!"
 
-checkSymbol:: Name -> Semantic Symbol
-checkSymbol var = do
+getSymbol:: SymbolName -> Codegen Symbol
+getSymbol var = do
     curr_scp <- gets currentScope
     case var `Map.lookup` (symbols curr_scp) of
         Just info -> return info  -- the variable is in the current scope
@@ -225,7 +227,7 @@ checkSymbol var = do
     where
         error_msg = "Symbol " ++ var ++ " is not defined!"
 
-addSymbol :: Name -> Symbol -> Semantic ()
+addSymbol :: SymbolName -> Symbol -> Codegen ()
 addSymbol symbol_name symbol_info = do
     s <- get
     let currScope = currentScope s                -- get the current scope
@@ -239,7 +241,7 @@ addSymbol symbol_name symbol_info = do
     }
 
 -- Takes the necessary fields from a function defintion, and adds a fun_info struct to the current scope
-addFunc :: Name ->  FPar_List  ->  R_Type -> Semantic ()
+addFunc :: SymbolName ->  FPar_List  ->  R_Type -> Codegen ()
 addFunc name args_lst f_type = do
     scpnm <- getScopeName
     writeLog $ "add function was called from scope " ++ scpnm ++ " for function " ++ name
@@ -248,7 +250,7 @@ addFunc name args_lst f_type = do
         fn_info = createFunInfo name fun_args our_ret
     addSymbol (fn_name fn_info) (F fn_info)
 
-addVar :: Var_Def -> Semantic ()    -- takes a VARIABLE DEFINITION , and adds the proper things, to the proper scopes
+addVar :: Var_Def -> Codegen ()    -- takes a VARIABLE DEFINITION , and adds the proper things, to the proper scopes
 addVar vdef = do
     scpnm <- getScopeName
     let var_info = createVar_from_Def vdef    -- create the new VarInfo filed to be inserted in the scope
@@ -256,7 +258,7 @@ addVar vdef = do
     writeLog $ "Adding variable " ++ (var_name var_info) ++ " to the scope " ++ scpnm
 
 -- Put the Function args to the function's scope, as variables variables
-addFArgs :: FPar_List -> Semantic ()
+addFArgs :: FPar_List -> Codegen ()
 addFArgs (arg:args) = do
     let param = createVar_from_Arg arg
     writeLog $ "Adding Func Param " ++ (var_name param) ++ " to the scope"
@@ -264,23 +266,23 @@ addFArgs (arg:args) = do
     addFArgs args
 addFArgs [] = return ()
 
-addLDef :: Local_Def -> Semantic ()
+addLDef :: Local_Def -> Codegen ()
 addLDef (Loc_Def_Fun fun) = semFuncDef fun
 addLDef (Loc_Def_Var var) = addVar var
 
 -- Check it at night. -> Looks fine to me.
-addLDefLst :: [Local_Def] -> Semantic  ()
+addLDefLst :: [Local_Def] -> Codegen  ()
 addLDefLst defs = mapM addLDef defs >> return ()
 
 --------------------------------------------------------------------------------
 -- Scope Functions
 --------------------------------------------------------------------------------
-getScopeName :: Semantic String
+getScopeName :: Codegen String
 getScopeName = gets currentScope >>= return . scp_name
 
 -- Opens a new scope, we just edit
 -- the currentScope in our State
-openScope :: String -> Semantic ()
+openScope :: String -> Codegen ()
 openScope name = do
     s <- get
     writeLog $ "The keys of the scope we were in are: " ++ (show $ Map.keys $ symbols $ currentScope s)
@@ -299,7 +301,7 @@ openScope name = do
 -- Revert the currentScope to the parent one
 -- and remove the Latest entries of the vars
 -- in this scope from our Symbol Table
-closeScope :: Semantic ()
+closeScope :: Codegen ()
 closeScope = do
     scpnm <- getScopeName
     writeLog $ "Closing the Scope for " ++ scpnm
@@ -313,7 +315,7 @@ closeScope = do
         Just scp -> put s { currentScope = scp }
 
 -- Removes the variables from all the appropriate scopes
-cleanup :: SymbolTable -> [Name] -> SymbolTable
+cleanup :: SymbolTable -> [SymbolName] -> SymbolTable
 cleanup symb_t [] = symb_t
 cleanup symb_t (var:vars) =
     case Map.lookup var symb_t of
@@ -321,7 +323,7 @@ cleanup symb_t (var:vars) =
         Just []         -> cleanup symb_t vars
         Just (scp:scps) -> cleanup ( Map.insert var scps symb_t ) vars
 
-removeScopeSymbols :: [Name] -> Name ->  Semantic ()
+removeScopeSymbols :: [SymbolName] -> SymbolName ->  Codegen ()
 removeScopeSymbols [] nm  = do
     writeLog $ "cleaning up the (EMTPY) symbol table for scope name "  ++ nm
 removeScopeSymbols symbol_lst nm = do
@@ -333,7 +335,7 @@ removeScopeSymbols symbol_lst nm = do
 --------------------------------------------------------------------------------
 -- Semantic Analysis of statements
 --------------------------------------------------------------------------------
-semStmt :: Stmt -> Semantic ()
+semStmt :: Stmt -> Codegen ()
 semStmt Stmt_Semi = return ()
 semStmt (Stmt_Cmp cmp_stmt) = semStmtList cmp_stmt
 semStmt (Stmt_If cond stmt) = semCond cond >> semStmt stmt
@@ -351,7 +353,7 @@ semStmt (Stmt_Eq lval expr) = do
 semStmt (Stmt_Ret_Expr expr) = do
     expr_type <- getExprType expr -- get the type of the expression
     fn_name <- getScopeName       -- current function = current scope
-    info <- checkSymbol fn_name
+    info <- getSymbol fn_name
     case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
         V var_info -> error $ "Can't return " ++ (show expr)
         F fun_info -> if ( result_type fun_info ==  expr_type ) then return ()
@@ -361,23 +363,23 @@ semStmt (Stmt_Ret_Expr expr) = do
 -- the return type of the expression is proc by default
 semStmt Stmt_Ret = do
     fn_name <- getScopeName       -- current function = current scope
-    info <- checkSymbol fn_name
+    info <- getSymbol fn_name
     case info of    -- check if the return type is actually the same as the one declared in the fuction defintion
         V var_info -> error $ "Can't return from a variable."
         F fun_info -> case result_type fun_info of
             ProcType -> return ()
             _        -> error $ "Must return a value from a non void function"
 
-semStmtList :: Comp_Stmt -> Semantic ()
+semStmtList :: Comp_Stmt -> Codegen ()
 semStmtList (C_Stmt stmts) = mapM semStmt stmts >> return ()
 
 --------------------------------------------------------------------------------
 -- Top level Semantic Analysis
 --------------------------------------------------------------------------------
-initMain :: Func_Def -> Semantic ()
-initMain (F_Def name _ _ _ _) = modify $ \s -> s { main = name }
+initMain :: Func_Def -> Codegen ()
+initMain (F_Def name _ _ _ _) = modify $ \s -> s { mainfn = name }
 
-semFuncDef :: Func_Def -> Semantic ()
+semFuncDef :: Func_Def -> Codegen ()
 semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
     addFunc name args_lst f_type      -- > we add the function to our CURRENT scope, so the one who defined the function can then call her.
     openScope name                    -- > every function creates a new scope
@@ -387,11 +389,11 @@ semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
     closeScope                        -- > close the function' s scope
 
-ast_sem :: Program -> Semantic String
+ast_sem :: Program -> Codegen String
 ast_sem (Prog main) = do
     initMain main
     semFuncDef main
     gets logger >>= return
 
 run_sem :: Program -> String
-run_sem alan = evalState (ast_sem alan) initialSemState
+run_sem alan = evalState (runCodegen $ ast_sem alan) emptyCodegen
