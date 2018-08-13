@@ -28,95 +28,6 @@ import SymbolTableTypes
 import SemanticFunctions
 import CodegenUtilities
 
--- TODO: for compilation sake every var is int. We need to change this
-toSig :: [S.FPar_Def] -> [(AST.Type, AST.Name)]
-toSig ( (S.FPar_Def_Ref name tp) : args ) =
-    (i32, AST.Name $ toShort name) : toSig args
-toSig ( (S.FPar_Def_NR name tp) : args ) =
-    (i32, AST.Name $ toShort name) : toSig args
-toSig [] = []
-
-
--- TODO: We also need to handle ldefs (symtable ...)
-codegenTop :: S.Program -> LLVM ()
-codegenTop main = do
-    let defs = definitions $ execCodegen (ast_sem main)
-    modify $ \s -> s { moduleDefinitions = defs }
-  -- define i32 name fnargs bls
-  -- where
-  --   fnargs = toSig args
-  --   bls = createBlocks $ execCodegen $ do
-  --     entry <- addBlock entryBlockName
-  --     setBlock entry
-  --     forM args cgen_farg
-  --     cgen body
-
--- -- NOTE: This probably won't change as the args will always be local vars
--- cgen_farg :: S.FPar_Def -> Codegen ()
--- cgen_farg (S.FPar_Def_Ref name tp) = do
---     var <- alloca i32
---     store var (local (AST.Name $ toShort name))
---     assign name var
--- cgen_farg (S.FPar_Def_NR name tp) = do
---     var <- alloca i32
---     store var (local (AST.Name $ toShort name))
---     assign name var
---
--- cgen :: [S.Stmt] -> Codegen [()]
--- cgen = mapM cgen_stmt
---
--- -- TODO: FCall, If, IFE, While
--- cgen_stmt :: S.Stmt -> Codegen ()
--- cgen_stmt S.Stmt_Ret = ret >> return ()
--- cgen_stmt S.Stmt_Semi = return ()
--- cgen_stmt (S.Stmt_Ret_Expr e1) = cgen_expr e1 >>= ret_val >> return ()
--- cgen_stmt (S.Stmt_Cmp (S.C_Stmt stmts)) = cgen stmts >> return ()
--- cgen_stmt (S.Stmt_Eq lval expr) = do
---     var <- cgen_lval lval
---     val <- cgen_expr expr
---     store var val
---     return ()
--- cgen_stmt stmt = return ()      -- This must be removed in the end
---
--- -- TODO: Arrays
--- cgen_lval :: S.L_Value -> Codegen AST.Operand
--- cgen_lval (S.LV_Var var) = getvar var >>= load
--- cgen_lval lval = return one     -- This must be removed in the end
---
--- -- TODO: Pos, Neg, FCall, ExprChar
--- cgen_expr :: S.Expr -> Codegen AST.Operand
--- cgen_expr (S.Expr_Brack exp) = cgen_expr exp
--- cgen_expr (S.Expr_Lval lval) = cgen_lval lval
--- cgen_expr (S.Expr_Int int) = return $ toInt int
--- cgen_expr (S.Expr_Add e1 e2) = do
---     ce1 <- cgen_expr e1
---     ce2 <- cgen_expr e2
---     add ce1 ce2
--- cgen_expr (S.Expr_Sub e1 e2) = do
---     ce1 <- cgen_expr e1
---     ce2 <- cgen_expr e2
---     sub ce1 ce2
--- cgen_expr (S.Expr_Tms e1 e2) = do
---     ce1 <- cgen_expr e1
---     ce2 <- cgen_expr e2
---     mul ce1 ce2
--- cgen_expr (S.Expr_Div e1 e2) = do
---     ce1 <- cgen_expr e1
---     ce2 <- cgen_expr e2
---     udiv ce1 ce2
--- cgen_expr exp = do
---     return one
-
--------------------------------------------------------------------------------
--- Operations
--------------------------------------------------------------------------------
-
--- lt :: AST.Operand -> AST.Operand -> Codegen AST.Operand
--- lt a b = do
---   test <- fcmp FP.ULT a b
---   uitofp double test
-
-
 -------------------------------------------------------------------------------
 -- Compilation
 -------------------------------------------------------------------------------
@@ -130,3 +41,140 @@ codegen mod main = withContext $ \context ->
   where
     modn    = codegenTop main
     newast  = runLLVM mod modn
+
+codegenTop :: S.Program -> LLVM ()
+codegenTop main = do
+    let codegen = execCodegen (cgen_ast main)
+        defs = definitions codegen
+        log = logger codegen
+    modify $ \s -> s { moduleDefinitions = defs }
+  -- define i32 name fnargs bls
+  -- where
+  --   fnargs = toSig args
+  --   bls = createBlocks $ execCodegen $ do
+  --     entry <- addBlock entryBlockName
+  --     setBlock entry
+  --     forM args cgen_farg
+  --     cgen body
+
+-------------------------------------------------------------------------------
+-- Codegeneration Functions
+-------------------------------------------------------------------------------
+
+cgen_ast :: S.Program -> Codegen String
+cgen_ast (S.Prog main) = do
+    initMain main
+    cgenFuncDef main
+    gets logger >>= return
+
+cgenFuncDef :: S.Func_Def -> Codegen ()
+cgenFuncDef (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
+    addFunc name args_lst f_type      -- > we add the function to our CURRENT scope
+    openScope name                    -- > every function creates a new scope
+    entry <- addBlock entryBlockName
+    setBlock entry
+    addFArgs args_lst                 -- > add parameters to symtable
+    addFunc name args_lst f_type      -- > NOTE: add the function to the inside scope as well ?
+    addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
+    semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
+    cgen_stmts cmp_stmt
+    closeScope                        -- > close the function' s scope
+
+cgen_stmts :: S.Comp_Stmt -> Codegen [()]
+cgen_stmts (S.C_Stmt stmts) = mapM cgen_stmt stmts
+
+-- TODO: FCall, If, IFE, While
+cgen_stmt :: S.Stmt -> Codegen ()
+cgen_stmt S.Stmt_Ret = ret >> return ()
+cgen_stmt S.Stmt_Semi = return ()
+cgen_stmt (S.Stmt_Ret_Expr e1) = cgen_expr e1 >>= ret_val >> return ()
+cgen_stmt (S.Stmt_Cmp cmp_stmt) = cgen_stmts cmp_stmt >> return ()
+cgen_stmt (S.Stmt_Eq lval expr) = do
+    var <- cgen_lval lval
+    val <- cgen_expr expr
+    store var val
+    return ()
+cgen_stmt stmt = return ()      -- This must be removed in the end
+
+-- TODO: Arrays
+cgen_lval :: S.L_Value -> Codegen AST.Operand
+cgen_lval (S.LV_Var var) = getvar var >>= load
+cgen_lval lval = return one     -- This must be removed in the end
+
+-- TODO: Pos, Neg, FCall, ExprChar
+cgen_expr :: S.Expr -> Codegen AST.Operand
+cgen_expr (S.Expr_Brack exp) = cgen_expr exp
+cgen_expr (S.Expr_Lval lval) = cgen_lval lval
+cgen_expr (S.Expr_Int int) = return $ toInt int
+cgen_expr (S.Expr_Add e1 e2) = do
+    ce1 <- cgen_expr e1
+    ce2 <- cgen_expr e2
+    add ce1 ce2
+cgen_expr (S.Expr_Sub e1 e2) = do
+    ce1 <- cgen_expr e1
+    ce2 <- cgen_expr e2
+    sub ce1 ce2
+cgen_expr (S.Expr_Tms e1 e2) = do
+    ce1 <- cgen_expr e1
+    ce2 <- cgen_expr e2
+    mul ce1 ce2
+cgen_expr (S.Expr_Div e1 e2) = do
+    ce1 <- cgen_expr e1
+    ce2 <- cgen_expr e2
+    udiv ce1 ce2
+cgen_expr exp = do
+    return one
+
+-------------------------------------------------------------------------------
+-- Driver Functions for navigating the Tree
+-------------------------------------------------------------------------------
+-- Takes the necessary fields from a function defintion, and adds a fun_info struct to the current scope
+addFunc :: SymbolName -> S.FPar_List -> S.R_Type -> Codegen ()
+addFunc name args_lst f_type = do
+    scpnm <- getScopeName
+    writeLog $ "add function was called from scope " ++ scpnm ++ " for function " ++ name
+    let our_ret = getFunType f_type   -- we format all of the function stuff properly
+        fun_args = map createArgType args_lst
+        fn_info = createFunInfo name fun_args our_ret
+    addSymbol (fn_name fn_info) (F fn_info)
+
+addVar :: S.Var_Def -> Codegen ()    -- takes a VARIABLE DEFINITION , and adds the proper things, to the proper scopes
+addVar vdef = do
+    scpnm <- getScopeName
+    var_info <- createVar_from_Def vdef    -- create the new VarInfo filed to be inserted in the scope
+    let tp = var_type var_info
+        nm = var_name var_info
+    var <- alloca (getASTType tp)
+    store var zero
+    addSymbol (var_name var_info) (V var_info { var_operand = Just var })
+    writeLog $ "Adding variable " ++ (var_name var_info) ++ " to the scope " ++ scpnm
+
+-- Put the Function args to the function's scope, as variables variables
+addFArgs :: S.FPar_List -> Codegen ()
+addFArgs (arg:args) = do
+    param <- createVar_from_Arg arg
+    writeLog $ "Adding Func Param " ++ (var_name param) ++ " to the scope"
+    let tp = var_type param
+        nm = var_name param
+    var <- alloca (getASTType tp)
+    store var (local (AST.Name $ toShort nm))
+    addSymbol (var_name param) (V param { var_operand = Just var })
+    addFArgs args
+addFArgs [] = return ()
+
+addLDef :: S.Local_Def -> Codegen ()
+addLDef (S.Loc_Def_Fun fun) = cgenFuncDef fun
+addLDef (S.Loc_Def_Var var) = addVar var
+
+-- Check it at night. -> Looks fine to me.
+addLDefLst :: [S.Local_Def] -> Codegen  ()
+addLDefLst defs = mapM addLDef defs >> return ()
+
+-------------------------------------------------------------------------------
+-- Operations
+-------------------------------------------------------------------------------
+
+-- lt :: AST.Operand -> AST.Operand -> Codegen AST.Operand
+-- lt a b = do
+--   test <- fcmp FP.ULT a b
+--   uitofp double test

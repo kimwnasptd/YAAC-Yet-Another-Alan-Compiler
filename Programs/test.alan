@@ -1,4 +1,13 @@
-hello (rings : int) : proc
+hello () : proc
+    rings : int;
+
+    compute (x : int) : int
+        var : int;
+        {
+            return x + x * 2;
+        }
 {
-    return rings + 2;
+    rings = 2;
+    -- rings = rings * rings + 3;
+    return;
 }

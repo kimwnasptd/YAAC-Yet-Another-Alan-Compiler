@@ -19,8 +19,7 @@ initModule = emptyModule "I'm really happy right now"
 process :: AST.Module -> String -> IO (Maybe AST.Module)
 process modo source = do
     let parseTree = parse source
-    let res = run_sem parseTree
-    putStrLn (res ++ "\n\nASSEMBLY CODE\n-------------\n")
+    -- putStrLn (res ++ "\n\nASSEMBLY CODE\n-------------\n")
     ast <- codegen modo parseTree
     return $ Just ast
 

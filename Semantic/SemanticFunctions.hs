@@ -1,4 +1,4 @@
-module SemanticFunctions (run_sem, ast_sem) where
+module SemanticFunctions where
 
 import Tokens
 import ASTTypes
@@ -6,6 +6,13 @@ import SymbolTableTypes
 import qualified Data.Map as Map
 import Control.Monad.State
 import Control.Monad
+
+import LLVM.AST
+import LLVM.AST.Type
+import qualified LLVM.AST.Type as TP
+import qualified LLVM.AST as AST
+
+import CodegenUtilities
 
 -- INDEX:
 -- 1. Helper Functions          13
@@ -27,23 +34,42 @@ writeLog line = modify $ \s -> s { logger = (logger s) ++ line ++ ['\n'] }
 --------------------------------------------------------------------------------
 -- Transofrmation Functions (Convrsions for argument types)
 --------------------------------------------------------------------------------
-createFunInfo :: SymbolName -> [(SymbolName,SymbolType,Bool,Bool)]  ->  SymbolType -> FunInfo
+
+getASTType :: SymbolType -> AST.Type
+getASTType IntType = i32
+getASTType ByteType = i1
+getASTType ProcType = TP.void
+getASTType TableIntType = ptr i32
+getASTType TableByteType = ptr i1
+
+createFunInfo :: SymbolName -> [(SymbolName,SymbolType,Bool,Bool)] -> SymbolType -> FunInfo
 createFunInfo func_name fun_args fun_res = FunInfo {
       fn_name = func_name
     , result_type = fun_res
     , fun_operand = Nothing
-    , args = fun_args
+    , fn_args = fun_args
     , forward_dec = False
 }   -- we simply get all fields already computed and package them in a FunInfo Struct
 
-createFType :: R_Type -> SymbolType  -- takes the token that corresponds to a functions return type
-createFType R_Type_Proc =  ProcType
-createFType ( R_Type_DT (D_Type TInt ) ) =  IntType
-createFType ( R_Type_DT (D_Type TByte ) ) =  ByteType
--- createFType sth = error $ "Create f type was called with " ++ (show sth )
+createVarInfo:: SymbolName -> SymbolType -> Int ->  Maybe Int -> Bool -> Codegen VarInfo
+createVarInfo nm vt idv dim byref =  do
+    return VarInfo {
+      var_name = nm
+    , var_type = vt
+    , var_operand = Nothing
+    , id_num = idv
+    , dimension = dim
+    , byreference = byref
+}
+
+getFunType :: R_Type -> SymbolType  -- takes the token that corresponds to a functions return type
+getFunType R_Type_Proc =  ProcType
+getFunType ( R_Type_DT (D_Type TInt ) ) =  IntType
+getFunType ( R_Type_DT (D_Type TByte ) ) =  ByteType
+-- getFunType sth = error $ "Create f type was called with " ++ (show sth )
 
 -- (Var SymbolName, Var Type{int, byte}, Reference{T,F}, Table{T,F})
-createArgType:: FPar_Def -> (SymbolName,SymbolType, Bool, Bool )    -- takes a function arguement from the ast and returns its sem tuple
+createArgType:: FPar_Def -> (SymbolName,SymbolType, Bool, Bool )
 createArgType ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = (str, IntType , True, False)
 createArgType ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = (str, ByteType, True, False)
 createArgType ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = (str, TableIntType , True, True)
@@ -53,7 +79,7 @@ createArgType ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = (str, ByteType,
 createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, TableIntType , False, True)
 createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, TableByteType, False, True)
 
-createVar_from_Def :: Var_Def -> VarInfo
+createVar_from_Def :: Var_Def -> Codegen VarInfo
 createVar_from_Def ( VDef str (D_Type TInt) )         = createVarInfo str IntType  0 Nothing False
 createVar_from_Def ( VDef str (D_Type TByte) )        = createVarInfo str ByteType 0 Nothing False
 createVar_from_Def ( VDef_T str (D_Type TInt) dim  )  = createVarInfo str TableIntType  0 (Just dim) False
@@ -64,7 +90,7 @@ createVar_from_Def ( VDef_T str (D_Type TByte) dim )  = createVarInfo str TableB
 
 -- NOTE: When we are inside a function, we treat this functions arguments as normal parameters,
 -- so we keep a var_info type for all of them
-createVar_from_Arg :: FPar_Def -> VarInfo
+createVar_from_Arg :: FPar_Def -> Codegen VarInfo
 createVar_from_Arg ( FPar_Def_Ref str (S_Type (D_Type TInt)) )      = createVarInfo str IntType 0 Nothing True
 createVar_from_Arg ( FPar_Def_Ref str (S_Type (D_Type TByte)) )     = createVarInfo str ByteType 0 Nothing True
 createVar_from_Arg ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = createVarInfo str TableIntType 0 (Just 0) True
@@ -76,16 +102,9 @@ createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = createVarI
 -- NOTE: A VarInfo table having as dimensions JUST 0 has special meaning:
 -- it means that we are indeed talking about a table, but we don't know its size yet
 
-createVarInfo:: SymbolName -> SymbolType -> Int ->  Maybe Int -> Bool -> VarInfo
-createVarInfo  nm vt idv dim byref =  VarInfo {
-      var_name = nm
-    , var_type = vt
-    , var_operand = Nothing
-    , id_num = idv
-    , dimension = dim
-    , byreference = byref
-}
-
+toSig :: [(SymbolName,SymbolType,Bool,Bool)] -> [(AST.Type, AST.Name)]
+toSig args = map convert args
+    where convert (name, tp, _, _) = (getASTType tp, AST.Name $ toShort name)
 --------------------------------------------------------------------------------
 -- Get Type of Expr
 --------------------------------------------------------------------------------
@@ -106,7 +125,7 @@ get_expr_types exprs = forM exprs $ \expr -> do
 get_fnargs_types:: String -> Codegen [(SymbolType, Bool)]
 get_fnargs_types fn_name = do
     F fn_info <- getSymbol fn_name -- lookup the function on the symbol table
-    return $ map get_vartype (args fn_info)
+    return $ map get_vartype (fn_args fn_info)
         where get_vartype (a,b,c,d) = (b,c)
 
 -- Helper function for repetetive stuff
@@ -227,6 +246,15 @@ getSymbol var = do
     where
         error_msg = "Symbol " ++ var ++ " is not defined!"
 
+getvar :: SymbolName -> Codegen Operand
+getvar var = do
+    symbol <- getSymbol var
+    case symbol of
+        F _        -> error $ "Var " ++ (show var) ++ " is also a function"
+        V var_info -> case var_operand var_info of
+            Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand"
+            Just op -> return op
+
 addSymbol :: SymbolName -> Symbol -> Codegen ()
 addSymbol symbol_name symbol_info = do
     s <- get
@@ -239,40 +267,6 @@ addSymbol symbol_name symbol_info = do
     put s { symbolTable  = Map.insertWith (++) symbol_name [newScope] symb_t
           , currentScope = newScope
     }
-
--- Takes the necessary fields from a function defintion, and adds a fun_info struct to the current scope
-addFunc :: SymbolName ->  FPar_List  ->  R_Type -> Codegen ()
-addFunc name args_lst f_type = do
-    scpnm <- getScopeName
-    writeLog $ "add function was called from scope " ++ scpnm ++ " for function " ++ name
-    let our_ret = createFType f_type   -- we format all of the function stuff properly
-        fun_args = map createArgType args_lst
-        fn_info = createFunInfo name fun_args our_ret
-    addSymbol (fn_name fn_info) (F fn_info)
-
-addVar :: Var_Def -> Codegen ()    -- takes a VARIABLE DEFINITION , and adds the proper things, to the proper scopes
-addVar vdef = do
-    scpnm <- getScopeName
-    let var_info = createVar_from_Def vdef    -- create the new VarInfo filed to be inserted in the scope
-    addSymbol (var_name var_info) (V var_info)
-    writeLog $ "Adding variable " ++ (var_name var_info) ++ " to the scope " ++ scpnm
-
--- Put the Function args to the function's scope, as variables variables
-addFArgs :: FPar_List -> Codegen ()
-addFArgs (arg:args) = do
-    let param = createVar_from_Arg arg
-    writeLog $ "Adding Func Param " ++ (var_name param) ++ " to the scope"
-    addSymbol (var_name param) (V param)
-    addFArgs args
-addFArgs [] = return ()
-
-addLDef :: Local_Def -> Codegen ()
-addLDef (Loc_Def_Fun fun) = semFuncDef fun
-addLDef (Loc_Def_Var var) = addVar var
-
--- Check it at night. -> Looks fine to me.
-addLDefLst :: [Local_Def] -> Codegen  ()
-addLDefLst defs = mapM addLDef defs >> return ()
 
 --------------------------------------------------------------------------------
 -- Scope Functions
@@ -306,6 +300,12 @@ closeScope = do
     scpnm <- getScopeName
     writeLog $ "Closing the Scope for " ++ scpnm
     s <- get
+    F fn <- getSymbol scpnm
+    let tp = getASTType $ result_type fn
+        nm = scpnm
+        args = toSig $ fn_args fn
+        bls = createBlocks $ currentScope s
+    define tp nm args bls
     let symbol_names = Map.keys $ symbols (currentScope s)
     removeScopeSymbols symbol_names scpnm
     s <- get
@@ -315,13 +315,13 @@ closeScope = do
         Just scp -> put s { currentScope = scp }
 
 -- Removes the variables from all the appropriate scopes
-cleanup :: SymbolTable -> [SymbolName] -> SymbolTable
-cleanup symb_t [] = symb_t
-cleanup symb_t (var:vars) =
+cleanup_symbols :: SymbolTable -> [SymbolName] -> SymbolTable
+cleanup_symbols symb_t [] = symb_t
+cleanup_symbols symb_t (var:vars) =
     case Map.lookup var symb_t of
-        Nothing         -> cleanup symb_t vars
-        Just []         -> cleanup symb_t vars
-        Just (scp:scps) -> cleanup ( Map.insert var scps symb_t ) vars
+        Nothing         -> cleanup_symbols symb_t vars
+        Just []         -> cleanup_symbols symb_t vars
+        Just (scp:scps) -> cleanup_symbols ( Map.insert var scps symb_t ) vars
 
 removeScopeSymbols :: [SymbolName] -> SymbolName ->  Codegen ()
 removeScopeSymbols [] nm  = do
@@ -329,7 +329,7 @@ removeScopeSymbols [] nm  = do
 removeScopeSymbols symbol_lst nm = do
     writeLog $ "cleaning up the symbol table for scope name "  ++ nm
     s <- get
-    let cleanSymbolTable = cleanup (symbolTable s) symbol_lst  -- clean it up
+    let cleanSymbolTable = cleanup_symbols (symbolTable s) symbol_lst  -- clean it up
     put s { symbolTable = cleanSymbolTable }  -- put the clean symbol table back in the state.
 
 --------------------------------------------------------------------------------
@@ -378,22 +378,22 @@ semStmtList (C_Stmt stmts) = mapM semStmt stmts >> return ()
 --------------------------------------------------------------------------------
 initMain :: Func_Def -> Codegen ()
 initMain (F_Def name _ _ _ _) = modify $ \s -> s { mainfn = name }
-
-semFuncDef :: Func_Def -> Codegen ()
-semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
-    addFunc name args_lst f_type      -- > we add the function to our CURRENT scope, so the one who defined the function can then call her.
-    openScope name                    -- > every function creates a new scope
-    addFArgs args_lst                 -- > add parameters to symtable
-    addFunc name args_lst f_type      -- > NOTE: add the function to the inside scope as well ?
-    addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
-    semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
-    closeScope                        -- > close the function' s scope
-
-ast_sem :: Program -> Codegen String
-ast_sem (Prog main) = do
-    initMain main
-    semFuncDef main
-    gets logger >>= return
-
-run_sem :: Program -> String
-run_sem alan = evalState (runCodegen $ ast_sem alan) emptyCodegen
+--
+-- semFuncDef :: Func_Def -> Codegen ()
+-- semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
+--     addFunc name args_lst f_type      -- > we add the function to our CURRENT scope
+--     openScope name                    -- > every function creates a new scope
+--     addFArgs args_lst                 -- > add parameters to symtable
+--     addFunc name args_lst f_type      -- > NOTE: add the function to the inside scope as well ?
+--     addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
+--     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
+--     closeScope                        -- > close the function' s scope
+--
+-- ast_sem :: Program -> Codegen String
+-- ast_sem (Prog main) = do
+--     initMain main
+--     semFuncDef main
+--     gets logger >>= return
+--
+-- run_sem :: Program -> String
+-- run_sem alan = evalState (runCodegen $ ast_sem alan) emptyCodegen

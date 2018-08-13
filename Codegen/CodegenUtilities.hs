@@ -86,7 +86,6 @@ external retty label argtys = addDefn $
   , basicBlocks = []
   }
 
-
 -------------------------------------------------------------------------------
 -- Names
 -------------------------------------------------------------------------------
@@ -153,19 +152,19 @@ entry = gets $ currentBlock . currentScope
 
 addBlock :: String -> Codegen Name
 addBlock bname = do
-  bls <- gets $ blocks . currentScope
-  ix  <- gets $ blockCount . currentScope
-  nms <- gets names
+    bls <- gets $ blocks . currentScope
+    ix  <- gets $ blockCount . currentScope
+    nms <- gets names
 
-  let new = emptyBlock ix
-      (qname, supply) = uniqueName bname nms
+    let new = emptyBlock ix
+        (qname, supply) = uniqueName bname nms
 
-  modify $ \s -> s { currentScope = (currentScope s) {
+    modify $ \s -> s { currentScope = (currentScope s) {
                           blocks = Map.insert (Name $ toShort qname) new bls
                         , blockCount = ix + 1 }
                    , names = supply
                    }
-  return (Name $ toShort qname)
+    return (Name $ toShort qname)
 
 setBlock :: Name -> Codegen Name
 setBlock bname = do
