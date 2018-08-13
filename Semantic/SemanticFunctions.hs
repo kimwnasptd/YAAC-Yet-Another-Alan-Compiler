@@ -35,13 +35,6 @@ writeLog line = modify $ \s -> s { logger = (logger s) ++ line ++ ['\n'] }
 -- Transofrmation Functions (Convrsions for argument types)
 --------------------------------------------------------------------------------
 
-getASTType :: SymbolType -> AST.Type
-getASTType IntType = i32
-getASTType ByteType = i1
-getASTType ProcType = TP.void
-getASTType TableIntType = ptr i32
-getASTType TableByteType = ptr i1
-
 createFunInfo :: SymbolName -> [(SymbolName,SymbolType,Bool,Bool)] -> SymbolType -> FunInfo
 createFunInfo func_name fun_args fun_res = FunInfo {
       fn_name = func_name
@@ -378,22 +371,3 @@ semStmtList (C_Stmt stmts) = mapM semStmt stmts >> return ()
 --------------------------------------------------------------------------------
 initMain :: Func_Def -> Codegen ()
 initMain (F_Def name _ _ _ _) = modify $ \s -> s { mainfn = name }
---
--- semFuncDef :: Func_Def -> Codegen ()
--- semFuncDef (F_Def name args_lst f_type ldef_list cmp_stmt) = do
---     addFunc name args_lst f_type      -- > we add the function to our CURRENT scope
---     openScope name                    -- > every function creates a new scope
---     addFArgs args_lst                 -- > add parameters to symtable
---     addFunc name args_lst f_type      -- > NOTE: add the function to the inside scope as well ?
---     addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
---     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
---     closeScope                        -- > close the function' s scope
---
--- ast_sem :: Program -> Codegen String
--- ast_sem (Prog main) = do
---     initMain main
---     semFuncDef main
---     gets logger >>= return
---
--- run_sem :: Program -> String
--- run_sem alan = evalState (runCodegen $ ast_sem alan) emptyCodegen

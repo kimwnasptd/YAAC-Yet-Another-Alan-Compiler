@@ -1,5 +1,6 @@
 hello () : proc
     rings : int;
+    ns : int[5];
 
     compute (x : int) : int
         var : int;

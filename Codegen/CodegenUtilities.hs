@@ -20,6 +20,7 @@ import LLVM.AST
 import LLVM.AST.Global
 import LLVM.Prelude
 import LLVM.AST.Type
+import qualified LLVM.AST.Type as TP
 import qualified LLVM.AST as AST
 
 import qualified LLVM.AST.Linkage as L
@@ -58,6 +59,12 @@ false = zero
 true :: Operand
 true = one
 
+getASTType :: SymbolType -> AST.Type
+getASTType IntType = i32
+getASTType ByteType = i1
+getASTType ProcType = TP.void
+getASTType TableIntType = ptr i32
+getASTType TableByteType = ptr i1
 -------------------------------------------------------------------------------
 -- Module Level
 -------------------------------------------------------------------------------
@@ -119,14 +126,40 @@ fresh = do
   modify $ \s -> s { currentScope = (currentScope s) { count = 1 + i } }
   return $ i + 1
 
+initOperand :: SymbolType -> Maybe Int -> Codegen Operand
+initOperand IntType _ = return zero
+initOperand ByteType _ = return zero
+initOperand ProcType _ = return zero
+initOperand TableIntType  (Just dim) = return $ cons $ C.Array i32 [C.Int 32 0 | _ <- [1..dim]]
+initOperand TableByteType (Just dim) = return $ cons $ C.Array i1  [C.Int 32 0 | _ <- [1..dim]]
+initOperand _ _ = return zero
+
+addVarOpperand :: VarInfo -> Codegen VarInfo
+addVarOpperand var_info = do
+    let tp = var_type var_info
+        nm = var_name var_info
+        dim = dimension var_info
+    init_val <- initOperand tp dim
+    var <- alloca (getASTType tp)
+    store var init_val
+    return $ var_info { var_operand = Just var }
+
+addArgOpperand :: VarInfo -> Codegen VarInfo
+addArgOpperand arg = do
+    let tp = var_type arg
+        nm = var_name arg
+    var <- alloca (getASTType tp)
+    store var (local (AST.Name $ toShort nm))
+    return $ arg { var_operand = Just var }
+
 instr :: Instruction -> Codegen (Operand)
 instr ins = do
-  n <- fresh
-  let ref = (UnName n)
-  blk <- current
-  let i = stack blk
-  modifyBlock (blk { stack = (ref := ins) : i } )
-  return $ local ref
+    n <- fresh
+    let ref = (UnName n)
+    blk <- current
+    let i = stack blk
+    modifyBlock (blk { stack = (ref := ins) : i } )
+    return $ local ref
 
 instr_unnamed :: Instruction -> Codegen (Operand)
 instr_unnamed ins = do

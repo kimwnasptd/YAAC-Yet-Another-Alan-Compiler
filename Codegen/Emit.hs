@@ -142,11 +142,8 @@ addVar :: S.Var_Def -> Codegen ()    -- takes a VARIABLE DEFINITION , and adds t
 addVar vdef = do
     scpnm <- getScopeName
     var_info <- createVar_from_Def vdef    -- create the new VarInfo filed to be inserted in the scope
-    let tp = var_type var_info
-        nm = var_name var_info
-    var <- alloca (getASTType tp)
-    store var zero
-    addSymbol (var_name var_info) (V var_info { var_operand = Just var })
+    var <- addVarOpperand var_info
+    addSymbol (var_name var_info) (V var)
     writeLog $ "Adding variable " ++ (var_name var_info) ++ " to the scope " ++ scpnm
 
 -- Put the Function args to the function's scope, as variables variables
@@ -154,11 +151,8 @@ addFArgs :: S.FPar_List -> Codegen ()
 addFArgs (arg:args) = do
     param <- createVar_from_Arg arg
     writeLog $ "Adding Func Param " ++ (var_name param) ++ " to the scope"
-    let tp = var_type param
-        nm = var_name param
-    var <- alloca (getASTType tp)
-    store var (local (AST.Name $ toShort nm))
-    addSymbol (var_name param) (V param { var_operand = Just var })
+    param_ready <- addArgOpperand param
+    addSymbol (var_name param) (V param_ready)
     addFArgs args
 addFArgs [] = return ()
 
