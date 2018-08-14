@@ -55,7 +55,7 @@ compiler:
 # ------------------------
 
 clean:
-	rm Lexer-bin  Parser-bin ./Parser/Parser.hs ./Lexer/Lexer.hs  YAAC-bin # remove anything missed by the previous steps
+	rm Lexer-bin  Parser-bin YAAC-bin # remove anything missed by the previous steps
 	for i in $(CLEAN_DIRS); do \
 		rm $$i/*.o $$i/*.hi $$i/*.info ; \
 	done
