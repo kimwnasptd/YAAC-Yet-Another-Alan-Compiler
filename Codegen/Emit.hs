@@ -48,14 +48,6 @@ codegenTop main = do
         defs = definitions codegen
         log = logger codegen
     modify $ \s -> s { moduleDefinitions = defs }
-  -- define i32 name fnargs bls
-  -- where
-  --   fnargs = toSig args
-  --   bls = createBlocks $ execCodegen $ do
-  --     entry <- addBlock entryBlockName
-  --     setBlock entry
-  --     forM args cgen_farg
-  --     cgen body
 
 -------------------------------------------------------------------------------
 -- Codegeneration Functions
@@ -93,6 +85,10 @@ cgen_stmt (S.Stmt_Eq lval expr) = do
     var <- cgen_lval lval
     val <- cgen_expr expr
     store var val
+    return ()
+cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
+    largs <- mapM cgen_expr args
+    call (externf (AST.Name $ toShort fn)) largs
     return ()
 cgen_stmt stmt = return ()      -- This must be removed in the end
 

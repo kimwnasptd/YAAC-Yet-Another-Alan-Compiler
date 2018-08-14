@@ -363,6 +363,15 @@ semStmt Stmt_Ret = do
             ProcType -> return ()
             _        -> error $ "Must return a value from a non void function"
 
+semStmt (Stmt_FCall (Func_Call fname fargs)) = do
+    actual_types <- get_expr_types fargs      -- [(SymbolType,Reference)]
+    formal_types <- get_fnargs_types fname    -- [(SymbolType, Reference)]
+    F foo_info <- getSymbol fname
+    case result_type foo_info of
+        ProcType -> if (actual_types == formal_types) then return ()
+                    else error $ "Args don't match for " ++ (fn_name foo_info)
+        _        -> error $ "Proc " ++ (fn_name foo_info) ++ " is not void."
+
 semStmtList :: Comp_Stmt -> Codegen ()
 semStmtList (C_Stmt stmts) = mapM semStmt stmts >> return ()
 

@@ -61,10 +61,10 @@ true = one
 
 getASTType :: SymbolType -> AST.Type
 getASTType IntType = i32
-getASTType ByteType = i1
+getASTType ByteType = i8
 getASTType ProcType = TP.void
 getASTType TableIntType = ptr i32
-getASTType TableByteType = ptr i1
+getASTType TableByteType = ptr i8
 -------------------------------------------------------------------------------
 -- Module Level
 -------------------------------------------------------------------------------
@@ -131,7 +131,7 @@ initOperand IntType _ = return zero
 initOperand ByteType _ = return zero
 initOperand ProcType _ = return zero
 initOperand TableIntType  (Just dim) = return $ cons $ C.Array i32 [C.Int 32 0 | _ <- [1..dim]]
-initOperand TableByteType (Just dim) = return $ cons $ C.Array i1  [C.Int 32 0 | _ <- [1..dim]]
+initOperand TableByteType (Just dim) = return $ cons $ C.Array i8  [C.Int  8 0 | _ <- [1..dim]]
 initOperand _ _ = return zero
 
 addVarOpperand :: VarInfo -> Codegen VarInfo
