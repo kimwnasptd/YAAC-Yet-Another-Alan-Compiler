@@ -97,7 +97,7 @@ createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = createVarI
 
 toSig :: [(SymbolName,SymbolType,Bool,Bool)] -> [(AST.Type, AST.Name)]
 toSig args = map convert args
-    where convert (name, tp, _, _) = (getASTType tp, AST.Name $ toShort name)
+    where convert (name, tp, _, _) = (type_to_ast tp, AST.Name $ toShort name)
 --------------------------------------------------------------------------------
 -- Get Type of Expr
 --------------------------------------------------------------------------------
@@ -294,7 +294,7 @@ closeScope = do
     writeLog $ "Closing the Scope for " ++ scpnm
     s <- get
     F fn <- getSymbol scpnm
-    let tp = getASTType $ result_type fn
+    let tp = type_to_ast $ result_type fn
         nm = scpnm
         args = toSig $ fn_args fn
         bls = createBlocks $ currentScope s

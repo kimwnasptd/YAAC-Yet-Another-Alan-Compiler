@@ -59,12 +59,26 @@ false = zero
 true :: Operand
 true = one
 
-getASTType :: SymbolType -> AST.Type
-getASTType IntType = i32
-getASTType ByteType = i8
-getASTType ProcType = TP.void
-getASTType TableIntType = ptr i32
-getASTType TableByteType = ptr i8
+-- This is used mainly in args, since arrays must be of type Pointer
+-- since we don't know it's dimension.
+type_to_ast :: SymbolType -> AST.Type
+type_to_ast IntType = i32
+type_to_ast ByteType = i8
+type_to_ast ProcType = TP.void
+type_to_ast TableIntType = ptr i32
+type_to_ast TableByteType = ptr i8
+
+-- When defining a var, we need to get the array type also
+symb_to_astp :: Symbol -> AST.Type
+symb_to_astp (V var) =
+    case (dimension var) of
+        Nothing  -> type_to_ast (var_type var)
+        Just dim -> case (var_type var) of
+                        TableIntType -> ArrayType 5 i32
+                        TableByteType -> ArrayType 5 i8
+                        _            -> type_to_ast (var_type var)
+symb_to_astp (F fn) = type_to_ast (result_type fn)
+
 -------------------------------------------------------------------------------
 -- Module Level
 -------------------------------------------------------------------------------
@@ -137,10 +151,9 @@ initOperand _ _ = return zero
 addVarOpperand :: VarInfo -> Codegen VarInfo
 addVarOpperand var_info = do
     let tp = var_type var_info
-        nm = var_name var_info
         dim = dimension var_info
     init_val <- initOperand tp dim
-    var <- alloca (getASTType tp)
+    var <- alloca (symb_to_astp (V var_info))
     store var init_val
     return $ var_info { var_operand = Just var }
 
@@ -148,7 +161,7 @@ addArgOpperand :: VarInfo -> Codegen VarInfo
 addArgOpperand arg = do
     let tp = var_type arg
         nm = var_name arg
-    var <- alloca (getASTType tp)
+    var <- alloca (type_to_ast tp)
     store var (local (AST.Name $ toShort nm))
     return $ arg { var_operand = Just var }
 

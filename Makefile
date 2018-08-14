@@ -43,12 +43,6 @@ parser: Parser.hs
 Parser.hs: $(PSR_DIR)Parser.y
 	$(PSR) $(PSR_FLAGS) $(PSR_DIR)Parser.y
 
-# ------------------------
-# Compile the Compiler
-# ------------------------
-# semantic: $(SEM_DIR)SemanticFunctions.hs
-# 	$(CC) $(CC_FLAGS) $(SEM_DIR)SemanticFunctions.hs -o Semantic-bin
-
 compiler:
 	$(CC) $(CC_FLAGS) Compiler.hs -o Run/YAAC-ll
 
