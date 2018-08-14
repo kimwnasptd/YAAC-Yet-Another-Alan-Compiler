@@ -1,6 +1,6 @@
-hello () : int
+main () : proc
     rings : int;
-    ns : int[5];
+    -- ns : int[5];
     var : int;
 
     compute (x : int) : int
@@ -12,5 +12,6 @@ hello () : int
     rings = 2;
     -- compute(5);
     -- rings = rings * rings + 3;
-    return rings * var;
+    -- return rings * var;
+    return;
 }

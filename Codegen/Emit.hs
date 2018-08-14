@@ -94,13 +94,13 @@ cgen_stmt stmt = return ()      -- This must be removed in the end
 
 -- TODO: Arrays
 cgen_lval :: S.L_Value -> Codegen AST.Operand
-cgen_lval (S.LV_Var var) = getvar var >>= load
+cgen_lval (S.LV_Var var) = getvar var
 cgen_lval lval = return one     -- This must be removed in the end
 
 -- TODO: Pos, Neg, FCall, ExprChar
 cgen_expr :: S.Expr -> Codegen AST.Operand
 cgen_expr (S.Expr_Brack exp) = cgen_expr exp
-cgen_expr (S.Expr_Lval lval) = cgen_lval lval
+cgen_expr (S.Expr_Lval lval) = cgen_lval lval >>= load
 cgen_expr (S.Expr_Int int) = return $ toInt int
 cgen_expr (S.Expr_Add e1 e2) = do
     ce1 <- cgen_expr e1

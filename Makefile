@@ -13,7 +13,7 @@ LXR_FLAGS = -i
 PSR_FLAGS = -i
 
 MODULES = Lexer:Parser:Semantic:Codegen
-CLEAN_DIRS = . Lexer Parser Semantic Codegen
+CLEAN_DIRS = . Lexer Parser Semantic Codegen Run
 
 # ------------------------
 
@@ -28,7 +28,7 @@ parts: lexer parser
 # ------------------------
 
 lexer: Lexer.hs
-	$(CC) $(CC_FLAGS) $(LXR_DIR)lexer_run.hs -o Lexer-bin
+	$(CC) $(CC_FLAGS) $(LXR_DIR)lexer_run.hs -o Run/Lexer-bin
 
 Lexer.hs: $(LXR_DIR)Lexer.x
 	$(LXR) $(LXR_FLAGS) $(LXR_DIR)Lexer.x
@@ -38,7 +38,7 @@ Lexer.hs: $(LXR_DIR)Lexer.x
 # ------------------------
 
 parser: Parser.hs
-	$(CC) $(CC_FLAGS) $(PSR_DIR)parser_run.hs -o Parser-bin
+	$(CC) $(CC_FLAGS) $(PSR_DIR)parser_run.hs -o Run/Parser-bin
 
 Parser.hs: $(PSR_DIR)Parser.y
 	$(PSR) $(PSR_FLAGS) $(PSR_DIR)Parser.y
@@ -50,12 +50,13 @@ Parser.hs: $(PSR_DIR)Parser.y
 # 	$(CC) $(CC_FLAGS) $(SEM_DIR)SemanticFunctions.hs -o Semantic-bin
 
 compiler:
-	$(CC) $(CC_FLAGS) Compiler.hs -o YAAC-bin
+	$(CC) $(CC_FLAGS) Compiler.hs -o Run/YAAC-ll
 
 # ------------------------
 
 clean:
-	rm Lexer-bin  Parser-bin YAAC-bin # remove anything missed by the previous steps
+	# remove anything missed by the previous steps
 	for i in $(CLEAN_DIRS); do \
 		rm $$i/*.o $$i/*.hi $$i/*.info ; \
 	done
+	rm *.out *.ll
