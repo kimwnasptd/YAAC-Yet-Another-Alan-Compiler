@@ -287,7 +287,7 @@ load :: Operand -> Codegen Operand
 load ptr = instr $ Load False ptr Nothing 0 []
 
 create_ptr :: Operand -> [Operand] -> Codegen Operand -- used for table indexing
-create_ptr table indexes = instr $ GetElementPtr True table indexes []
+create_ptr table indexes = instr $ GetElementPtr False table indexes []
 
 -- Control Flow
 br :: Name -> Codegen (Named Terminator)

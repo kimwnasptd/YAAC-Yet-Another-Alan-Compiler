@@ -101,7 +101,7 @@ cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
     offset <- cgen_expr offset_expr   --generate the expression for the offset
     tbl_operand <- getvar tbl_var     -- get the table operand
     table_type <- getLvalType (S.LV_Tbl tbl_var offset_expr) -- get the type of the table
-    newptr <- create_ptr tbl_operand [offset]
+    newptr <- create_ptr tbl_operand ([zero] ++ [offset] )
     return newptr
 
 cgen_lval lval = return one     -- This must be removed in the end
