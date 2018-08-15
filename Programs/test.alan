@@ -1,6 +1,6 @@
 main () : proc
     rings : int;
-    ns : int[5];
+    ns : int[15];
     var : int;
 
     compute (x : int) : int

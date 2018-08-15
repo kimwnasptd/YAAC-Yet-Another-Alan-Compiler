@@ -14,7 +14,7 @@ import System.Console.Haskeline
 import qualified LLVM.AST as AST
 
 initModule :: AST.Module
-initModule = emptyModule "I'm really happy right now"
+initModule = emptyModule "-I'm really happy right now. -Me too <3"
 
 process :: AST.Module -> String -> IO (Maybe AST.Module)
 process modo source = do
@@ -22,6 +22,7 @@ process modo source = do
     -- putStrLn (res ++ "\n\nASSEMBLY CODE\n-------------\n")
     ast <- codegen modo parseTree
     return $ Just ast
+    -- return  ast    -- NOTE: Thought this would work alone...
 
 processFile :: String -> IO (Maybe AST.Module)
 processFile fname = readFile fname >>= process initModule

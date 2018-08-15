@@ -74,8 +74,10 @@ symb_to_astp (V var) =
     case (dimension var) of
         Nothing  -> type_to_ast (var_type var)
         Just dim -> case (var_type var) of
-                        TableIntType -> ArrayType 5 i32
-                        TableByteType -> ArrayType 5 i8
+                        -- TableIntType -> ArrayType 5 i32
+                        -- TableByteType -> ArrayType 5 i8
+                        TableIntType -> ArrayType (fromIntegral dim) i32
+                        TableByteType -> ArrayType (fromIntegral dim) i8
                         _            -> type_to_ast (var_type var)
 symb_to_astp (F fn) = type_to_ast (result_type fn)
 
