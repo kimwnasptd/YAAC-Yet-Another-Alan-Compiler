@@ -10,7 +10,7 @@ main () : proc
         }
 {
     rings = 2;
-    -- compute(5);
+    rings = compute(5);
     -- rings = rings * rings + 3;
     -- return rings * var;
     ns[5+3] = 10 ;

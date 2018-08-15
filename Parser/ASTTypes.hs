@@ -56,18 +56,18 @@ type Expr_List = [ Expr ]
                -- deriving (Eq, Show)
 
 
-data Expr = Expr_Add Expr Expr  --
-          | Expr_Sub Expr Expr --
-          | Expr_Tms Expr Expr --
-          | Expr_Div Expr Expr --
-          | Expr_Mod Expr Expr --
-          | Expr_Pos Expr --
-          | Expr_Neg Expr --
-          | Expr_Fcall Func_Call  --
-          | Expr_Brack Expr  --
-          | Expr_Lval L_Value  --
-          | Expr_Char String --
-          | Expr_Int  Int   --
+data Expr = Expr_Add Expr Expr   --
+          | Expr_Sub Expr Expr  --
+          | Expr_Tms Expr Expr  --
+          | Expr_Div Expr Expr  --
+          | Expr_Mod Expr Expr  --
+          | Expr_Pos Expr
+          | Expr_Neg Expr
+          | Expr_Fcall Func_Call
+          | Expr_Brack Expr   --
+          | Expr_Lval L_Value   --
+          | Expr_Char String
+          | Expr_Int  Int    --
           deriving (Eq, Show)
 
 data L_Value = LV_Var String --

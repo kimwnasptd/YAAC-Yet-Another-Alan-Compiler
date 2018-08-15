@@ -93,10 +93,9 @@ cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
     return ()
 cgen_stmt stmt = return ()      -- This must be removed in the end
 
--- TODO: Arrays
+
 cgen_lval :: S.L_Value -> Codegen AST.Operand
 cgen_lval (S.LV_Var var) = getvar var
--- cgen_lval (S.LV_Tbl tbl_var offset_expr) = cgen_expr offset_expr >>=
 cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
     offset <- cgen_expr offset_expr   --generate the expression for the offset
     tbl_operand <- getvar tbl_var     -- get the table operand
@@ -126,7 +125,15 @@ cgen_expr (S.Expr_Tms e1 e2) = do
 cgen_expr (S.Expr_Div e1 e2) = do
     ce1 <- cgen_expr e1
     ce2 <- cgen_expr e2
-    udiv ce1 ce2
+    sdiv ce1 ce2
+cgen_expr (S.Expr_Mod e1 e2) = do
+    ce1 <- cgen_expr e1
+    ce2 <- cgen_expr e2
+    srem ce1 ce2
+cgen_expr (S.Expr_Fcall (S.Func_Call name arg_lst ) ) = do
+    arg_operands <- mapM cgen_expr arg_lst
+    fun_operand <- getfun name
+    return one
 cgen_expr exp = do
     return one
 
@@ -141,13 +148,14 @@ addFunc name args_lst f_type = do
     let our_ret = getFunType f_type   -- we format all of the function stuff properly
         fun_args = map createArgType args_lst
         fn_info = createFunInfo name fun_args our_ret
+    -- fun <- addFunOperand fun_info 
     addSymbol (fn_name fn_info) (F fn_info)   -- > add the function to our SymbolTable
 
 addVar :: S.Var_Def -> Codegen ()    -- takes a VARIABLE DEFINITION , and adds the proper things, to the proper scopes
 addVar vdef = do
     scpnm <- getScopeName
     var_info <- createVar_from_Def vdef    -- create the new VarInfo filed to be inserted in the scope
-    var <- addVarOpperand var_info
+    var <- addVarOpperand var_info         -- NOTE: add the operand to the varinfo field
     addSymbol (var_name var_info) (V var)
     writeLog $ "Adding variable " ++ (var_name var_info) ++ " to the scope " ++ scpnm
 

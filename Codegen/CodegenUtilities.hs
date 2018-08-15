@@ -167,6 +167,8 @@ addArgOpperand arg = do
     store var (local (AST.Name $ toShort nm))
     return $ arg { var_operand = Just var }
 
+-- addFunOperand :: FunInfo -> Codegen FunInfo
+
 instr :: Instruction -> Codegen (Operand)
 instr ins = do
     n <- fresh
@@ -258,8 +260,11 @@ sub a b = instr $ Sub True True a b []
 mul :: Operand -> Operand -> Codegen Operand
 mul a b = instr $ Mul True True a b []
 
-udiv :: Operand -> Operand -> Codegen Operand
-udiv a b = instr $ UDiv True a b []
+sdiv :: Operand -> Operand -> Codegen Operand
+sdiv a b = instr $ SDiv True a b []
+
+srem :: Operand -> Operand -> Codegen Operand
+srem a b = instr $ SRem  a b []
 
 cmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Codegen Operand
 cmp cond a b = instr $ FCmp cond a b []
