@@ -72,14 +72,14 @@ data Scope = Scope {
 data CodegenState = CodegenState {
       symbolTable   :: SymbolTable
     , currentScope  :: Scope   -- > We always keep the current scope close to our chest.
-    , names         :: Names
-    , definitions   :: [Definition]
-    , mainfn        :: String  -- we need the name of the main function
-    , logger        :: String
+    , names         :: Names   -- > A fresh name supply
+    , definitions   :: [Definition]   -- > The meat and bones of the compiler
+    , mainfn        :: String  -- > we need the name of the main function
+    , logger        :: String  -- > Contains debug messages we may want to print
   }
   deriving Show
 
-data BlockState = BlockState {
+data BlockState = BlockState {   -- > our own represenation of blocks, before converting to
       idx   :: Int                            -- Block index
     , stack :: [Named Instruction]            -- Stack of instructions
     , term  :: Maybe (Named Terminator)       -- Block terminator

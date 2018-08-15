@@ -286,6 +286,9 @@ store ptr val = instr_unnamed $ Store False ptr val Nothing 0 []   -- We can fin
 load :: Operand -> Codegen Operand
 load ptr = instr $ Load False ptr Nothing 0 []
 
+create_ptr :: Operand -> [Operand] -> Codegen Operand -- used for table indexing
+create_ptr table indexes = instr $ GetElementPtr True table indexes []
+
 -- Control Flow
 br :: Name -> Codegen (Named Terminator)
 br val = terminator $ Do $ Br val []

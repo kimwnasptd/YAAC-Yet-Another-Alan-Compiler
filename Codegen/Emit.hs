@@ -55,9 +55,9 @@ codegenTop main = do
 
 cgen_ast :: S.Program -> Codegen String
 cgen_ast (S.Prog main) = do
-    initMain main
-    cgenFuncDef main
-    gets logger >>= return
+    initMain main    -- > set the name of the main function in our codegenstate
+    cgenFuncDef main -- > codegen the function
+    gets logger >>= return  -- > return the logger of our codegeneration
 
 cgenFuncDef :: S.Func_Def -> Codegen ()
 cgenFuncDef (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
@@ -74,6 +74,7 @@ cgenFuncDef (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
 
 cgen_stmts :: S.Comp_Stmt -> Codegen [()]
 cgen_stmts (S.C_Stmt stmts) = mapM cgen_stmt stmts
+-- cgen_stmts (S.C_Stmt stmts) = forM stmts cgen_stmt   -- because we like playing with monads...
 
 -- TODO: FCall, If, IFE, While
 cgen_stmt :: S.Stmt -> Codegen ()
@@ -95,6 +96,14 @@ cgen_stmt stmt = return ()      -- This must be removed in the end
 -- TODO: Arrays
 cgen_lval :: S.L_Value -> Codegen AST.Operand
 cgen_lval (S.LV_Var var) = getvar var
+-- cgen_lval (S.LV_Tbl tbl_var offset_expr) = cgen_expr offset_expr >>=
+cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
+    offset <- cgen_expr offset_expr   --generate the expression for the offset
+    tbl_operand <- getvar tbl_var     -- get the table operand
+    table_type <- getLvalType (S.LV_Tbl tbl_var offset_expr) -- get the type of the table
+    newptr <- create_ptr tbl_operand [offset]
+    return newptr
+
 cgen_lval lval = return one     -- This must be removed in the end
 
 -- TODO: Pos, Neg, FCall, ExprChar
@@ -132,7 +141,7 @@ addFunc name args_lst f_type = do
     let our_ret = getFunType f_type   -- we format all of the function stuff properly
         fun_args = map createArgType args_lst
         fn_info = createFunInfo name fun_args our_ret
-    addSymbol (fn_name fn_info) (F fn_info)
+    addSymbol (fn_name fn_info) (F fn_info)   -- > add the function to our SymbolTable
 
 addVar :: S.Var_Def -> Codegen ()    -- takes a VARIABLE DEFINITION , and adds the proper things, to the proper scopes
 addVar vdef = do
