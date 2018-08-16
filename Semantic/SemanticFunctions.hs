@@ -300,7 +300,7 @@ openScope name = do
     let curr_scope = currentScope s
         curr_name = scp_name curr_scope
     case curr_name of
-        "" -> put s { currentScope = emptyScope { scp_name = name } }  -- if we are the INITIAL scope, we just change the scope's name
+        "" -> put s { currentScope = (currentScope s) { scp_name = name } }  -- if we are the INITIAL scope, we just change the scope's name
         _  -> put s { currentScope = emptyScope { -- But as a currentScope we put an empty one
                         parent_scope = (Just $ curr_scope)  -- And change its parent
                       , scp_name = name

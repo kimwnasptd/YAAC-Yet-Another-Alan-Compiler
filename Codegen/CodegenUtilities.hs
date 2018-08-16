@@ -144,7 +144,7 @@ fresh = do
 
 initOperand :: SymbolType -> Maybe Int -> Codegen Operand
 initOperand IntType _ = return zero
-initOperand ByteType _ = return zero
+initOperand ByteType _ = return $ cons $ C.Int 8 0
 initOperand ProcType _ = return zero
 initOperand TableIntType  (Just dim) = return $ cons $ C.Array i32 [C.Int 32 0 | _ <- [1..dim]]
 initOperand TableByteType (Just dim) = return $ cons $ C.Array i8  [C.Int  8 0 | _ <- [1..dim]]
@@ -167,13 +167,6 @@ addArgOpperand arg = do
     store var (local (AST.Name $ toShort nm))
     return $ arg { var_operand = Just var }
 
-to_type :: SymbolType -> Type
-to_type IntType = i32
-to_type ByteType = i8
-to_type ProcType = TP.void
-to_type TableIntType = i32
-to_type TableByteType = i32 -- NOTE: Placeholders for the time being
-
 --
 addFunOperand :: FunInfo -> Codegen FunInfo
 addFunOperand foo_info = do
@@ -183,9 +176,9 @@ addFunOperand foo_info = do
         args = fn_args foo_info
         fn_op = externf sorted_name typed_res arg_types
         sorted_name = (AST.Name $ toShort name)
-        typed_res = to_type result
+        typed_res = type_to_ast result
         arg_types = map arg_to_type args
-        arg_to_type = to_type . ( \(a,b,c,d) -> b )
+        arg_to_type = type_to_ast . ( \(a,b,c,d) -> b )
 
 
 instr :: Instruction -> Codegen (Operand)
@@ -303,10 +296,8 @@ toArgs = map (\x -> (x, []))
 call :: Operand -> [Operand] -> Codegen Operand
 call fn args = instr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
-ermakos_call :: Operand -> [Operand] -> Codegen Operand
-ermakos_call fn args = instr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
--- Call Parameters: Tail Call Kind - Calling Convention - Return Attributes -
---  FUNCTION (Callable Operand) -- arguments -- functionattributes - metadata
+call_unnamed :: Operand -> [Operand] -> Codegen Operand
+call_unnamed fn args = instr_unnamed $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
 alloca :: Type -> Codegen Operand
 alloca ty = instr $ Alloca ty Nothing 0 []

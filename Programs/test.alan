@@ -2,16 +2,17 @@ main () : proc
     rings : int;
     ns : int[15];
     var : int;
-    -- fingers : byte ;
+    fingers : byte ;
 
-    compute (x : int) : int
+    compute (x : int[]) : int
         var : int;
         {
-            return (x + x ) ;
+            return 2;
         }
 
 {
     rings = 2;
+    writeInteger(2);
     -- rings = compute(5);
     -- rings = compute(rings);
     -- rings = compute(fingers) ;

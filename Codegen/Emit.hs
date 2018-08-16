@@ -92,7 +92,7 @@ cgen_stmt (S.Stmt_Eq lval expr) = do
 cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
     largs <- mapM cgen_expr args
     foo_operand <- getfun fn
-    call foo_operand largs
+    call_unnamed foo_operand largs
     return ()
 cgen_stmt stmt = return ()      -- This must be removed in the end
 
