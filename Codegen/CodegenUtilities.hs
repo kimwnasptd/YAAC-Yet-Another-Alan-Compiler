@@ -266,18 +266,6 @@ local = LocalReference i32
 global ::  Name -> C.Constant
 global = C.GlobalReference i32
 
--- externf :: Name -> Operand
--- externf = ConstantOperand . C.GlobalReference i32
-
-typed_externf :: Name -> Symbol ->  Operand
-typed_externf name (F f_info ) = case (result_type f_info) of
-    IntType  -> ConstantOperand $ C.GlobalReference (PointerType (fn_type) (AP.AddrSpace 0) ) name
-    ByteType -> ConstantOperand $ C.GlobalReference i8 name
-    ProcType -> ConstantOperand $ C.GlobalReference TP.void name
-    _        -> error  "found something weirdddd"
-    where
-        fn_type = FunctionType i32 [i32] False
-
 externf :: Name -> Type -> [Type] -> Operand
 externf name tp op_list = ConstantOperand $ C.GlobalReference (ptr fn_type ) name where
     fn_type = FunctionType tp op_list False

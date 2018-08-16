@@ -2,6 +2,7 @@ main () : proc
     rings : int;
     ns : int[15];
     var : int;
+    fingers : byte ;
 
     compute (x : int) : int
         var : int;
@@ -11,6 +12,8 @@ main () : proc
 {
     rings = 2;
     rings = compute(5);
+    rings = compute(rings);
+    -- rings = compute(fingers) ;
     -- rings = rings * rings + 3;
     -- return rings * var;
     ns[5+3] = 10 ;
