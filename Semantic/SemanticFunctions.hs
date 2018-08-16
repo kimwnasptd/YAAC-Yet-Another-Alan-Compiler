@@ -172,13 +172,27 @@ getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
     actual_types <- get_expr_types fargs      -- [(SymbolType,Reference)]
     formal_types <- get_fnargs_types fname    -- [(SymbolType, Reference)]
     F foo_info <- getSymbol fname
-    if ( formal_types ==  actual_types ) then return $ result_type foo_info
+    if ( agree actual_types formal_types ) then return $ result_type foo_info
     else  error $ "arg missmatch in function " ++ fname
+
 -- Simple enough: If the type of all the actual paramters a function
 -- was called with match respectively with the type of the formal
 -- types, then the result type is the one declared by the fuction
 -- We also pay special attention to the fact that for every actual paramter that was
 -- declared by reference, the value passed as argument is a left value
+
+
+agree :: [(SymbolType, Bool)] -> [(SymbolType, Bool)] -> Bool
+agree [] [] = True
+agree ( (type1, ref1 ):rest1 ) ( (type2, ref2):rest2 ) = case (ref1,ref2) of
+    (True,  _ ) -> if (type1 == type2 ) then agree rest1 rest2 else False
+    (False, False ) -> if (type1 == type2 ) then agree rest1 rest2 else False
+    ( False, True ) -> False
+agree _ _ = False
+-- Takes the ACTUAL and FORMAL paramters of a function and checkes whether
+-- their references are compatitable.
+-- If they are, it also checks that their types are compatit
+
 
 --------------------------------------------------------------------------------
 -- Semantic Analysis of Conditions
