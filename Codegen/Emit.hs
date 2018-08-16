@@ -13,6 +13,7 @@ import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Float as F
 import qualified LLVM.AST.FloatingPointPredicate as FP
 
+import Data.Char
 import Data.Word
 import Data.Int
 import Control.Monad.Except
@@ -138,6 +139,10 @@ cgen_expr (S.Expr_Fcall (S.Func_Call name arg_lst ) ) = do
     foo_operand <- getfun name
     call foo_operand arg_operands
     -- return one
+cgen_expr (S.Expr_Char ch_str) = do
+    return $ cons $ C.Int 8 (toInteger $ ord $ head ch_str)
+    -- return one
+
 cgen_expr exp = do
     return one
 

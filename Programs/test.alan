@@ -7,11 +7,12 @@ main () : proc
     compute (x : int[]) : int
         var : int;
         {
-            return 2;
+            return 1;
         }
 
 {
     rings = 2;
+    fingers = '5' ; 
     writeInteger(2);
     -- rings = compute(5);
     -- rings = compute(rings);
