@@ -91,25 +91,12 @@ cgen_stmt (S.Stmt_Eq lval expr) = do
     store var val
     return ()
 cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
-    largs <- mapM cgen_expr args
+    largs <- mapM cgen_arg args
     foo_operand <- getfun fn
     call_unnamed foo_operand largs
     return ()
 cgen_stmt stmt = return ()      -- This must be removed in the end
 
-
-cgen_lval :: S.L_Value -> Codegen AST.Operand
-cgen_lval (S.LV_Var var) = getvar var
-cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
-    offset <- cgen_expr offset_expr   --generate the expression for the offset
-    tbl_operand <- getvar tbl_var     -- get the table operand
-    table_type <- getLvalType (S.LV_Tbl tbl_var offset_expr) -- get the type of the table
-    newptr <- create_ptr tbl_operand ([zero, offset] )
-    return newptr
-
-cgen_lval lval = return one     -- This must be removed in the end
-
--- TODO: Pos, Neg, FCall, ExprChar
 cgen_expr :: S.Expr -> Codegen AST.Operand
 cgen_expr (S.Expr_Brack exp) = cgen_expr exp
 cgen_expr (S.Expr_Lval lval) = cgen_lval lval >>= load
@@ -135,21 +122,42 @@ cgen_expr (S.Expr_Mod e1 e2) = do
     ce2 <- cgen_expr e2
     srem ce1 ce2
 cgen_expr (S.Expr_Fcall (S.Func_Call name arg_lst ) ) = do
-    arg_operands <- mapM cgen_expr arg_lst
+    arg_operands <- mapM cgen_arg arg_lst
     foo_operand <- getfun name
     call foo_operand arg_operands
-    -- return one
 cgen_expr (S.Expr_Char ch_str) = do
     return $ cons $ C.Int 8 (toInteger $ ord $ head ch_str)
-    -- return one
 cgen_expr (S.Expr_Pos expr ) = cgen_expr expr
 cgen_expr(S.Expr_Neg expr ) = do
     ce <- cgen_expr expr
-    sub zero ce 
+    sub zero ce
 
-cgen_expr exp = do
-    return one
+-- cgen_lval always returns an address operand
+cgen_lval :: S.L_Value -> Codegen AST.Operand
+cgen_lval (S.LV_Var var) = do
+    V info <- getSymbol var
+    operand <- getvar var
+    case dimension info of
+        Nothing -> return operand
+        Just  _ -> case byreference info of
+            True  -> create_ptr operand [toInt 0] >>= return
+            False -> create_ptr operand [zero, toInt 0] >>= return
+cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
+    offset <- cgen_expr offset_expr   --generate the expression for the offset
+    tbl_operand <- getvar tbl_var     -- get the table operand
+    V tbl_info <- getSymbol tbl_var
+    case byreference tbl_info of
+        True  -> create_ptr tbl_operand [offset] >>= return
+        False -> create_ptr tbl_operand [zero, offset] >>= return
 
+-- If an array without brackets we need to pass the pointer to the func
+cgen_arg :: S.Expr -> Codegen Operand
+cgen_arg (S.Expr_Lval (S.LV_Var var)) = do
+    V info <- getSymbol var
+    case dimension info of
+        Nothing -> cgen_expr (S.Expr_Lval (S.LV_Var var))
+        Just  _ -> cgen_lval (S.LV_Var var)
+cgen_arg expr = cgen_expr expr
 -------------------------------------------------------------------------------
 -- Driver Functions for navigating the Tree
 -------------------------------------------------------------------------------
@@ -176,7 +184,6 @@ addVar vdef = do
 addFArgs :: S.FPar_List -> Codegen ()
 addFArgs (arg:args) = do
     param <- createVar_from_Arg arg
-    writeLog $ "Adding Func Param " ++ (var_name param) ++ " to the scope"
     param_ready <- addArgOpperand param
     addSymbol (var_name param) (V param_ready)
     addFArgs args

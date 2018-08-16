@@ -68,8 +68,8 @@ createArgType ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = (str, TableIntT
 createArgType ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = (str, TableByteType, True, True)
 createArgType ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = (str, IntType , False, False)
 createArgType ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = (str, ByteType, False, False)
-createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, TableIntType , False, True)
-createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, TableByteType, False, True)
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, TableIntType , True, True)
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, TableByteType, True, True)
 
 createVar_from_Def :: Var_Def -> Codegen VarInfo
 createVar_from_Def ( VDef str (D_Type TInt) )         = createVarInfo str IntType  0 Nothing False
@@ -233,7 +233,7 @@ checkGlobalVar var = do
         Just [] -> error $ error_msg
         Just scps -> do
             let fst_scp = scps !! 0
-            case (scp_name fst_scp) == main_scp of
+            case (scp_name fst_scp) == main_scp || scp_name fst_scp == "" of
                 True  -> return $ var `Map.lookup` (symbols fst_scp)
                 False -> return $ Nothing
     where
@@ -262,12 +262,12 @@ getvar var = do
             Just op -> return op
 
 getfun :: SymbolName -> Codegen Operand
-getfun var = do
-    symbol <- getSymbol var
+getfun fn = do
+    symbol <- getSymbol fn
     case symbol of
-        V _        -> error $ "Fun " ++ (show var) ++ " is also a variable"
+        V _        -> error $ "Fun " ++ (show fn) ++ " is also a variable"
         F fun_info -> case fun_operand fun_info of
-            Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand"
+            Nothing -> error $ "Symbol " ++ (show fn) ++ " has no operand"
             Just op -> return op
 
 addSymbol :: SymbolName -> Symbol -> Codegen ()

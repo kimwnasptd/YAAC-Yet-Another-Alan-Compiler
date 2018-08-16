@@ -1,20 +1,23 @@
 main () : proc
     rings : int;
     ns : int[15];
-    var : int;
-    fingers : byte ;
+    -- var : int;
+    -- fingers : byte ;
 
     compute (x : int[]) : int
         var : int;
         {
-            return 1;
+            -- return x[0];
+            x[7] = 3;
+            return 6;
         }
 
 {
-    rings = 2;
-    fingers = '5' ;
-    rings = - rings ;  
-    writeInteger(2);
+    rings = compute(ns);
+    -- ns[5] = 12;
+    -- fingers = '5' ;
+    -- rings = - rings ;
+    -- writeInteger(2);
     -- rings = compute(5);
     -- rings = compute(rings);
     -- rings = compute(fingers) ;
