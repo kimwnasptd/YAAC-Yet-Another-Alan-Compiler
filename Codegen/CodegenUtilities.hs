@@ -167,7 +167,26 @@ addArgOpperand arg = do
     store var (local (AST.Name $ toShort nm))
     return $ arg { var_operand = Just var }
 
--- addFunOperand :: FunInfo -> Codegen FunInfo
+to_type :: SymbolType -> Type
+to_type IntType = i32
+to_type ByteType = i8
+to_type ProcType = TP.void
+to_type TableIntType = i32
+to_type TableByteType = i32 -- NOTE: Placeholders for the time being
+
+--
+addFunOperand :: FunInfo -> Codegen FunInfo
+addFunOperand foo_info = do
+    return $ foo_info { fun_operand = Just fn_op } where
+        name = fn_name foo_info
+        result = result_type foo_info
+        args = fn_args foo_info
+        fn_op = externf sorted_name typed_res arg_types
+        sorted_name = (AST.Name $ toShort name)
+        typed_res = to_type result
+        arg_types = map arg_to_type args
+        arg_to_type = to_type . ( \(a,b,c,d) -> b )
+
 
 instr :: Instruction -> Codegen (Operand)
 instr ins = do
@@ -247,8 +266,8 @@ local = LocalReference i32
 global ::  Name -> C.Constant
 global = C.GlobalReference i32
 
-externf :: Name -> Operand
-externf = ConstantOperand . C.GlobalReference i32
+-- externf :: Name -> Operand
+-- externf = ConstantOperand . C.GlobalReference i32
 
 typed_externf :: Name -> Symbol ->  Operand
 typed_externf name (F f_info ) = case (result_type f_info) of
@@ -259,9 +278,10 @@ typed_externf name (F f_info ) = case (result_type f_info) of
     where
         fn_type = FunctionType i32 [i32] False
 
--- pretty_externf :: Name -> Symbol -> Operand
--- typed_externf name (F f_info ) = ConstantOperand $ C.GlobalReference (PointerType (fn_type) (AP.AddrSpace 0) ) name where
---     fn_type = case (result_type f_info of )
+externf :: Name -> Type -> [Type] -> Operand
+externf name tp op_list = ConstantOperand $ C.GlobalReference (ptr fn_type ) name where
+    fn_type = FunctionType tp op_list False
+
 
 -- Arithmetic and Constants
 add :: Operand -> Operand -> Codegen Operand
