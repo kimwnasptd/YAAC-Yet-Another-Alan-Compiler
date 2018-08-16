@@ -12,7 +12,8 @@ main () : proc
 
 {
     rings = 2;
-    fingers = '5' ; 
+    fingers = '5' ;
+    rings = - rings ;  
     writeInteger(2);
     -- rings = compute(5);
     -- rings = compute(rings);

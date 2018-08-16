@@ -142,6 +142,10 @@ cgen_expr (S.Expr_Fcall (S.Func_Call name arg_lst ) ) = do
 cgen_expr (S.Expr_Char ch_str) = do
     return $ cons $ C.Int 8 (toInteger $ ord $ head ch_str)
     -- return one
+cgen_expr (S.Expr_Pos expr ) = cgen_expr expr
+cgen_expr(S.Expr_Neg expr ) = do
+    ce <- cgen_expr expr
+    sub zero ce 
 
 cgen_expr exp = do
     return one
