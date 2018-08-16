@@ -8,13 +8,9 @@ main () : proc
         {
             return (x + x ) ;
         }
+
 {
     rings = 2;
-    rings = compute(5);
-    -- rings = rings * rings + 3;
-    -- return rings * var;
-    ns[5+3] = 10 ;
-    ns[5+6] = rings ;
-    rings = ns[5+3] ;
+    rings = compute(rings);
     return;
 }

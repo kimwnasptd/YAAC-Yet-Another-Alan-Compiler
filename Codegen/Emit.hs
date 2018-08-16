@@ -27,6 +27,7 @@ import qualified ASTTypes as S
 import SymbolTableTypes
 import SemanticFunctions
 import CodegenUtilities
+import DefaultFunctions
 
 -------------------------------------------------------------------------------
 -- Compilation
@@ -56,6 +57,7 @@ codegenTop main = do
 cgen_ast :: S.Program -> Codegen String
 cgen_ast (S.Prog main) = do
     initMain main    -- > set the name of the main function in our codegenstate
+    addLibraryFns lib_fns
     cgenFuncDef main -- > codegen the function
     gets logger >>= return  -- > return the logger of our codegeneration
 
@@ -175,9 +177,19 @@ addLDef :: S.Local_Def -> Codegen ()
 addLDef (S.Loc_Def_Fun fun) = cgenFuncDef fun
 addLDef (S.Loc_Def_Var var) = addVar var
 
--- Check it at night. -> Looks fine to me.
 addLDefLst :: [S.Local_Def] -> Codegen  ()
 addLDefLst defs = mapM addLDef defs >> return ()
+
+addLibraryFns :: [FunInfo] -> Codegen ()
+addLibraryFns (fn:fns) = do
+    external retty label argtys
+    addSymbol (fn_name fn) (F fn)
+    addLibraryFns fns
+    where
+        retty = type_to_ast (result_type fn)
+        label = fn_name fn
+        argtys = [(type_to_ast tp, Name $ toShort nm) | (nm, tp, _, _) <- (fn_args fn)]
+addLibraryFns [] = return ()
 
 -------------------------------------------------------------------------------
 -- Operations

@@ -41,7 +41,6 @@ createFunInfo func_name fun_args fun_res = FunInfo {
     , result_type = fun_res
     , fun_operand = Nothing
     , fn_args = fun_args
-    , forward_dec = False
 }   -- we simply get all fields already computed and package them in a FunInfo Struct
 
 createVarInfo:: SymbolName -> SymbolType -> Int ->  Maybe Int -> Bool -> Codegen VarInfo

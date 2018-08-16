@@ -12,8 +12,8 @@ CC_FLAGS = -i$(MODULES)
 LXR_FLAGS = -i
 PSR_FLAGS = -i
 
-MODULES = Lexer:Parser:Semantic:Codegen
-CLEAN_DIRS = . Lexer Parser Semantic Codegen Run
+MODULES = Lexer:Parser:Semantic:Codegen:Libraries
+CLEAN_DIRS = . Lexer Parser Semantic Codegen Run Libraries
 
 # ------------------------
 

@@ -49,7 +49,6 @@ data FunInfo = FunInfo {
     , result_type    :: SymbolType
     , fun_operand    :: Maybe Operand
     , fn_args        :: [(SymbolName,SymbolType,Bool,Bool)] -- (name, type, ref, table)
-    , forward_dec    :: Bool
   }
   deriving Show
 

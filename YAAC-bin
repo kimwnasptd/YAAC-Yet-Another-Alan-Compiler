@@ -5,7 +5,7 @@ if [ "$1" != "" ]; then
     echo ""
     Run/YAAC-ll $1 > a.ll || exit 1
     cat --number a.ll
-    llc-6.0 a.ll -o a.s
+    llc a.ll -o a.s
     clang a.s Libraries/lib.a -o a.out
     rm a.ll a.s
     echo ""
