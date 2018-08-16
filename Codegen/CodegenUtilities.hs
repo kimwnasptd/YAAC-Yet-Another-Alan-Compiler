@@ -28,7 +28,7 @@ import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Attribute as A
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.FloatingPointPredicate as FP
-
+import qualified LLVM.AST.AddrSpace as AP
 
 ---------------------------------------------------------------------------------
 -- Types and Operands
@@ -250,6 +250,19 @@ global = C.GlobalReference i32
 externf :: Name -> Operand
 externf = ConstantOperand . C.GlobalReference i32
 
+typed_externf :: Name -> Symbol ->  Operand
+typed_externf name (F f_info ) = case (result_type f_info) of
+    IntType  -> ConstantOperand $ C.GlobalReference (PointerType (fn_type) (AP.AddrSpace 0) ) name
+    ByteType -> ConstantOperand $ C.GlobalReference i8 name
+    ProcType -> ConstantOperand $ C.GlobalReference TP.void name
+    _        -> error  "found something weirdddd"
+    where
+        fn_type = FunctionType i32 [i32] False
+
+-- pretty_externf :: Name -> Symbol -> Operand
+-- typed_externf name (F f_info ) = ConstantOperand $ C.GlobalReference (PointerType (fn_type) (AP.AddrSpace 0) ) name where
+--     fn_type = case (result_type f_info of )
+
 -- Arithmetic and Constants
 add :: Operand -> Operand -> Codegen Operand
 add a b = instr $ Add True True a b []
@@ -281,6 +294,11 @@ toArgs = map (\x -> (x, []))
 -- Effects
 call :: Operand -> [Operand] -> Codegen Operand
 call fn args = instr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+
+ermakos_call :: Operand -> [Operand] -> Codegen Operand
+ermakos_call fn args = instr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+-- Call Parameters: Tail Call Kind - Calling Convention - Return Attributes -
+--  FUNCTION (Callable Operand) -- arguments -- functionattributes - metadata
 
 alloca :: Type -> Codegen Operand
 alloca ty = instr $ Alloca ty Nothing 0 []

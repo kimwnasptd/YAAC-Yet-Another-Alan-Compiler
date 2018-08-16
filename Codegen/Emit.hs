@@ -132,8 +132,11 @@ cgen_expr (S.Expr_Mod e1 e2) = do
     srem ce1 ce2
 cgen_expr (S.Expr_Fcall (S.Func_Call name arg_lst ) ) = do
     arg_operands <- mapM cgen_expr arg_lst
-    fun_operand <- getfun name
-    return one
+    foo <- getfun name
+    let
+        fun_operand = typed_externf (AST.Name $ toShort name) foo
+    ermakos_call fun_operand arg_operands
+    -- return one
 cgen_expr exp = do
     return one
 
@@ -148,7 +151,7 @@ addFunc name args_lst f_type = do
     let our_ret = getFunType f_type   -- we format all of the function stuff properly
         fun_args = map createArgType args_lst
         fn_info = createFunInfo name fun_args our_ret
-    -- fun <- addFunOperand fun_info 
+    -- fun <- addFunOperand fun_info
     addSymbol (fn_name fn_info) (F fn_info)   -- > add the function to our SymbolTable
 
 addVar :: S.Var_Def -> Codegen ()    -- takes a VARIABLE DEFINITION , and adds the proper things, to the proper scopes

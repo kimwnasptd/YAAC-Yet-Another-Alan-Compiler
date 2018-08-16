@@ -248,14 +248,12 @@ getvar var = do
             Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand"
             Just op -> return op
 
-getfun :: SymbolName -> Codegen Operand
+getfun :: SymbolName -> Codegen Symbol
 getfun var = do
     symbol <- getSymbol var
     case symbol of
         V _        -> error $ "Fun " ++ (show var) ++ " is also a variable"
-        F fun_info -> case fun_operand fun_info of
-            Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand"
-            Just op -> return op
+        F fun_info -> return (F fun_info)
 
 addSymbol :: SymbolName -> Symbol -> Codegen ()
 addSymbol symbol_name symbol_info = do

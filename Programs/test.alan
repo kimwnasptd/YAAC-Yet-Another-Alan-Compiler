@@ -6,7 +6,7 @@ main () : proc
     compute (x : int) : int
         var : int;
         {
-            return x + x * 2;
+            return (x + x ) ;
         }
 {
     rings = 2;
