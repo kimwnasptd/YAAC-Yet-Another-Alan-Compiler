@@ -221,33 +221,23 @@ semCond (Cond_Or c1 c2 ) = semCond c1 >> semCond c2
 -- Symbol Table Functions
 --------------------------------------------------------------------------------
 -- Checks if var is defined in main
-checkGlobalVar :: SymbolName -> Codegen (Maybe Symbol)
-checkGlobalVar var = do
-    symtable <- gets symbolTable
-    main_scp <- gets mainfn
-    case var `Map.lookup` symtable of
-        Nothing -> error $ error_msg
-        Just [] -> error $ error_msg
-        Just scps -> do
-            let fst_scp = scps !! 0
-            case (scp_name fst_scp) == main_scp || scp_name fst_scp == "" of
-                True  -> return $ var `Map.lookup` (symbols fst_scp)
-                False -> return $ Nothing
-    where
-        error_msg = "Symbol " ++ var ++ " is not defined as global!"
+checkSymbolTable :: SymbolName -> Codegen Symbol
+checkSymbolTable sym = do
+    symtab <- gets symbolTable
+    case sym `Map.lookup` symtab of
+        Nothing -> error error_msg -- the variable is nowhere to be found
+        Just [] -> error error_msg -- the variable is nowhere to be found (it was previously declared, but deleted )
+        Just (scp:scps) -> case sym `Map.lookup` (symbols scp) of
+            Just info -> return info
+            Nothing   -> error error_msg
+    where error_msg = "Symbol " ++ sym ++ " is not defined!"
 
 getSymbol:: SymbolName -> Codegen Symbol
-getSymbol var = do
+getSymbol sym = do
     curr_scp <- gets currentScope
-    case var `Map.lookup` (symbols curr_scp) of
+    case sym `Map.lookup` (symbols curr_scp) of
         Just info -> return info  -- the variable is in the current scope
-        Nothing   ->  do   -- the variable isn't defined in the current
-            check <- checkGlobalVar var
-            case check of
-                Nothing -> error error_msg
-                Just info -> return info
-    where
-        error_msg = "Symbol " ++ var ++ " is not defined!"
+        Nothing   -> checkSymbolTable sym
 
 getvar :: SymbolName -> Codegen Operand
 getvar var = do
@@ -388,10 +378,8 @@ semStmt (Stmt_FCall (Func_Call fname fargs)) = do
     actual_types <- get_expr_types fargs      -- [(SymbolType,Reference)]
     formal_types <- get_fnargs_types fname    -- [(SymbolType, Reference)]
     F foo_info <- getSymbol fname
-    case result_type foo_info of
-        ProcType -> if (actual_types == formal_types) then return ()
-                    else error $ "Args don't match for " ++ (fn_name foo_info)
-        _        -> error $ "Proc " ++ (fn_name foo_info) ++ " is not void."
+    if ( agree actual_types formal_types ) then return $ ()
+    else  error $ "arg missmatch in function " ++ fname
 
 semStmtList :: Comp_Stmt -> Codegen ()
 semStmtList (C_Stmt stmts) = mapM semStmt stmts >> return ()

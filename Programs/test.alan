@@ -1,33 +1,22 @@
 main () : proc
-    -- rings : int;
-    -- ns : int[15];
+    rings : int;
+    ns : int[15];
     -- var : int;
     -- fingers : byte ;
     d : byte;
 
-    compute (x : reference int) : int
+    compute (x : reference int) : proc
        var : int;
        {
            -- return x[0];
            -- x[7] = 3;
-           x = 3;
-           return 6;
+           x = readInteger();
+           return;
        }
 
 {
-    d = 25;
-    -- ns[5] = 12;
-    -- rings = compute(ns[5]);
-    -- fingers = '5' ;
-    -- rings = - rings ;
-    -- writeInteger(2);
-    -- rings = compute(5);
-    -- rings = compute(rings);
-    -- rings = compute(fingers) ;
-    -- rings = rings * rings + 3;
-    -- return rings * var;
-    -- ns[5+3] = 10 ;
-    -- ns[5+6] = rings ;
-    -- rings = ns[5+3] ;
+    -- Main
+    compute(rings);
+    writeInteger(rings);
     return;
 }

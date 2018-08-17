@@ -16,10 +16,11 @@ lib_fns = [
         , result_type = ProcType
         , fun_operand = Just $ externf (Name $ toShort "writeInteger") void [i32]
         , fn_args = [("n", IntType, False, False)]
-    } ]--,
-    -- FunInfo {
-    --       fn_name = "readInteger"
-    --     , result_type = IntType
-    --     , fun_operand = Just $ externf (Name $ toShort "readInteger") i32 []
-    --     , fn_args = []
-    -- }]
+    }, --]
+    -- readInteger() : int
+    FunInfo {
+          fn_name = "readInteger"
+        , result_type = IntType
+        , fun_operand = Just $ externf (Name $ toShort "readInteger") i32 []
+        , fn_args = []
+    }]

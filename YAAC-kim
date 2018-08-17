@@ -6,7 +6,7 @@ if [ "$1" != "" ]; then
     Run/YAAC-ll $1 > a.ll || exit 1
     cat --number a.ll
     llc a.ll -o a.s
-    clang a.s Libraries/lib.a -o a.out
+    clang a.s Libraries/lib.a -o a.out -nopie
     rm a.ll a.s
     echo ""
     echo "Compiled Successfully!"
