@@ -1,8 +1,9 @@
 main () : proc
-    rings : int;
-    ns : int[15];
+    -- rings : int;
+    -- ns : int[15];
     -- var : int;
     -- fingers : byte ;
+    d : byte;
 
     compute (x : reference int) : int
        var : int;
@@ -14,8 +15,9 @@ main () : proc
        }
 
 {
-    ns[5] = 12;
-    rings = compute(ns[5]);
+    d = 25;
+    -- ns[5] = 12;
+    -- rings = compute(ns[5]);
     -- fingers = '5' ;
     -- rings = - rings ;
     -- writeInteger(2);

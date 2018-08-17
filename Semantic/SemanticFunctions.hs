@@ -358,8 +358,10 @@ semStmt (Stmt_Eq lval expr) = do
     expr_type <- getExprType expr
     let err = "Can't assign type  " ++ (show expr_type) ++ " to type " ++ (show lval_type)
     case (lval_type, expr_type) of
-        (IntType, IntType)    ->  return ()
+        (IntType, IntType)    -> return ()
         (ByteType, ByteType)  -> return ()
+        (ByteType, IntType)   -> return ()
+        (IntType, ByteType)   -> return ()
         _                 -> error $ err
 
 semStmt (Stmt_Ret_Expr expr) = do
