@@ -157,10 +157,12 @@ addVarOpperand var_info = do
     init_val <- initOperand tp dim
     var <- alloca (symb_to_astp (V var_info))
     store var init_val
-    pointer <- create_ptr var [zero]
+    -- pointer <- create_ptr var [zero]
+    pointer_byte <- bitcast var (ptr i8)
+    pointer_int <-  bitcast var (ptr i32)
     case tp of
-        TableIntType  -> return $ var_info { var_operand = Just pointer }
-        TableByteType -> return $ var_info { var_operand = Just pointer }
+        TableIntType  -> return $ var_info { var_operand = Just pointer_int }
+        TableByteType -> return $ var_info { var_operand = Just pointer_byte }
         _             -> return $ var_info { var_operand = Just var }
 
 addArgOpperand :: VarInfo -> Codegen VarInfo
@@ -314,6 +316,9 @@ load ptr = instr $ Load False ptr Nothing 0 []
 
 create_ptr :: Operand -> [Operand] -> Codegen Operand -- used for table indexing
 create_ptr table indexes = instr $ GetElementPtr False table indexes []
+
+bitcast :: Operand -> Type -> Codegen Operand
+bitcast op tp = instr $ BitCast op tp []
 
 -- Control Flow
 br :: Name -> Codegen (Named Terminator)
