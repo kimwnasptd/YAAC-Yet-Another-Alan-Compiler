@@ -4,17 +4,18 @@ main () : proc
     -- var : int;
     -- fingers : byte ;
 
-    compute (x : reference int[]) : int
+    compute (x : reference int) : int
        var : int;
        {
            -- return x[0];
-           x[7] = 3;
+           -- x[7] = 3;
+           x = 3;
            return 6;
        }
 
 {
-    -- rings = compute(ns);
     ns[5] = 12;
+    rings = compute(ns[5]);
     -- fingers = '5' ;
     -- rings = - rings ;
     -- writeInteger(2);

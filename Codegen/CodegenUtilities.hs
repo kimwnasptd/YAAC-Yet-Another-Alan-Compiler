@@ -68,6 +68,12 @@ type_to_ast ProcType = TP.void
 type_to_ast TableIntType = ptr i32
 type_to_ast TableByteType = ptr i8
 
+-- If a var is ref, then its AST.Type will be ptr
+to_type :: SymbolType -> Bool -> AST.Type
+to_type IntType  True = ptr i32
+to_type ByteType True = ptr i8
+to_type tp _ = type_to_ast tp
+
 -- When defining a var, we need to get the array type also
 symb_to_astp :: Symbol -> AST.Type
 symb_to_astp (V var) =
@@ -81,6 +87,9 @@ symb_to_astp (V var) =
                         _            -> type_to_ast (var_type var)
 symb_to_astp (F fn) = type_to_ast (result_type fn)
 
+toSig :: [(SymbolName,SymbolType,Bool,Bool)] -> [(AST.Type, AST.Name)]
+toSig args = map convert args
+    where convert (name, tp, ref, _) = (to_type tp ref, AST.Name $ toShort name)
 -------------------------------------------------------------------------------
 -- Module Level
 -------------------------------------------------------------------------------
@@ -170,7 +179,8 @@ addArgOpperand :: VarInfo -> Codegen VarInfo
 addArgOpperand arg = do
     let tp = var_type arg
         nm = var_name arg
-    var <- alloca (type_to_ast tp)
+        ref = byreference arg
+    var <- alloca (to_type tp ref)
     store var (local (AST.Name $ toShort nm))
     case byreference arg of
         True -> do
@@ -188,9 +198,7 @@ addFunOperand foo_info = do
         fn_op = externf sorted_name typed_res arg_types
         sorted_name = (AST.Name $ toShort name)
         typed_res = type_to_ast result
-        arg_types = map arg_to_type args
-        arg_to_type = type_to_ast . ( \(a,b,c,d) -> b )
-
+        arg_types = [tp | (tp, _) <- toSig args]
 
 instr :: Instruction -> Codegen (Operand)
 instr ins = do

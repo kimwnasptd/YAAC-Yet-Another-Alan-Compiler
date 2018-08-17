@@ -94,9 +94,6 @@ createVar_from_Arg ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = createVarI
 -- NOTE: A VarInfo table having as dimensions JUST 0 has special meaning:
 -- it means that we are indeed talking about a table, but we don't know its size yet
 
-toSig :: [(SymbolName,SymbolType,Bool,Bool)] -> [(AST.Type, AST.Name)]
-toSig args = map convert args
-    where convert (name, tp, _, _) = (type_to_ast tp, AST.Name $ toShort name)
 --------------------------------------------------------------------------------
 -- Get Type of Expr
 --------------------------------------------------------------------------------

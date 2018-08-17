@@ -91,9 +91,11 @@ cgen_stmt (S.Stmt_Eq lval expr) = do
     store var val
     return ()
 cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
-    largs <- mapM cgen_arg args
+    F fun_info <- getSymbol fn
+    refs <- forM (fn_args fun_info) (\(_,_,ref,_) -> return ref)
+    arg_operands <- mapM cgen_arg (zip args refs)
     foo_operand <- getfun fn
-    call_unnamed foo_operand largs
+    call_unnamed foo_operand arg_operands
     return ()
 cgen_stmt stmt = return ()      -- This must be removed in the end
 
@@ -121,9 +123,11 @@ cgen_expr (S.Expr_Mod e1 e2) = do
     ce1 <- cgen_expr e1
     ce2 <- cgen_expr e2
     srem ce1 ce2
-cgen_expr (S.Expr_Fcall (S.Func_Call name arg_lst ) ) = do
-    arg_operands <- mapM cgen_arg arg_lst
-    foo_operand <- getfun name
+cgen_expr (S.Expr_Fcall (S.Func_Call fn args ) ) = do
+    F fun_info <- getSymbol fn
+    refs <- forM (fn_args fun_info) (\(_,_,ref,_) -> return ref)
+    arg_operands <- mapM cgen_arg (zip args refs)
+    foo_operand <- getfun fn
     call foo_operand arg_operands
 cgen_expr (S.Expr_Char ch_str) = do
     return $ cons $ C.Int 8 (toInteger $ ord $ head ch_str)
@@ -141,13 +145,10 @@ cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
     create_ptr tbl_operand [offset]
 
 -- If an array without brackets we need to pass the pointer to the func
-cgen_arg :: S.Expr  ->  Codegen Operand
-cgen_arg (S.Expr_Lval (S.LV_Var var)) = do
-    V info <- getSymbol var
-    case dimension info of
-        Nothing -> cgen_expr (S.Expr_Lval (S.LV_Var var))
-        Just  _ -> cgen_lval (S.LV_Var var)
-cgen_arg expr = cgen_expr expr
+cgen_arg :: (S.Expr, Bool) -> Codegen Operand
+cgen_arg ((S.Expr_Lval lval), False) = cgen_lval lval >>= load
+cgen_arg ((S.Expr_Lval lval), True ) = cgen_lval lval
+cgen_arg (expr, _) = cgen_expr expr
 -------------------------------------------------------------------------------
 -- Driver Functions for navigating the Tree
 -------------------------------------------------------------------------------
