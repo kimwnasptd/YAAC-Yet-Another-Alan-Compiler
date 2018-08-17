@@ -141,7 +141,7 @@ cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
     create_ptr tbl_operand [offset]
 
 -- If an array without brackets we need to pass the pointer to the func
-cgen_arg :: S.Expr -> Codegen Operand
+cgen_arg :: S.Expr  ->  Codegen Operand
 cgen_arg (S.Expr_Lval (S.LV_Var var)) = do
     V info <- getSymbol var
     case dimension info of

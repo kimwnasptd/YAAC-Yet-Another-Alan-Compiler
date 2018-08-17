@@ -4,7 +4,7 @@ main () : proc
     -- var : int;
     -- fingers : byte ;
 
-    compute (x : int[]) : int
+    compute (x : reference int[]) : int
        var : int;
        {
            -- return x[0];

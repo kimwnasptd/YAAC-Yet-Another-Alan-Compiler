@@ -157,9 +157,6 @@ addVarOpperand var_info = do
     init_val <- initOperand tp dim
     var <- alloca (symb_to_astp (V var_info))
     store var init_val
-    -- pointer <- create_ptr var [zero]
-    -- pointer_byte <- bitcast var (ptr i8)
-    -- pointer_int <-  bitcast var (ptr i32)
     case tp of
         TableIntType  -> do
             pointer_int <-  bitcast var (ptr i32)
@@ -175,9 +172,13 @@ addArgOpperand arg = do
         nm = var_name arg
     var <- alloca (type_to_ast tp)
     store var (local (AST.Name $ toShort nm))
-    return $ arg { var_operand = Just var }
+    case byreference arg of
+        True -> do
+            ref_op <- load var
+            return $ arg { var_operand = Just ref_op}
+        False -> return $ arg { var_operand = Just var}
 
---
+-- Creates the operand for a function
 addFunOperand :: FunInfo -> Codegen FunInfo
 addFunOperand foo_info = do
     return $ foo_info { fun_operand = Just fn_op } where

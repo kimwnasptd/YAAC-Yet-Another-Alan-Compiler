@@ -68,8 +68,8 @@ createArgType ( FPar_Def_Ref str (Table_Type (D_Type TInt)) )  = (str, TableIntT
 createArgType ( FPar_Def_Ref str (Table_Type (D_Type TByte)))  = (str, TableByteType, True, True)
 createArgType ( FPar_Def_NR  str (S_Type (D_Type TInt)) )      = (str, IntType , False, False)
 createArgType ( FPar_Def_NR  str (S_Type (D_Type TByte)) )     = (str, ByteType, False, False)
-createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = (str, TableIntType , True, True)
-createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = (str, TableByteType, True, True)
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TInt)) )  = error $ "tables should be passed by reference"
+createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = error $ "tables should be passed by reference"
 
 createVar_from_Def :: Var_Def -> Codegen VarInfo
 createVar_from_Def ( VDef str (D_Type TInt) )         = createVarInfo str IntType  0 Nothing False
