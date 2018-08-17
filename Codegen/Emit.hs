@@ -134,21 +134,12 @@ cgen_expr(S.Expr_Neg expr ) = do
 
 -- cgen_lval always returns an address operand
 cgen_lval :: S.L_Value -> Codegen AST.Operand
-cgen_lval (S.LV_Var var) = do
-    V info <- getSymbol var
-    operand <- getvar var
-    case dimension info of
-        Nothing -> return operand
-        Just  _ -> case byreference info of
-            True  -> create_ptr operand [toInt 0] >>= return
-            False -> create_ptr operand [zero, toInt 0] >>= return
+cgen_lval (S.LV_Var var) = getvar var
+-- cgen_lval (S.LV_Tbl tbl_var offset_expr) = getvar tbl_var
 cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
     offset <- cgen_expr offset_expr   --generate the expression for the offset
     tbl_operand <- getvar tbl_var     -- get the table operand
-    V tbl_info <- getSymbol tbl_var
-    case byreference tbl_info of
-        True  -> create_ptr tbl_operand [offset] >>= return
-        False -> create_ptr tbl_operand [zero, offset] >>= return
+    create_ptr tbl_operand [offset]
 
 -- If an array without brackets we need to pass the pointer to the func
 cgen_arg :: S.Expr -> Codegen Operand

@@ -157,7 +157,11 @@ addVarOpperand var_info = do
     init_val <- initOperand tp dim
     var <- alloca (symb_to_astp (V var_info))
     store var init_val
-    return $ var_info { var_operand = Just var }
+    pointer <- create_ptr var [zero]
+    case tp of
+        TableIntType  -> return $ var_info { var_operand = Just pointer }
+        TableByteType -> return $ var_info { var_operand = Just pointer }
+        _             -> return $ var_info { var_operand = Just var }
 
 addArgOpperand :: VarInfo -> Codegen VarInfo
 addArgOpperand arg = do
