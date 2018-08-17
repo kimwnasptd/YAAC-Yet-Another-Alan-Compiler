@@ -135,7 +135,6 @@ cgen_expr(S.Expr_Neg expr ) = do
 -- cgen_lval always returns an address operand
 cgen_lval :: S.L_Value -> Codegen AST.Operand
 cgen_lval (S.LV_Var var) = getvar var
--- cgen_lval (S.LV_Tbl tbl_var offset_expr) = getvar tbl_var
 cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
     offset <- cgen_expr offset_expr   --generate the expression for the offset
     tbl_operand <- getvar tbl_var     -- get the table operand

@@ -158,11 +158,15 @@ addVarOpperand var_info = do
     var <- alloca (symb_to_astp (V var_info))
     store var init_val
     -- pointer <- create_ptr var [zero]
-    pointer_byte <- bitcast var (ptr i8)
-    pointer_int <-  bitcast var (ptr i32)
+    -- pointer_byte <- bitcast var (ptr i8)
+    -- pointer_int <-  bitcast var (ptr i32)
     case tp of
-        TableIntType  -> return $ var_info { var_operand = Just pointer_int }
-        TableByteType -> return $ var_info { var_operand = Just pointer_byte }
+        TableIntType  -> do
+            pointer_int <-  bitcast var (ptr i32)
+            return $ var_info { var_operand = Just pointer_int }
+        TableByteType -> do
+            pointer_byte <- bitcast var (ptr i8)
+            return $ var_info { var_operand = Just pointer_byte }
         _             -> return $ var_info { var_operand = Just var }
 
 addArgOpperand :: VarInfo -> Codegen VarInfo
