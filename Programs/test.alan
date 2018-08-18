@@ -1,6 +1,7 @@
 main () : proc
     rings : int;
     ns : int[15];
+    str : byte[100];
     -- var : int;
     -- fingers : byte ;
     d : byte;
@@ -10,13 +11,16 @@ main () : proc
        {
            -- return x[0];
            -- x[7] = 3;
-           x = readInteger();
+           -- x = readInteger();
            return;
        }
 
 {
     -- Main
-    compute(rings);
-    writeInteger(rings);
+    -- compute(rings);
+    -- writeInteger(rings);
+    -- readString(5, str);
+    -- d = readChar();
+    writeString("Hello World!\n");
     return;
 }

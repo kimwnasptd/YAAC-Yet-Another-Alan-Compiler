@@ -350,8 +350,6 @@ semStmt (Stmt_Eq lval expr) = do
     case (lval_type, expr_type) of
         (IntType, IntType)    -> return ()
         (ByteType, ByteType)  -> return ()
-        (ByteType, IntType)   -> return ()
-        (IntType, ByteType)   -> return ()
         _                 -> error $ err
 
 semStmt (Stmt_Ret_Expr expr) = do
@@ -379,7 +377,7 @@ semStmt (Stmt_FCall (Func_Call fname fargs)) = do
     formal_types <- get_fnargs_types fname    -- [(SymbolType, Reference)]
     F foo_info <- getSymbol fname
     if ( agree actual_types formal_types ) then return $ ()
-    else  error $ "arg missmatch in function " ++ fname
+    else  error $ "arg missmatch in function " ++ fname ++ ": " ++ (show actual_types) ++ " " ++ (show formal_types)
 
 semStmtList :: Comp_Stmt -> Codegen ()
 semStmtList (C_Stmt stmts) = mapM semStmt stmts >> return ()

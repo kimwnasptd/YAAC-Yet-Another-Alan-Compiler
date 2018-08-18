@@ -28,7 +28,7 @@ import qualified ASTTypes as S
 import SymbolTableTypes
 import SemanticFunctions
 import CodegenUtilities
-import DefaultFunctions
+import LibraryFunctions
 
 -------------------------------------------------------------------------------
 -- Compilation
@@ -130,7 +130,7 @@ cgen_expr (S.Expr_Fcall (S.Func_Call fn args ) ) = do
     foo_operand <- getfun fn
     call foo_operand arg_operands
 cgen_expr (S.Expr_Char ch_str) = do
-    return $ cons $ C.Int 8 (toInteger $ ord $ head ch_str)
+    return $ toChar (head ch_str)
 cgen_expr (S.Expr_Pos expr ) = cgen_expr expr
 cgen_expr(S.Expr_Neg expr ) = do
     ce <- cgen_expr expr
@@ -143,6 +143,7 @@ cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
     offset <- cgen_expr offset_expr   --generate the expression for the offset
     tbl_operand <- getvar tbl_var     -- get the table operand
     create_ptr tbl_operand [offset]
+cgen_lval (S.LV_Lit str) = initString st
 
 -- If an array without brackets we need to pass the pointer to the func
 cgen_arg :: (S.Expr, Bool) -> Codegen Operand

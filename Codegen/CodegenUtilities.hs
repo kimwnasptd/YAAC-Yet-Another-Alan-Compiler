@@ -3,6 +3,7 @@
 
 module CodegenUtilities where
 
+import Data.Char
 import Data.Word
 import Data.String
 import Data.List
@@ -46,6 +47,12 @@ int = i32
 
 toInt :: Int -> Operand
 toInt int = cons $ C.Int 32 (toInteger int)
+
+toInt8 :: Int -> Operand
+toInt8 int = cons $ C.Int 8 (toInteger int)
+
+toChar :: Char -> Operand
+toChar c = cons $ C.Int 8 (toInteger $ ord $ c)
 
 one :: Operand
 one = cons $ C.Int 32 1
@@ -151,6 +158,19 @@ fresh = do
   modify $ \s -> s { currentScope = (currentScope s) { count = 1 + i } }
   return $ i + 1
 
+-- write a string to an array
+initString :: String -> Codegen Operand
+initString str = do
+    let val = cons $ C.Array i8 chars
+        n = fromIntegral $ length str
+    var <- alloca (ArrayType (n+1) i8)
+    store var val
+    bitcast var (ptr i8)
+    where chars = [consChar c | c <- str] ++ [consInt 0]
+          consChar c = C.Int 8 (toInteger $ ord $ c)
+          consInt  n = C.Int 8 (toInteger n)
+
+-- Default values for operands
 initOperand :: SymbolType -> Maybe Int -> Codegen Operand
 initOperand IntType _ = return zero
 initOperand ByteType _ = return $ cons $ C.Int 8 0
