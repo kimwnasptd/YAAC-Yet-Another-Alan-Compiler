@@ -39,16 +39,15 @@ import LibraryFunctions
 passes :: PassSetSpec   -- the optimizations we want to run
 passes = defaultCuratedPassSetSpec { optLevel = Just 0 }
 
-
 codegen :: AST.Module -> S.Program -> IO AST.Module
 codegen mod main = withContext $ \context ->
     withModuleFromAST context newast $ \m -> do
         withPassManager passes $ \pm -> do
-                runPassManager pm m
-                llstr <- moduleLLVMAssembly m
-                -- runExceptT $ verify m
-                putStrLn $ BS8.unpack llstr  -- Convert ByteString -> String
-                return newast
+            runPassManager pm m
+            llstr <- moduleLLVMAssembly m
+            verify m
+            putStrLn $ BS8.unpack llstr  -- Convert ByteString -> String
+            return newast
   where
     modn    = codegenTop main
     newast  = runLLVM mod modn
