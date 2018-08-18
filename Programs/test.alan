@@ -1,10 +1,8 @@
 main () : proc
-    rings : int;
+    x : int;
     ns : int[15];
     str : byte[100];
-    -- var : int;
-    -- fingers : byte ;
-    d : byte;
+    b : byte;
 
     compute (x : reference int) : proc
        var : int;
@@ -21,7 +19,11 @@ main () : proc
     -- writeInteger(rings);
     -- readString(5, str);
     -- d = readChar();
-    writeString("Hello World!\n");
-    writeInteger(5);
+    x = 257;
+    -- b = shrink(x);
+    b = readByte();
+    writeString("Byte is: ");
+    -- writeInteger(extend(b));
+    writeByte(b);
     return;
 }

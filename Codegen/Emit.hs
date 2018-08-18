@@ -40,16 +40,15 @@ import LibraryFunctions
 passes :: PassSetSpec   -- the optimizations we want to run
 passes = defaultCuratedPassSetSpec { optLevel = Just 0 }
 
-
 codegen :: AST.Module -> S.Program -> IO AST.Module
 codegen mod main = withContext $ \context ->
     withModuleFromAST context newast $ \m -> do
         withPassManager passes $ \pm -> do
-                runPassManager pm m
-                llstr <- moduleLLVMAssembly m
-                verify m
-                putStrLn $ BS8.unpack llstr  -- Convert ByteString -> String
-                return newast
+            runPassManager pm m
+            llstr <- moduleLLVMAssembly m
+            verify m
+            putStrLn $ BS8.unpack llstr  -- Convert ByteString -> String
+            return newast
   where
     modn    = codegenTop main
     newast  = runLLVM mod modn
@@ -107,6 +106,7 @@ cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
     foo_operand <- getfun fn
     call_unnamed foo_operand arg_operands
     return ()
+    
 cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
     ifthen <- addBlock "if.then"
     ifelse <- addBlock "if.else"
@@ -129,7 +129,7 @@ cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
         -- exit part
         ------------
     setBlock ifexit
-    
+
 
 cgen_stmt stmt = return ()      -- This must be removed in the end
 

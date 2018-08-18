@@ -10,6 +10,8 @@ Semantic/*.o
 Semantic/*.hi
 Semantic/*.info
 
+Run/*
+
 *.o
 *.hi
 *.info
