@@ -107,13 +107,29 @@ cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
     foo_operand <- getfun fn
     call_unnamed foo_operand arg_operands
     return ()
--- cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
---     ifthen <- addBlock "if.then"
---     ifelse <- addBlock "if.else"
---     ifexit <- addBlock "if.exit" -- create the 3 blocks.
---         -- ENTRY
---     cond_op <- cgen_cond
---     return ()
+cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
+    ifthen <- addBlock "if.then"
+    ifelse <- addBlock "if.else"
+    ifexit <- addBlock "if.exit" -- create the 3 blocks.
+        -- ENTRY
+    cond_op <- cgen_cond cond    -- generate a 1-bit condition
+    cbr cond_op ifthen ifelse    -- branch based on condition
+        -- ifthen part
+        --------------
+    setBlock ifthen             -- now instructions are added to the ifthen block
+    cgen_stmt if_stmt           -- fill the block with the proper instructions
+    br ifexit                   -- merge the block. NOTE: Fallthrough is not allowed!
+    ifthen <- getBlock          -- get back the block for the phi node
+        -- ifelse part
+        --------------
+    setBlock ifelse
+    cgen_stmt else_stmt
+    br ifexit
+    ifelse <- getBlock
+        -- exit part
+        ------------
+    setBlock ifexit
+    
 
 cgen_stmt stmt = return ()      -- This must be removed in the end
 
@@ -194,7 +210,7 @@ cgen_cond (S.Cond_Or first second ) = do
 cgen_cond (S.Cond_Bang arg ) = do
     op <- cgen_cond arg     -- generate the 1 bit boolean inside condition
     bang  op                -- reverse it
--- cgen_cond _ = return true   -- NOTE: For sanity checking, should return redundant 
+-- cgen_cond _ = return true   -- NOTE: For sanity checking, should return redundant
 
 
 
