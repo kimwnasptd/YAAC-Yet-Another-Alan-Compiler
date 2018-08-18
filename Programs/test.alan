@@ -22,5 +22,6 @@ main () : proc
     -- readString(5, str);
     -- d = readChar();
     writeString("Hello World!\n");
+    writeInteger(5);
     return;
 }

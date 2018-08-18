@@ -10,6 +10,7 @@ import LLVM.AST.Type
 import LLVM.PassManager
 import LLVM.Analysis
 
+import qualified LLVM.AST.IntegerPredicate as IPRD
 import qualified LLVM.AST as AST
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Float as F
@@ -46,7 +47,7 @@ codegen mod main = withContext $ \context ->
         withPassManager passes $ \pm -> do
                 runPassManager pm m
                 llstr <- moduleLLVMAssembly m
-                -- runExceptT $ verify m
+                verify m
                 putStrLn $ BS8.unpack llstr  -- Convert ByteString -> String
                 return newast
   where
@@ -106,6 +107,14 @@ cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
     foo_operand <- getfun fn
     call_unnamed foo_operand arg_operands
     return ()
+-- cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
+--     ifthen <- addBlock "if.then"
+--     ifelse <- addBlock "if.else"
+--     ifexit <- addBlock "if.exit" -- create the 3 blocks.
+--         -- ENTRY
+--     cond_op <- cgen_cond
+--     return ()
+
 cgen_stmt stmt = return ()      -- This must be removed in the end
 
 cgen_expr :: S.Expr -> Codegen AST.Operand
@@ -144,6 +153,50 @@ cgen_expr (S.Expr_Pos expr ) = cgen_expr expr
 cgen_expr(S.Expr_Neg expr ) = do
     ce <- cgen_expr expr
     sub zero ce
+
+
+cgen_cond :: S.Cond -> Codegen AST.Operand
+cgen_cond (S.Cond_Eq left right ) = do
+    left_op  <- cgen_expr left    -- generate the left operand
+    right_op <- cgen_expr right   -- generate the right operand
+    cmp IPRD.EQ left_op right_op  -- compare them accordingly
+cgen_cond (S.Cond_Neq left right ) = do
+    left_op  <- cgen_expr left
+    right_op <- cgen_expr right
+    cmp IPRD.NE left_op right_op
+cgen_cond (S.Cond_G left right ) = do
+    left_op  <- cgen_expr left
+    right_op <- cgen_expr right
+    cmp IPRD.SGT left_op right_op
+cgen_cond (S.Cond_L left right ) = do
+    left_op  <- cgen_expr left
+    right_op <- cgen_expr right
+    cmp IPRD.SLT left_op right_op
+cgen_cond (S.Cond_GE left right ) = do
+    left_op  <- cgen_expr left
+    right_op <- cgen_expr right
+    cmp IPRD.SGE left_op right_op
+cgen_cond (S.Cond_LE left right ) = do
+    left_op  <- cgen_expr left
+    right_op <- cgen_expr right
+    cmp IPRD.SLE left_op right_op
+cgen_cond (S.Cond_True) = return true
+cgen_cond (S.Cond_False) = return false
+cgen_cond (S.Cond_Br br) = cgen_cond br -- just generate the inner condition
+cgen_cond (S.Cond_And first second ) = do
+    fst_op <- cgen_cond first       -- generate the left condition
+    snd_op <- cgen_cond second      -- generate the right condition
+    and_instr fst_op snd_op       -- logical AND them
+cgen_cond (S.Cond_Or first second ) = do
+    fst_op <- cgen_cond first
+    snd_op <- cgen_cond second
+    or_instr fst_op snd_op
+cgen_cond (S.Cond_Bang arg ) = do
+    op <- cgen_cond arg     -- generate the 1 bit boolean inside condition
+    bang  op                -- reverse it
+-- cgen_cond _ = return true   -- NOTE: For sanity checking, should return redundant 
+
+
 
 -- cgen_lval always returns an address operand
 cgen_lval :: S.L_Value -> Codegen AST.Operand

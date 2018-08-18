@@ -89,16 +89,16 @@ data Stmt = Stmt_Semi  --
 
 
 
-data Cond = Cond_True  --
-          | Cond_False --
-          | Cond_Br Cond --
-          | Cond_Bang Cond --
-          | Cond_Eq Expr Expr
-          | Cond_Neq Expr Expr
-          | Cond_L Expr Expr
-          | Cond_G Expr Expr
-          | Cond_LE Expr Expr
-          | Cond_GE Expr Expr
-          | Cond_And Cond Cond --
-          | Cond_Or Cond Cond --
+data Cond = Cond_True           -- done
+          | Cond_False          -- done
+          | Cond_Br Cond        -- done
+          | Cond_Bang Cond
+          | Cond_Eq Expr Expr   -- done
+          | Cond_Neq Expr Expr  -- done
+          | Cond_L Expr Expr    -- done
+          | Cond_G Expr Expr    -- done
+          | Cond_LE Expr Expr   -- done
+          | Cond_GE Expr Expr   -- done
+          | Cond_And Cond Cond  -- done
+          | Cond_Or Cond Cond   -- done 
           deriving (Eq, Show)
