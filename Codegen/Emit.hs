@@ -7,6 +7,8 @@ import LLVM.Module
 import LLVM.Context
 import LLVM.Prelude
 import LLVM.AST.Type
+import LLVM.PassManager
+import LLVM.Analysis
 
 import qualified LLVM.AST as AST
 import qualified LLVM.AST.Constant as C
@@ -34,12 +36,19 @@ import LibraryFunctions
 -- Compilation
 -------------------------------------------------------------------------------
 
+passes :: PassSetSpec   -- the optimizations we want to run
+passes = defaultCuratedPassSetSpec { optLevel = Just 0 }
+
+
 codegen :: AST.Module -> S.Program -> IO AST.Module
 codegen mod main = withContext $ \context ->
-  withModuleFromAST context newast $ \m -> do
-    llstr <- moduleLLVMAssembly m
-    putStrLn $ BS8.unpack llstr  -- Convert ByteString -> String
-    return newast
+    withModuleFromAST context newast $ \m -> do
+        withPassManager passes $ \pm -> do
+                runPassManager pm m
+                llstr <- moduleLLVMAssembly m
+                -- runExceptT $ verify m
+                putStrLn $ BS8.unpack llstr  -- Convert ByteString -> String
+                return newast
   where
     modn    = codegenTop main
     newast  = runLLVM mod modn
@@ -143,7 +152,7 @@ cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
     offset <- cgen_expr offset_expr   --generate the expression for the offset
     tbl_operand <- getvar tbl_var     -- get the table operand
     create_ptr tbl_operand [offset]
-cgen_lval (S.LV_Lit str) = initString st
+cgen_lval (S.LV_Lit str) = initString str
 
 -- If an array without brackets we need to pass the pointer to the func
 cgen_arg :: (S.Expr, Bool) -> Codegen Operand
