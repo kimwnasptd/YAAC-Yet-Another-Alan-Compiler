@@ -21,6 +21,7 @@ import LLVM.AST
 import LLVM.AST.Global
 import LLVM.Prelude
 import LLVM.AST.Type
+import LLVM.AST.IntegerPredicate as IPRD
 import qualified LLVM.AST.Type as TP
 import qualified LLVM.AST as AST
 
@@ -61,10 +62,10 @@ zero :: Operand
 zero = cons $ C.Int 32 0
 
 false :: Operand
-false = zero
+false = cons $ C.Int 1 0
 
 true :: Operand
-true = one
+true = cons $ C.Int 1 1
 
 -- This is used mainly in args, since arrays must be of type Pointer
 -- since we don't know it's dimension.
@@ -229,6 +230,17 @@ instr ins = do
     modifyBlock (blk { stack = (ref := ins) : i } )
     return $ local ref
 
+cond_instr :: Instruction -> Codegen (Operand)
+cond_instr ins = do
+    n <- fresh
+    let ref = (UnName n)
+    blk <- current
+    let i = stack blk
+    modifyBlock (blk { stack = (ref := ins) : i } )
+    return $ local_extended i1 ref
+
+
+
 instr_unnamed :: Instruction -> Codegen (Operand)
 instr_unnamed ins = do
   n <- fresh
@@ -298,6 +310,9 @@ local = LocalReference i32
 global ::  Name -> C.Constant
 global = C.GlobalReference i32
 
+local_extended ::  Type -> Name ->  Operand
+local_extended = LocalReference
+
 externf :: Name -> Type -> [Type] -> Operand
 externf name tp op_list = ConstantOperand $ C.GlobalReference (ptr fn_type ) name where
     fn_type = FunctionType tp op_list False
@@ -319,8 +334,8 @@ sdiv a b = instr $ SDiv True a b []
 srem :: Operand -> Operand -> Codegen Operand
 srem a b = instr $ SRem  a b []
 
-cmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Codegen Operand
-cmp cond a b = instr $ FCmp cond a b []
+-- cmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Codegen Operand
+-- cmp cond a b = instr $ FCmp cond a b []
 
 cons :: C.Constant -> Operand
 cons = ConstantOperand
@@ -368,3 +383,17 @@ ret_val val = terminator $ Do $ Ret (Just val) []
 
 ret :: Codegen (Named Terminator)
 ret = terminator $ Do $ Ret Nothing []
+
+-- Comparison
+cmp :: IPRD.IntegerPredicate -> Operand -> Operand -> Codegen Operand
+cmp predicate op1 op2 = cond_instr  $ ICmp predicate op1 op2 []
+--NOTE: just like Kimonas would have liked, one function for all comparisons
+
+and_instr :: Operand -> Operand -> Codegen Operand
+and_instr op1 op2 = cond_instr $ And op1 op2 []
+
+or_instr :: Operand -> Operand -> Codegen Operand
+or_instr op1 op2 = cond_instr $ Or op1 op2 []
+
+bang :: Operand -> Codegen Operand
+bang op1 = cond_instr $ Xor (op1) true [] 
