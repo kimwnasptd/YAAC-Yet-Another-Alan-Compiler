@@ -106,7 +106,7 @@ cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
     foo_operand <- getfun fn
     call_unnamed foo_operand arg_operands
     return ()
-    
+--
 cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
     ifthen <- addBlock "if.then"
     ifelse <- addBlock "if.else"
@@ -129,6 +129,7 @@ cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
         -- exit part
         ------------
     setBlock ifexit
+    return () 
 
 
 cgen_stmt stmt = return ()      -- This must be removed in the end

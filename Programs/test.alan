@@ -1,29 +1,51 @@
 main () : proc
     x : int;
-    ns : int[15];
-    str : byte[100];
-    b : byte;
+    z : int ;
+    -- ns : int[15];
+    -- str : byte[100];
+    -- b : byte;
 
-    compute (x : reference int) : proc
-       var : int;
+    compute (y : int) : proc
+       -- default val for y is 0
        {
            -- return x[0];
            -- x[7] = 3;
            -- x = readInteger();
+           -- writeInteger(x);
+           y = 3;
+           x = 8;
+           writeString("\nX inside compute is: ");
+           writeInteger(x);
+           writeString("\nY inside compute is: ");
+           writeInteger(y);
            return;
        }
 
+
 {
     -- Main
-    -- compute(rings);
-    -- writeInteger(rings);
-    -- readString(5, str);
-    -- d = readChar();
-    x = 257;
-    -- b = shrink(x);
-    b = readByte();
-    writeString("Byte is: ");
-    -- writeInteger(extend(b));
-    writeByte(b);
+    x = 5;
+    -- compute(2)
+    writeString("\n Give x value : ");
+    x = readInteger();
+    writeString("\n Give z value : ");
+    z = readInteger();
+    if ( x < z ){
+        writeString("entered the first case x < z");
+        if ( (x + 1) == z ){
+            writeString("x + 1 == z , so we'll do x = 2 * z");
+            x = 2 * z ;
+        }
+        else x = z ;
+        }
+    else {
+        z = x ;
+        writeString("entered the else case x >= z ");
+        }
+    writeString("\n x after the if is: ");
+    writeInteger(x);
+    writeString("\n z after the if is: ");
+    writeInteger(z);
     return;
+
 }
