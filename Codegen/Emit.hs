@@ -180,7 +180,7 @@ cgen_stmt (S.Stmt_Wh cond loop_stmt) = do
     return()
 
 
-cgen_stmt stmt = return ()      -- This must be removed in the end
+-- cgen_stmt stmt = return ()      -- This must be removed in the end
 
 cgen_expr :: S.Expr -> Codegen AST.Operand
 cgen_expr (S.Expr_Brack exp) = cgen_expr exp

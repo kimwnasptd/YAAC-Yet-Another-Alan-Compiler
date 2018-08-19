@@ -13,7 +13,8 @@ main () : proc
        writeString("\n y from inside compute is: ");
        writeInteger(y);
        y = y + 1;
-       x = x + 1;
+       -- x = x + 1;    -- NTOE: THIS DOESN'T WORK PROPERLY 
+       return ;
 
        }
 
@@ -24,7 +25,11 @@ main () : proc
 
     while ( x < 10 ){
     compute(x);
+    x = x + 1 ;
     }
+    -- compute(x);
+    -- compute(x);
+    -- compute(x);
     writeString("\n X after the loop is: ");
     writeInteger(x);
     return;
