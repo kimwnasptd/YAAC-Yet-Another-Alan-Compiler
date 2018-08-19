@@ -92,7 +92,7 @@ data Stmt = Stmt_Semi  --
 data Cond = Cond_True           -- done
           | Cond_False          -- done
           | Cond_Br Cond        -- done
-          | Cond_Bang Cond
+          | Cond_Bang Cond      -- done in a cute way!
           | Cond_Eq Expr Expr   -- done
           | Cond_Neq Expr Expr  -- done
           | Cond_L Expr Expr    -- done
@@ -100,5 +100,5 @@ data Cond = Cond_True           -- done
           | Cond_LE Expr Expr   -- done
           | Cond_GE Expr Expr   -- done
           | Cond_And Cond Cond  -- done
-          | Cond_Or Cond Cond   -- done 
+          | Cond_Or Cond Cond   -- done
           deriving (Eq, Show)

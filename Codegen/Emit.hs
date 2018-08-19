@@ -122,14 +122,62 @@ cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
     ifthen <- getBlock          -- get back the block for the phi node
         -- ifelse part
         --------------
-    setBlock ifelse
+    setBlock ifelse             -- same as ifthen block
     cgen_stmt else_stmt
     br ifexit
     ifelse <- getBlock
         -- exit part
         ------------
+    setBlock ifexit             -- merge the 2 blocks
+    return ()
+cgen_stmt (S.Stmt_If cond if_stmt ) = do
+    ifthen <- addBlock "if.then"
+    ifexit <- addBlock "if.exit"
+        -- ENTRY
+    cond_op <- cgen_cond cond    -- generate a 1-bit condition
+    cbr cond_op ifthen ifexit    -- branch based on condition
+        -- ifthen part
+        --------------
+    setBlock ifthen
+    cgen_stmt if_stmt
+    br ifexit
+    ifthen <- getBlock
+        -- exit part
+        ------------
     setBlock ifexit
-    return () 
+    return ()
+cgen_stmt (S.Stmt_Wh cond loop_stmt) = do
+    while_entry <- addBlock "while.entry" -- add a block to prep the loop body
+    while_loop  <- addBlock "while.loop"  -- add block for the loop body
+    while_exit  <- addBlock "while.exit"  -- add fall through loop
+    exit        <- addBlock "while.exit"  -- add fall through loop
+
+    br while_entry
+
+    -- while entry
+    --------------
+    setBlock while_entry
+    entry_cond <- cgen_cond cond          -- generate the condition for the FIRST time
+    cbr entry_cond while_loop while_exit        -- if the condition is true, execute the body
+    while_entry <- getBlock
+
+    -- while body
+    -------------
+    setBlock while_loop                 -- change block
+    cgen_stmt loop_stmt                 -- generate the loop's code
+    loop_cond <- cgen_cond cond         -- re-evaluate the condition
+    br while_exit                       -- go to the loop exit
+    while_loop <- getBlock
+
+    -- while exit
+    setBlock while_exit
+    exit_cond <- phi i1 [(entry_cond, while_entry), (loop_cond, while_loop)]
+    cbr exit_cond while_loop exit
+
+
+    -- exit
+    setBlock exit
+    return()
 
 
 cgen_stmt stmt = return ()      -- This must be removed in the end
