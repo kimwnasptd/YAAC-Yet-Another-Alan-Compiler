@@ -1,0 +1,21 @@
+main () : proc
+    x : int;
+    s : byte[80];
+
+    comp(a:int) : int
+    {
+        writeString("\na: ");
+        writeInteger(a);
+        if (a < 0){
+            writeString("\na: Time to exit\n");
+            return 0;
+        }
+        return a + comp(a-1);
+    }
+{
+
+    x = comp(1000000);
+    writeString("Computed x: ");
+    writeInteger(x);
+    return;
+}

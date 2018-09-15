@@ -28,6 +28,7 @@ import qualified LLVM.AST as AST
 import qualified LLVM.AST.Linkage as L
 import qualified LLVM.AST.Constant as C
 import qualified LLVM.AST.Attribute as A
+import qualified LLVM.AST.Global as G
 import qualified LLVM.AST.CallingConvention as CC
 import qualified LLVM.AST.FloatingPointPredicate as FP
 import qualified LLVM.AST.AddrSpace as AP
@@ -102,29 +103,45 @@ toSig args = map convert args
 -- Module Level
 -------------------------------------------------------------------------------
 
+define ::  Global -> Codegen ()
+define glob = addDefn $ GlobalDefinition glob
+
 addDefn :: Definition -> Codegen ()
 addDefn d = do
   defs <- gets definitions
   modify $ \s -> s { definitions = defs ++ [d] }
 
-define ::  Type -> String -> [(Type, Name)] -> [BasicBlock] -> Codegen ()
-define retty label argtys body = addDefn $
-  GlobalDefinition $ functionDefaults {
+globalFun :: Type -> String -> [(Type, Name)] -> [BasicBlock] -> Global
+globalFun retty label argtys body = functionDefaults {
     name        = Name $ toShort label
   , parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False)
   , returnType  = retty
   , basicBlocks = body
   }
 
-external ::  Type -> String -> [(Type, Name)] -> Codegen ()
-external retty label argtys = addDefn $
-  GlobalDefinition $ functionDefaults {
+externalFun ::  Type -> String -> [(Type, Name)] -> Global
+externalFun retty label argtys = functionDefaults {
     name        = Name $ toShort label
   , linkage     = L.External
   , parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False)
   , returnType  = retty
   , basicBlocks = []
   }
+
+-- Only global vars are Strings
+globalStr :: String -> String -> Global
+globalStr label str = globalVariableDefaults {
+    name        = Name $ toShort label
+  , G.type'       = ArrayType (n+1) i8
+  , linkage     = L.Private
+  , unnamedAddr = Just GlobalAddr
+  , isConstant  = True
+  , initializer = Just $ C.Array i8 chars
+  }
+  where n = fromIntegral $ length str
+        chars = [consChar c | c <- str] ++ [consInt 0]
+        consChar c = C.Int 8 (toInteger $ ord c)
+        consInt  n = C.Int 8 (toInteger n)
 
 -------------------------------------------------------------------------------
 -- Names
@@ -158,6 +175,12 @@ fresh = do
   i <- gets $ count . currentScope
   modify $ \s -> s { currentScope = (currentScope s) { count = 1 + i } }
   return $ i + 1
+
+freshStr :: Codegen String
+freshStr = do
+    n <- fresh
+    (Name bname) <- getBlock
+    return $ "str." ++ (toString bname) ++ "." ++ (show n)
 
 -- write a string to an array
 initString :: String -> Codegen Operand
@@ -239,8 +262,6 @@ cond_instr ins = do
     modifyBlock (blk { stack = (ref := ins) : i } )
     return $ local_extended i1 ref
 
-
-
 instr_unnamed :: Instruction -> Codegen (Operand)
 instr_unnamed ins = do
   n <- fresh
@@ -300,6 +321,13 @@ current = do
   case c `Map.lookup` blks of
     Just x -> return x
     Nothing -> error $ "No such block: " ++ show c
+
+fndblock :: Name -> Codegen BlockState
+fndblock blk = do
+    blks <- gets $ blocks . currentScope
+    case blk `Map.lookup` blks of
+      Just x -> return x
+      Nothing -> error $ "No such block: " ++ show blk
 
 -------------------------------------------------------------------------------
 
@@ -369,8 +397,13 @@ bitcast :: Operand -> Type -> Codegen Operand
 bitcast op tp = instr $ BitCast op tp []
 
 -- Control Flow
+-- watch out for return before the branch
 br :: Name -> Codegen (Named Terminator)
-br val = terminator $ Do $ Br val []
+br val = do
+    curblk <- current
+    case (term curblk) of
+        Just trm -> return trm
+        Nothing  -> terminator $ Do $ Br val []
 
 cbr :: Operand -> Name -> Name -> Codegen (Named Terminator)
 cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
@@ -378,8 +411,8 @@ cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
 phi :: Type -> [(Operand, Name)] -> Codegen Operand
 phi ty incoming = instr $ Phi ty incoming []
 
-ret_val :: Operand -> Codegen (Named Terminator)
-ret_val val = terminator $ Do $ Ret (Just val) []
+retval :: Operand -> Codegen (Named Terminator)
+retval val = terminator $ Do $ Ret (Just val) []
 
 ret :: Codegen (Named Terminator)
 ret = terminator $ Do $ Ret Nothing []
@@ -396,4 +429,4 @@ or_instr :: Operand -> Operand -> Codegen Operand
 or_instr op1 op2 = cond_instr $ Or op1 op2 []
 
 bang :: Operand -> Codegen Operand
-bang op1 = cond_instr $ Xor (op1) true [] 
+bang op1 = cond_instr $ Xor (op1) true []

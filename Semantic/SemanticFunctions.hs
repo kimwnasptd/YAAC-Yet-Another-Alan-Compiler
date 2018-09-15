@@ -307,7 +307,7 @@ closeScope = do
         nm = scpnm
         args = toSig $ fn_args fn
         bls = createBlocks $ currentScope s
-    define tp nm args bls
+    define $ globalFun tp nm args bls
     let symbol_names = Map.keys $ symbols (currentScope s)
     removeScopeSymbols symbol_names scpnm
     s <- get

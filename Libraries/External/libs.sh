@@ -1,3 +1,4 @@
+rm libs.a
 make lib -C auxil
 make lib -C math
 make lib -C stdio

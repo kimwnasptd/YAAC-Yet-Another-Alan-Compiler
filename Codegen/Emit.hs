@@ -31,7 +31,7 @@ import qualified ASTTypes as S
 import SymbolTableTypes
 import SemanticFunctions
 import CodegenUtilities
-import LibraryFunctions
+import qualified LibraryFunctions as LIB
 
 -------------------------------------------------------------------------------
 -- Compilation
@@ -67,7 +67,7 @@ codegenTop main = do
 cgen_ast :: S.Program -> Codegen String
 cgen_ast (S.Prog main) = do
     initMain main    -- > set the name of the main function in our codegenstate
-    addLibraryFns lib_fns
+    addLibraryFns LIB.lib_fns
     cgenFuncDef main -- > codegen the function
     gets logger >>= return  -- > return the logger of our codegeneration
 
@@ -92,7 +92,7 @@ cgen_stmts (S.C_Stmt stmts) = mapM cgen_stmt stmts
 cgen_stmt :: S.Stmt -> Codegen ()
 cgen_stmt S.Stmt_Ret = ret >> return ()
 cgen_stmt S.Stmt_Semi = return ()
-cgen_stmt (S.Stmt_Ret_Expr e1) = cgen_expr e1 >>= ret_val >> return ()
+cgen_stmt (S.Stmt_Ret_Expr e1) = cgen_expr e1 >>= retval >> return ()
 cgen_stmt (S.Stmt_Cmp cmp_stmt) = cgen_stmts cmp_stmt >> return ()
 cgen_stmt (S.Stmt_Eq lval expr) = do
     var <- cgen_lval lval
@@ -106,7 +106,6 @@ cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
     foo_operand <- getfun fn
     call_unnamed foo_operand arg_operands
     return ()
---
 cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
     ifthen <- addBlock "if.then"
     ifelse <- addBlock "if.else"
@@ -133,17 +132,17 @@ cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
 cgen_stmt (S.Stmt_If cond if_stmt ) = do
     ifthen <- addBlock "if.then"
     ifexit <- addBlock "if.exit"
-        -- ENTRY
+    -- ENTRY
     cond_op <- cgen_cond cond    -- generate a 1-bit condition
     cbr cond_op ifthen ifexit    -- branch based on condition
-        -- ifthen part
-        --------------
+    -- ifthen part
+    --------------
     setBlock ifthen
     cgen_stmt if_stmt
-    br ifexit
+    -- br ifexit
     ifthen <- getBlock
-        -- exit part
-        ------------
+    -- exit part
+    ------------
     setBlock ifexit
     return ()
 cgen_stmt (S.Stmt_Wh cond loop_stmt) = do
@@ -259,9 +258,6 @@ cgen_cond (S.Cond_Or first second ) = do
 cgen_cond (S.Cond_Bang arg ) = do
     op <- cgen_cond arg     -- generate the 1 bit boolean inside condition
     bang  op                -- reverse it
--- cgen_cond _ = return true   -- NOTE: For sanity checking, should return redundant
-
-
 
 -- cgen_lval always returns an address operand
 cgen_lval :: S.L_Value -> Codegen AST.Operand
@@ -270,13 +266,17 @@ cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
     offset <- cgen_expr offset_expr   --generate the expression for the offset
     tbl_operand <- getvar tbl_var     -- get the table operand
     create_ptr tbl_operand [offset]
-cgen_lval (S.LV_Lit str) = initString str
+cgen_lval (S.LV_Lit str) = do
+    -- globStrName <- freshStr
+    -- define $ globalStr globStrName str
+    initString str
 
 -- If an array without brackets we need to pass the pointer to the func
 cgen_arg :: (S.Expr, Bool) -> Codegen Operand
 cgen_arg ((S.Expr_Lval lval), False) = cgen_lval lval >>= load
 cgen_arg ((S.Expr_Lval lval), True ) = cgen_lval lval
 cgen_arg (expr, _) = cgen_expr expr
+
 -------------------------------------------------------------------------------
 -- Driver Functions for navigating the Tree
 -------------------------------------------------------------------------------
@@ -297,7 +297,6 @@ addVar vdef = do
     var_info <- createVar_from_Def vdef    -- create the new VarInfo filed to be inserted in the scope
     var <- addVarOpperand var_info         -- NOTE: add the operand to the varinfo field
     addSymbol (var_name var_info) (V var)
-    writeLog $ "Adding variable " ++ (var_name var_info) ++ " to the scope " ++ scpnm
 
 -- Put the Function args to the function's scope, as variables variables
 addFArgs :: S.FPar_List -> Codegen ()
@@ -317,7 +316,7 @@ addLDefLst defs = mapM addLDef defs >> return ()
 
 addLibraryFns :: [FunInfo] -> Codegen ()
 addLibraryFns (fn:fns) = do
-    external retty label argtys
+    define $ externalFun retty label argtys
     addSymbol (fn_name fn) (F fn)
     addLibraryFns fns
     where
@@ -325,12 +324,3 @@ addLibraryFns (fn:fns) = do
         label = fn_name fn
         argtys = [(type_to_ast tp, Name $ toShort nm) | (nm, tp, _, _) <- (fn_args fn)]
 addLibraryFns [] = return ()
-
--------------------------------------------------------------------------------
--- Operations
--------------------------------------------------------------------------------
-
--- lt :: AST.Operand -> AST.Operand -> Codegen AST.Operand
--- lt a b = do
---   test <- fcmp FP.ULT a b
---   uitofp double test
