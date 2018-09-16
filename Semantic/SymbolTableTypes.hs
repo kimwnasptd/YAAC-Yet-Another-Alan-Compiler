@@ -73,7 +73,6 @@ data CodegenState = CodegenState {
     , currentScope  :: Scope   -- > We always keep the current scope close to our chest.
     , names         :: Names   -- > A fresh name supply
     , definitions   :: [Definition]   -- > The meat and bones of the compiler
-    , mainfn        :: String  -- > we need the name of the main function
     , logger        :: String  -- > Contains debug messages we may want to print
   }
   deriving Show
@@ -104,12 +103,11 @@ emptyBlock i = BlockState i [] Nothing
 
 emptyCodegen :: CodegenState
 emptyCodegen = CodegenState {
-      symbolTable = Map.empty
-    , currentScope = emptyScope
-    , names = Map.empty
-    , definitions = []
-    , mainfn = ""
-    , logger = ""
+      symbolTable   = Map.empty
+    , currentScope  = emptyScope
+    , names         = Map.empty
+    , definitions   = []
+    , logger        = ""
 }
 
 newtype Codegen a = Codegen { runCodegen :: State CodegenState a }

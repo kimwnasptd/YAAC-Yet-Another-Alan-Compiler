@@ -15,6 +15,7 @@ import Control.Monad
 import Control.Monad.State
 import AlexInterface
 import Tokens
+import Data.Char
 }
 
 $digit = 0-9            -- digits
@@ -25,7 +26,7 @@ $esc_seq = [\n \t \r]
 
 @string_sp  = \\\" | \\\' | \\$quotable | \\x $hexdig $hexdig                              --"
 @string     = \" ( $quotable | @string_sp )* \"               -- Printable contains $white  " just fixed all the coments for you <3
-@chars      = \' ($alpha | $digit  | @string_sp) \'     -- Missing some characters
+@chars      = \' ($alpha | $digit | \\x $hexdig $hexdig | @string_sp ) \'     -- Missing some characters
 @name       = $alpha[$alpha $digit \_]*
 
 tokens :-
@@ -114,7 +115,7 @@ convEsc ( '\\' : 't' : s )       = '\t' : convEsc s
 convEsc ( '\\' : 'r' : s )       = '\r' : convEsc s
 convEsc ( '\\' : '\"' : s )      = '\"' : convEsc s
 convEsc ( '\\' : '\'' : s )      = '\'' : convEsc s
-convEsc ( '\\' : 'x' : s )       = '\\' : 'x' : convEsc s   -- Here we have to decide what to do with these
+convEsc ( '\\' : 'x' : b1:b2:s)  = chr ( read("0x"++[b1,b2]) ) : convEsc s  
 convEsc ( a : s )                = a : convEsc s
 convEsc []                       = []
 

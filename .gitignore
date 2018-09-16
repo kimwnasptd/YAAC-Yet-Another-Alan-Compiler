@@ -11,7 +11,11 @@ Semantic/*.hi
 Semantic/*.info
 
 Run/*
+!Run
+Libraries/Source/lib.so
 
 *.o
 *.hi
 *.info
+*.out
+*.ll

@@ -281,9 +281,6 @@ getScopeName = gets currentScope >>= return . scp_name
 openScope :: String -> Codegen ()
 openScope name = do
     s <- get
-    writeLog $ "The keys of the scope we were in are: " ++ (show $ Map.keys $ symbols $ currentScope s)
-    writeLog $ "Opening a new Scope for " ++ name
-    s <- get
     let curr_scope = currentScope s
         curr_name = scp_name curr_scope
     case curr_name of
@@ -381,9 +378,3 @@ semStmt (Stmt_FCall (Func_Call fname fargs)) = do
 
 semStmtList :: Comp_Stmt -> Codegen ()
 semStmtList (C_Stmt stmts) = mapM semStmt stmts >> return ()
-
---------------------------------------------------------------------------------
--- Top level Semantic Analysis
---------------------------------------------------------------------------------
-initMain :: Func_Def -> Codegen ()
-initMain (F_Def name _ _ _ _) = modify $ \s -> s { mainfn = name }

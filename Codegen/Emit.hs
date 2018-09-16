@@ -66,10 +66,20 @@ codegenTop main = do
 
 cgen_ast :: S.Program -> Codegen String
 cgen_ast (S.Prog main) = do
-    initMain main    -- > set the name of the main function in our codegenstate
     addLibraryFns LIB.lib_fns
-    cgenFuncDef main -- > codegen the function
+    cgen_main main
     gets logger >>= return  -- > return the logger of our codegeneration
+
+cgen_main :: S.Func_Def -> Codegen ()
+cgen_main (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
+    openScope "main"
+    addFunc "main" [] S.R_Type_Proc
+    entry <- addBlock entryBlockName
+    setBlock entry
+    addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
+    semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
+    cgen_stmts cmp_stmt
+    closeScope                        -- > close the function' s scope
 
 cgenFuncDef :: S.Func_Def -> Codegen ()
 cgenFuncDef (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
@@ -178,9 +188,6 @@ cgen_stmt (S.Stmt_Wh cond loop_stmt) = do
     setBlock exit
     return()
 
-
--- cgen_stmt stmt = return ()      -- This must be removed in the end
-
 cgen_expr :: S.Expr -> Codegen AST.Operand
 cgen_expr (S.Expr_Brack exp) = cgen_expr exp
 cgen_expr (S.Expr_Lval lval) = cgen_lval lval >>= load
@@ -217,7 +224,6 @@ cgen_expr (S.Expr_Pos expr ) = cgen_expr expr
 cgen_expr(S.Expr_Neg expr ) = do
     ce <- cgen_expr expr
     sub zero ce
-
 
 cgen_cond :: S.Cond -> Codegen AST.Operand
 cgen_cond (S.Cond_Eq left right ) = do
@@ -267,9 +273,10 @@ cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
     tbl_operand <- getvar tbl_var     -- get the table operand
     create_ptr tbl_operand [offset]
 cgen_lval (S.LV_Lit str) = do
-    -- globStrName <- freshStr
-    -- define $ globalStr globStrName str
-    initString str
+    globStrName <- freshStr
+    define $ globalStr globStrName str
+    let op = externstr (Name $ toShort globStrName) (str_type str)
+    bitcast op (ptr i8)
 
 -- If an array without brackets we need to pass the pointer to the func
 cgen_arg :: (S.Expr, Bool) -> Codegen Operand
@@ -284,7 +291,6 @@ cgen_arg (expr, _) = cgen_expr expr
 addFunc :: SymbolName -> S.FPar_List -> S.R_Type -> Codegen ()
 addFunc name args_lst f_type = do
     scpnm <- getScopeName
-    writeLog $ "add function was called from scope " ++ scpnm ++ " for function " ++ name
     let our_ret = getFunType f_type   -- we format all of the function stuff properly
         fun_args = map createArgType args_lst
         fn_info = createFunInfo name fun_args our_ret

@@ -167,13 +167,9 @@ Cond: true                               { Cond_True      }
 
 {
 
--- Basic Error Messages
--- parseError:: [Token]  -> a
--- parseError _ = error "oopsie daisy "
-
 parseError _ = do
   lno <- getLineNo
-  error $ "Parse error on line "++ show lno
+  error $ "PARSER: error on line "++ show lno
 
 -- parse::String->Program (AST)
 parse s = evalP basicParser s

@@ -10,7 +10,7 @@ import qualified Data.Bits as Bits
 import Control.Applicative(Applicative(..))
 import Control.Monad (ap)
 
--- parser produced by Happy Version 1.19.8
+-- parser produced by Happy Version 1.19.9
 
 data HappyAbsSyn t4 t5 t6 t7 t8 t9 t10 t11 t12 t13 t14 t15 t16 t17 t18 t19 t20 t21
 	= HappyTerminal (Token)
@@ -1358,13 +1358,9 @@ basicParser = happySomeParser where
 happySeq = happyDontSeq
 
 
--- Basic Error Messages
--- parseError:: [Token]  -> a
--- parseError _ = error "oopsie daisy "
-
 parseError _ = do
   lno <- getLineNo
-  error $ "Parse error on line "++ show lno
+  error $ "PARSER: error on line "++ show lno
 
 -- parse::String->Program (AST)
 parse s = evalP basicParser s
@@ -1372,7 +1368,13 @@ parse s = evalP basicParser s
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}
 {-# LINE 1 "<command-line>" #-}
-{-# LINE 8 "<command-line>" #-}
+
+
+
+
+
+
+
 # 1 "/usr/include/stdc-predef.h" 1 3 4
 
 # 17 "/usr/include/stdc-predef.h" 3 4
@@ -1422,8 +1424,8 @@ parse s = evalP basicParser s
 
 
 
-{-# LINE 8 "<command-line>" #-}
-{-# LINE 1 "/usr/lib/ghc/include/ghcversion.h" #-}
+{-# LINE 7 "<command-line>" #-}
+{-# LINE 1 "/usr/lib/ghc-8.2.2/include/ghcversion.h" #-}
 
 
 
@@ -1439,10 +1441,10 @@ parse s = evalP basicParser s
 
 
 
+{-# LINE 7 "<command-line>" #-}
+{-# LINE 1 "/tmp/ghc4375_0/ghc_2.h" #-}
 
 
-{-# LINE 8 "<command-line>" #-}
-{-# LINE 1 "/tmp/ghc8814_0/ghc_2.h" #-}
 
 
 
@@ -1599,7 +1601,533 @@ parse s = evalP basicParser s
 
 
 
-{-# LINE 8 "<command-line>" #-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{-# LINE 7 "<command-line>" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 -- Id: GenericTemplate.hs,v 1.26 2005/01/14 14:47:22 simonmar Exp 
 

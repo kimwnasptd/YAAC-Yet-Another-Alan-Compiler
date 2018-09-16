@@ -1,9 +1,3 @@
--- module AlexInterface (
---   P(..), AlexInput(..),
---   ParseState(..), alexGetByte,
---   alexInputPrevChar, initialState,
---   getLineNo, evalP
---   ) where
 module AlexInterface where
 
 import Control.Monad.State
@@ -65,15 +59,5 @@ getLineNo = do                    -- takes the alexinput state from inside the m
   s <- get                        -- and returns the line  number that was wrapped in that data type
   return . ailineno . input $ s
 
--- FANCIER getLine, since we are playing with monads after all     --> So sad it doesn;t work :(
--- getLIneNoAlt :: P Int               -- > Something like that anyway, we have work to do !
--- getLIneNoAlt = do
---     return  $ gets (ailineno . input  )
-
-
 evalP::P a -> String -> a               -- Just pack the intial string inside a parsestate,
-evalP m s = evalState m (initialState s)   -- run the corresponding monad, and return the result 
---
--- NOTE  :
--- evalstate m s = fst $ runstate (m s )
--- Basicallly, we we run the monad, and return the result, sans state
+evalP m s = evalState m (initialState s)   -- run the corresponding monad, and return the result

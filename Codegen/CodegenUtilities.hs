@@ -96,6 +96,10 @@ symb_to_astp (V var) =
                         _            -> type_to_ast (var_type var)
 symb_to_astp (F fn) = type_to_ast (result_type fn)
 
+str_type :: String -> Type
+str_type str = ArrayType (n+1) i8
+    where n = fromIntegral $ length str
+
 toSig :: [(SymbolName,SymbolType,Bool,Bool)] -> [(AST.Type, AST.Name)]
 toSig args = map convert args
     where convert (name, tp, ref, _) = (to_type tp ref, AST.Name $ toShort name)
@@ -207,8 +211,9 @@ addVarOpperand :: VarInfo -> Codegen VarInfo
 addVarOpperand var_info = do
     let tp = var_type var_info
         dim = dimension var_info
+        nm = var_name var_info
     init_val <- initOperand tp dim
-    var <- alloca (symb_to_astp (V var_info))
+    var <- allocavar (symb_to_astp (V var_info)) nm
     store var init_val
     case tp of
         TableIntType  -> do
@@ -224,7 +229,7 @@ addArgOpperand arg = do
     let tp = var_type arg
         nm = var_name arg
         ref = byreference arg
-    var <- alloca (to_type tp ref)
+    var <- allocavar (to_type tp ref) nm
     store var (local (AST.Name $ toShort nm))
     case byreference arg of
         True -> do
@@ -236,13 +241,22 @@ addArgOpperand arg = do
 addFunOperand :: FunInfo -> Codegen FunInfo
 addFunOperand foo_info = do
     return $ foo_info { fun_operand = Just fn_op } where
+        fn_op = externf sorted_name typed_res arg_types
         name = fn_name foo_info
         result = result_type foo_info
         args = fn_args foo_info
-        fn_op = externf sorted_name typed_res arg_types
         sorted_name = (AST.Name $ toShort name)
         typed_res = type_to_ast result
         arg_types = [tp | (tp, _) <- toSig args]
+
+instr_named :: Instruction -> String -> Codegen (Operand)
+instr_named ins nm = do
+    n <- fresh
+    let ref = Name $ toShort $ nm ++ (show n)
+    blk <- current
+    let i = stack blk
+    modifyBlock (blk { stack = (ref := ins) : i } )
+    return $ local ref
 
 instr :: Instruction -> Codegen (Operand)
 instr ins = do
@@ -345,6 +359,8 @@ externf :: Name -> Type -> [Type] -> Operand
 externf name tp op_list = ConstantOperand $ C.GlobalReference (ptr fn_type ) name where
     fn_type = FunctionType tp op_list False
 
+externstr :: Name -> Type -> Operand
+externstr name tp = ConstantOperand $ C.GlobalReference (ptr tp) name
 
 -- Arithmetic and Constants
 add :: Operand -> Operand -> Codegen Operand
@@ -383,6 +399,9 @@ call_unnamed fn args = instr_unnamed $ Call Nothing CC.C [] (Right fn) (toArgs a
 
 alloca :: Type -> Codegen Operand
 alloca ty = instr $ Alloca ty Nothing 0 []
+
+allocavar :: Type -> String -> Codegen Operand
+allocavar ty nm = instr_named (Alloca ty Nothing 0 []) nm
 
 store :: Operand -> Operand -> Codegen Operand
 store ptr val = instr_unnamed $ Store False ptr val Nothing 0 []   -- We can find a better name
