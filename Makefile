@@ -7,14 +7,14 @@ PSR = happy
 PSR_DIR = Parser/
 
 SEM_DIR = Semantic/
-LIBS = Libraries/Source
+LIBS = Libraries/Source/
 
 CC_FLAGS = -i$(MODULES)
 LXR_FLAGS = -i
 PSR_FLAGS = -i
 
 MODULES = Lexer:Parser:Semantic:Codegen:Libraries
-CLEAN_DIRS = . Lexer Parser Semantic Codegen Run Libraries
+CLN_EXTN = .o .info .hi .out .ll
 
 # ------------------------
 
@@ -28,7 +28,7 @@ parts: lexer parser
 # Rules
 # ------------------------
 
-compiler: $(LIBS)/lib.c lexer parser
+compiler: $(LIBS)lib.so $(LXR_DIR)Lexer.hs $(PSR_DIR)Parser.hs
 	$(CC) $(CC_FLAGS) Compiler.hs -o Run/YAAC-ll
 
 lexer: $(LXR_DIR)Lexer.hs
@@ -47,19 +47,20 @@ parser: $(PSR_DIR)Parser.hs
 	$(PSR) $(PSR_FLAGS) $<
 
 %.so: %.c
-	clang -shared -fpic -o lib.so $<
+	clang -shared -fpic -o $(LIBS)lib.so $<
 
 # ------------------------
 
 clean:
-	# remove anything missed by the previous steps
-	for i in $(CLEAN_DIRS); do \
-		rm $$i/*.o $$i/*.hi $$i/*.info 2>/dev/null || echo "Nothing to remove"; \
+	@echo "Cleaning .o .hi .info .out .ll Files..."
+	for i in $(CLN_EXTN); do \
+		find . -name "*$$i" -delete; \
 	done
-	rm $(LXR_DIR)Lexer.hs
-	rm $(PSR_DIR)Parser.hs
-	rm *.out *.ll 2>/dev/null
+	@echo "Cleaning Lexer.hs and Parser.hs..."
+	find . -name "Lexer.hs" -delete
+	find . -name "Parser.hs" -delete
 
 distclean:
+	find . -name "lib.so" -delete
 	make clean
 	rm Run/*

@@ -3,6 +3,7 @@ hello () : proc
     s2 : byte[80];
 {
     s1[0] = '\x41';
+    -- s1[0] = '\x41' + '\x01'; -- We need to make this work
     s1[1] = '\n';
     writeString(s1);
     return;

@@ -1,10 +1,12 @@
 Lexer/*.o
 Lexer/*.hi
 Lexer/*.info
+Lexer/Lexer.hs
 
 Parser/*.o
 Parser/*.hi
 Parser/*.info
+Parser/Parser.hs
 
 Semantic/*.o
 Semantic/*.hi

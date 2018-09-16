@@ -252,7 +252,7 @@ addFunOperand foo_info = do
 instr_named :: Instruction -> String -> Codegen (Operand)
 instr_named ins nm = do
     n <- fresh
-    let ref = Name $ toShort $ nm ++ (show n)
+    let ref = Name $ toShort $ nm ++ "."  ++ (show n)
     blk <- current
     let i = stack blk
     modifyBlock (blk { stack = (ref := ins) : i } )
@@ -409,8 +409,8 @@ store ptr val = instr_unnamed $ Store False ptr val Nothing 0 []   -- We can fin
 load :: Operand -> Codegen Operand
 load ptr = instr $ Load False ptr Nothing 0 []
 
-create_ptr :: Operand -> [Operand] -> Codegen Operand -- used for table indexing
-create_ptr table indexes = instr $ GetElementPtr False table indexes []
+create_ptr :: Operand -> [Operand] -> String -> Codegen Operand -- used for table indexing
+create_ptr table indexes nm = instr_named (GetElementPtr False table indexes []) (nm++".elem")
 
 bitcast :: Operand -> Type -> Codegen Operand
 bitcast op tp = instr $ BitCast op tp []

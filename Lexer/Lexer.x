@@ -115,7 +115,7 @@ convEsc ( '\\' : 't' : s )       = '\t' : convEsc s
 convEsc ( '\\' : 'r' : s )       = '\r' : convEsc s
 convEsc ( '\\' : '\"' : s )      = '\"' : convEsc s
 convEsc ( '\\' : '\'' : s )      = '\'' : convEsc s
-convEsc ( '\\' : 'x' : b1:b2:s)  = chr ( read("0x"++[b1,b2]) ) : convEsc s  
+convEsc ( '\\' : 'x' : b1:b2:s)  = chr ( read("0x"++[b1,b2]) ) : convEsc s
 convEsc ( a : s )                = a : convEsc s
 convEsc []                       = []
 

@@ -271,7 +271,7 @@ cgen_lval (S.LV_Var var) = getvar var
 cgen_lval (S.LV_Tbl tbl_var offset_expr) = do
     offset <- cgen_expr offset_expr   --generate the expression for the offset
     tbl_operand <- getvar tbl_var     -- get the table operand
-    create_ptr tbl_operand [offset]
+    create_ptr tbl_operand [offset] tbl_var
 cgen_lval (S.LV_Lit str) = do
     globStrName <- freshStr
     define $ globalStr globStrName str
