@@ -25,37 +25,29 @@ all: parts compiler
 parts: lexer parser
 
 # ------------------------
-# Compile the Parser
+# Rules
 # ------------------------
 
-lexer: Lexer.o
+compiler: $(LIBS)/lib.c lexer parser
+	$(CC) $(CC_FLAGS) Compiler.hs -o Run/YAAC-ll
+
+lexer: $(LXR_DIR)Lexer.hs
 	$(CC) $(CC_FLAGS) $(LXR_DIR)lexer_run.hs -o Run/Lexer-bin
 
-Lexer.o: Lexer.hs
-	$(CC) $(CC_FLAGS) $(LXR_DIR)Lexer.hs -c
-
-Lexer.hs: $(LXR_DIR)Lexer.x
-	$(LXR) $(LXR_FLAGS) $(LXR_DIR)Lexer.x
-
-# ------------------------
-# Compile the Parser
-# ------------------------
-
-parser: Parser.hs
+parser: $(PSR_DIR)Parser.hs
 	$(CC) $(CC_FLAGS) $(PSR_DIR)parser_run.hs -o Run/Parser-bin
 
-Parser.hs: $(PSR_DIR)Parser.y
-	$(PSR) $(PSR_FLAGS) $(PSR_DIR)Parser.y
+%.o: %.hs
+	$(CC) $(CC_FLAGS) $< -c
 
-# ------------------------
-# Compile the Compiler
-# ------------------------
+%.hs: %.x
+	$(LXR) $(LXR_FLAGS) $<
 
-libs: $(LIBS)/lib.c
-	make -C $(LIBS)
+%.hs: %.y
+	$(PSR) $(PSR_FLAGS) $<
 
-compiler: libs 
-	$(CC) $(CC_FLAGS) Compiler.hs -o Run/YAAC-ll
+%.so: %.c
+	clang -shared -fpic -o lib.so $<
 
 # ------------------------
 
@@ -64,6 +56,8 @@ clean:
 	for i in $(CLEAN_DIRS); do \
 		rm $$i/*.o $$i/*.hi $$i/*.info 2>/dev/null || echo "Nothing to remove"; \
 	done
+	rm $(LXR_DIR)Lexer.hs
+	rm $(PSR_DIR)Parser.hs
 	rm *.out *.ll 2>/dev/null
 
 distclean:

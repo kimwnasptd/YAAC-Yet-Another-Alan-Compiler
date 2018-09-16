@@ -7,7 +7,7 @@ if [ "$1" != "" ]; then
     Run/YAAC-ll $1 > a.ll || exit 1
     cat --number a.ll
     llc-6.0 a.ll -relocation-model=pic -o a.s || exit 1
-    clang a.s $LIBS/lib.so -o a.out -nopie
+    clang a.s $LIBS/lib.so -o a.out || exit 1
     rm a.ll a.s
     echo ""
     echo "Compiled Successfully!"
