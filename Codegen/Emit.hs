@@ -73,26 +73,28 @@ cgen_ast (S.Prog main) = do
 cgen_main :: S.Func_Def -> Codegen ()
 cgen_main (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     openScope "main"
-    addFunc "main" [] S.R_Type_Proc
+    fun <- addFunc "main" [] S.R_Type_Proc
     entry <- addBlock entryBlockName
     setBlock entry
     addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
     cgen_stmts cmp_stmt
+    endblock fun
     closeScope                        -- > close the function' s scope
 
 cgenFuncDef :: S.Func_Def -> Codegen ()
 cgenFuncDef (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
-    addFunc name args_lst f_type      -- > we add the function to our CURRENT scope
-    openScope name                    -- > every function creates a new scope
+    fun <- addFunc name args_lst f_type      -- we add the function to our CURRENT scope
+    openScope name                    -- every function creates a new scope
     entry <- addBlock entryBlockName
     setBlock entry
-    addFArgs args_lst                 -- > add parameters to symtable
-    addFunc name args_lst f_type      -- > NOTE: add the function to the inside scope as well ?
-    addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
-    semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
+    addFArgs args_lst                 -- add parameters to symtable
+    addFunc name args_lst f_type      -- NOTE: add the function to the inside scope as well ?
+    addLDefLst ldef_list              -- add the local definitions of that function, this is where the recursion happens
+    semStmtList cmp_stmt              -- do the Semantic analysis of the function body
     cgen_stmts cmp_stmt
-    closeScope                        -- > close the function' s scope
+    endblock fun                     -- If proc, put a ret as terminator
+    closeScope                       -- close the function' s scope
 
 cgen_stmts :: S.Comp_Stmt -> Codegen [()]
 cgen_stmts (S.C_Stmt stmts) = mapM cgen_stmt stmts
@@ -149,7 +151,7 @@ cgen_stmt (S.Stmt_If cond if_stmt ) = do
     --------------
     setBlock ifthen
     cgen_stmt if_stmt
-    -- br ifexit
+    br ifexit
     ifthen <- getBlock
     -- exit part
     ------------
@@ -288,7 +290,7 @@ cgen_arg (expr, _) = cgen_expr expr
 -- Driver Functions for navigating the Tree
 -------------------------------------------------------------------------------
 -- Takes the necessary fields from a function defintion, and adds a fun_info struct to the current scope
-addFunc :: SymbolName -> S.FPar_List -> S.R_Type -> Codegen ()
+addFunc :: SymbolName -> S.FPar_List -> S.R_Type -> Codegen FunInfo
 addFunc name args_lst f_type = do
     scpnm <- getScopeName
     let our_ret = getFunType f_type   -- we format all of the function stuff properly
@@ -296,6 +298,7 @@ addFunc name args_lst f_type = do
         fn_info = createFunInfo name fun_args our_ret
     fun <- addFunOperand fn_info
     addSymbol (fn_name fn_info) (F fun)   -- > add the function to our SymbolTable
+    return fun
 
 addVar :: S.Var_Def -> Codegen ()    -- takes a VARIABLE DEFINITION , and adds the proper things, to the proper scopes
 addVar vdef = do

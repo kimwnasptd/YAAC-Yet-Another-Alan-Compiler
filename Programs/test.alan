@@ -5,14 +5,15 @@ main () : proc
     -- str : byte[100];
     -- b : byte;
 
-    compute (y : int) : proc
+    compute (x : reference int) : proc
        -- default val for y is 0
        {
        writeString("\n x from inside compute is: ");
        writeInteger(x);
-       writeString("\n y from inside compute is: ");
-       writeInteger(y);
-       y = y + 1;
+       writeString("\n Now x from inside compute is: ");
+       x = 42;
+       writeInteger(x);
+       -- y = y + 1;
        -- x = x + 1;    -- NTOE: THIS DOESN'T WORK PROPERLY 
        return ;
 
@@ -22,11 +23,11 @@ main () : proc
 {
     -- Main
     x = 1;
-
-    while ( x < 10 ){
     compute(x);
-    x = x + 1 ;
-    }
+    -- while ( x < 10 ){
+    -- compute(x);
+    -- x = x + 1 ;
+    -- }
     -- compute(x);
     -- compute(x);
     -- compute(x);

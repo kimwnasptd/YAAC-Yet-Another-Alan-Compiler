@@ -1,10 +1,22 @@
 hello () : proc
-    s1 : byte[80];
-    s2 : byte[80];
+    n : int;
+    frame : byte[1];
+
+    f(x:int) : int
+    {return x;}
+
+    g(b:reference byte) : proc
+    {b[0] = shrink(42); return;}
+
+    nested() : proc
+    n: int;
+    {
+        n = 2;
+        writeInteger(n);
+        return;
+    }
 {
-    s1[0] = '\x41';
-    -- s1[0] = '\x41' + '\x01'; -- We need to make this work
-    s1[1] = '\n';
-    writeString(s1);
+    n = f(42);
+    writeByte(frame[0]);
     return;
 }

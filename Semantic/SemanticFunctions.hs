@@ -31,6 +31,13 @@ import CodegenUtilities
 writeLog :: String -> Codegen ()
 writeLog line = modify $ \s -> s { logger = (logger s) ++ line ++ ['\n'] }
 
+-- Get the nesting depth of a function (used for main to get display's size)
+nesting :: Local_Def -> Int
+nesting (Loc_Def_Fun (F_Def _ _ _ ldefs _)) = (maximum $ map nesting ldefs) + 1
+    where maximum (x:xs) = max x (maximum xs)
+          maximum []     = 0
+nesting _ = 0
+
 --------------------------------------------------------------------------------
 -- Transofrmation Functions (Convrsions for argument types)
 --------------------------------------------------------------------------------
@@ -139,10 +146,12 @@ getLvalType (LV_Var var) = do
 getLvalType (LV_Tbl var ind) = do
     ind_type <- getExprType ind
     V table_info <- getSymbol var
-    case (ind_type , var_type table_info ) of
-        (IntType, TableIntType )  -> return IntType
-        (IntType, TableByteType)  -> return ByteType
-        ( _ , _)               -> error  $ "Something sketchy is going on with the " ++ var ++ " table!"
+    case (ind_type , var_type table_info, byreference table_info) of
+        (IntType, TableIntType, False)  -> return IntType
+        (IntType, TableByteType, False) -> return ByteType
+        (IntType, IntType, True)        -> return IntType
+        (IntType, ByteType, True)       -> return ByteType
+        (a, b, c)                       -> error  $ var ++ ": "++(show b)++" index: "++(show a)++" reference: "++(show c)
 
 -- Expressions
 getExprType :: Expr -> Codegen SymbolType

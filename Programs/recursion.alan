@@ -1,17 +1,14 @@
 main () : proc
-    x : int;
-    s : byte[80];
-
-    comp(a:int) : int
-    {
-        writeString("\na: ");
-        writeInteger(a);
-        if (a < 0){
-            writeString("\na: Time to exit\n");
-            return 0;
-        }
-        return a + comp(a-1);
-    }
+    a():proc
+        b():proc
+            c():proc
+            {return;}
+        {return;}
+        d():proc
+        {return;}
+    {return;}
+    e():proc
+    {return;}
 {
 
     x = comp(1000000);

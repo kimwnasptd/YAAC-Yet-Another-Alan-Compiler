@@ -343,6 +343,12 @@ fndblock blk = do
       Just x -> return x
       Nothing -> error $ "No such block: " ++ show blk
 
+endblock :: FunInfo -> Codegen ()
+endblock fun = do
+    case result_type fun of
+        ProcType -> ret >> return ()
+        _        -> return ()
+
 -------------------------------------------------------------------------------
 
 -- References

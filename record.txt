@@ -1,0 +1,18 @@
+TODO:
+----
+*** Scopes
+**  Related with Scopes. Talk about recursion
+**  Bytes (instructions between them)
+*   Make sure in strings to use "
+
+
+
+LAST CHANGES:
+------------
+
+* Proc now doesn't need a return;
+  Added: endblock (CodegenUtilities) 
+         edited cgen_main, cgenFuncDef because of endblock
+         
+* If now works
+  commented out the br to if.exit in cgen_stmt
