@@ -87,14 +87,14 @@ cgenFuncDef (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     fun <- addFunc name args_lst f_type      -- we add the function to our CURRENT scope
     openScope name                    -- every function creates a new scope
     entry <- addBlock entryBlockName
-    setBlock entry
+    setBlock entry                    -- change the current block to the new function
     addFArgs args_lst                 -- add parameters to symtable
     addFunc name args_lst f_type      -- NOTE: add the function to the inside scope as well ?
     addLDefLst ldef_list              -- add the local definitions of that function, this is where the recursion happens
     semStmtList cmp_stmt              -- do the Semantic analysis of the function body
-    cgen_stmts cmp_stmt
-    endblock fun                     -- If proc, put a ret as terminator
-    closeScope                       -- close the function' s scope
+    cgen_stmts cmp_stmt               -- once the Semantic analysis has passed, gen the body
+    endblock fun                      -- If proc, put a ret as terminator
+    closeScope                        -- close the function' s scope
 
 cgen_stmts :: S.Comp_Stmt -> Codegen [()]
 cgen_stmts (S.C_Stmt stmts) = mapM cgen_stmt stmts
@@ -140,6 +140,7 @@ cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
         -- exit part
         ------------
     setBlock ifexit             -- merge the 2 blocks
+    -- ret                         -- WARNING: JUST FOR TESTING, THIS IS WRONG AF 
     return ()
 cgen_stmt (S.Stmt_If cond if_stmt ) = do
     ifthen <- addBlock "if.then"

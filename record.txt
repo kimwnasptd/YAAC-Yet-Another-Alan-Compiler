@@ -11,8 +11,11 @@ LAST CHANGES:
 ------------
 
 * Proc now doesn't need a return;
-  Added: endblock (CodegenUtilities) 
+  Added: endblock (CodegenUtilities)
          edited cgen_main, cgenFuncDef because of endblock
-         
-* If now works
-  commented out the br to if.exit in cgen_stmt
+
+** If NOW works
+  See codegen utilities, lines 180-200.
+  An if block could create an exit block, that may have been empty.
+  Now if a blockstate has no terminator, but also no instructions,
+  We don't make a corresponding AST represenation of that block!

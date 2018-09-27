@@ -2,17 +2,22 @@ main () : proc
     a():proc
         b():proc
             c():proc
-            {return;}
-        {return;}
+            {return;}           -- c body   (inside b )
+        {c();}                  -- b body   --> calls c (inside a )
         d():proc
-        {return;}
-    {return;}
+        {return;}               -- d body   (inside a )
+    {b(); }                     -- a body   inside main --> calls b
     e():proc
-    {return;}
-{
+    {return;}                   -- e body
 
+     x: int;
+     comp( n : int ) : int
+     { return (n+1); }
+{
+    e() ; 
+    a() ;
     x = comp(1000000);
     writeString("Computed x: ");
     writeInteger(x);
     return;
-}
+}                               -- main body
