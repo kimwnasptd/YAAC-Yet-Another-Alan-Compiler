@@ -257,6 +257,37 @@ getvar var = do
             Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand"
             Just op -> return op
 
+
+getSymbol_enhanced :: SymbolName -> Codegen (Either Symbol (Scope, Symbol) )
+getSymbol_enhanced sym = do
+    curr_scp <- gets currentScope
+    case sym `Map.lookup` (symbols curr_scp) of
+        Just info -> return $ Left info  -- the variable is in the current scope
+        Nothing   -> do
+            symtab <- gets symbolTable
+            case sym `Map.lookup` symtab of         -- tha variable is in a parent scope 
+                Nothing -> error error_msg
+                Just [] -> error error_msg
+                Just (scp:scps) -> case sym `Map.lookup` (symbols scp ) of
+                    Just info -> return $ Right (scp, info)
+                    Nothing -> error error_msg
+            where error_msg = "Symbol " ++ sym ++ " is not defined!"
+
+
+getvar_enhanced :: SymbolName -> Codegen (Either Operand (Scope, VarInfo) )
+getvar_enhanced var = do
+    symbol <- getSymbol_enhanced var
+    case symbol of
+        (Left (F _ ) )                ->  error $ "Var " ++ (show var) ++ " is also a function on the current scope!"
+        (Right ( _, F _ ) )           ->  error $ "Var " ++ (show var) ++ " is a function on a previous scope!"
+        (Left ( V var_info ) )        -> case var_operand var_info of
+            Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand"
+            Just op -> return $ Left op
+        (Right ( scp, V var_info) )   -> case var_operand var_info of
+            Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand in the parent function!"
+            Just op -> return $ Right (scp, var_info )
+
+
 getfun :: SymbolName -> Codegen Operand
 getfun fn = do
     symbol <- getSymbol fn
