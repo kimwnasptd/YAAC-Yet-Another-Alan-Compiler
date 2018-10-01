@@ -1,0 +1,46 @@
+main () : proc
+    a : int ;
+
+    beta (n : int ): int
+    {
+    if (n > 5 ) { return 5 ;}
+    return 2 ;
+
+    } -- beta body
+
+    gamma (n : int ): int
+    {
+    -- if (n > 5 ) { return 5 ;}
+    if (n > 5 ) { n = n + 1 ;}
+    else {return 2 ; }
+    return 1 ;
+    } -- gamma body
+
+    delta (n : int ): int
+    {
+    -- if (n > 5 ) { return 5 ;}
+    if (n > 5 ) { return n ;}
+    else {return 2 ; }
+    -- return 3 ;                  -- WITHOUT THIS DELTA CRUSHES! (not anymore, fixed)
+    } -- delta body
+
+    epsilon (n : int ): int
+    {
+    if (n > 5 ) { return n ;}
+    else {
+    if (n > 3 ) {
+    return n ;
+    }
+    else {
+    n = n + 1 ;
+    }
+    }
+    -- return 3 ;                  -- WITHOUT THIS epsilon CRUSHES ( as it should)!
+    } -- epsilon body
+
+
+
+    {
+    a = 5 ;
+    return ;
+    }   -- main body

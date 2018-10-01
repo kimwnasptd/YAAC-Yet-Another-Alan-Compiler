@@ -1,5 +1,5 @@
-hello () : proc 
-{ 
-    (* writeString(5); *)
-    return 5 + 2;
+hello () : proc
+{
+    writeString("5");
+    return ;
 }

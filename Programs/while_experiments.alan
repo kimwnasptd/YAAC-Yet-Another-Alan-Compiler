@@ -1,0 +1,15 @@
+solve () : proc
+    y: int;
+
+    toUse (n : reference int) : int
+
+    { -- toUse
+        return 42;
+    }
+
+{
+    y = 1;
+    if (toUse(y) == 42)  { return; return ;}
+    if (toUse(y) == 47 ) {return ; }
+    -- return ; 
+}   -- should work, does work

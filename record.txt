@@ -1,22 +1,21 @@
-ToDo:
-
-    1) Create a rοbust token data type that contains line info   --> Will be done later today
-    2) Locate the shift reduce conflict on the parser (nothing to do here) 
-
-Done:
-    2) If you check the Parser.info file, the shift reduce conflict
-    refers to State 114, the famous dangling if issue. The default
-    shift behaviour is fine, nothing to do.
+TODO:
+----
+*** Scopes
+**  Related with Scopes. Talk about recursion
+**  Bytes (instructions between them)
+*   Make sure in strings to use "
 
 
 
+LAST CHANGES:
+------------
 
-Take a Look:
+* Proc now doesn't need a return;
+  Added: endblock (CodegenUtilities)
+         edited cgen_main, cgenFuncDef because of endblock
 
-    Changed the way we were matching strings a little. Added a convEsc fun that converts the matched
-    characters to their correct values (ex \\n is matched and then converted to \n)
-    --> Looks much better, thank you
-
-    Shift Reduce: In the hannoi.alan program if we remove the if (...) { } and keep its body for some
-    reason it compiles. Guess the conflict is somewhere there?
-    -> Fixed, it was just a simple bug on the >= and <= conditions on the parser
+** If NOW works
+  See codegen utilities, lines 180-200.
+  An if block could create an exit block, that may have been empty.
+  Now if a blockstate has no terminator, but also no instructions,
+  We don't make a corresponding AST represenation of that block!

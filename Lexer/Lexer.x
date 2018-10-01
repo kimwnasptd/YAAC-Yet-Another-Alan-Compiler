@@ -15,6 +15,7 @@ import Control.Monad
 import Control.Monad.State
 import AlexInterface
 import Tokens
+import Data.Char
 }
 
 $digit = 0-9            -- digits
@@ -25,7 +26,7 @@ $esc_seq = [\n \t \r]
 
 @string_sp  = \\\" | \\\' | \\$quotable | \\x $hexdig $hexdig                              --"
 @string     = \" ( $quotable | @string_sp )* \"               -- Printable contains $white  " just fixed all the coments for you <3
-@chars      = \' ($alpha | $digit  | @string_sp) \'     -- Missing some characters
+@chars      = \' ($alpha | $digit | \\x $hexdig $hexdig | @string_sp ) \'     -- Missing some characters
 @name       = $alpha[$alpha $digit \_]*
 
 tokens :-
@@ -107,11 +108,6 @@ getToken (TIntLiteral _) _ s    = return $ Just $ TIntLiteral $ read s
 getToken (TChar _) _ s          = return $ Just $ TChar $ convEsc (init $ tail s)
 getToken t _ _ = return (Just t)
 
-
--- -- Using get token, returns not only the token, but the corresponding line
---  getLToken :: Token -> (Action, Int )
---  getLToken token1 = return ( getToken token1, getLineNo)
-
 -- Convert the mathced weird characters (\\n) to their coresponding ones
 convEsc :: String -> String
 convEsc ( '\\' : 'n' : s )       = '\n' : convEsc s
@@ -119,7 +115,7 @@ convEsc ( '\\' : 't' : s )       = '\t' : convEsc s
 convEsc ( '\\' : 'r' : s )       = '\r' : convEsc s
 convEsc ( '\\' : '\"' : s )      = '\"' : convEsc s
 convEsc ( '\\' : '\'' : s )      = '\'' : convEsc s
-convEsc ( '\\' : 'x' : s )       = '\\' : 'x' : convEsc s   -- Here we have to decide what to do with these
+convEsc ( '\\' : 'x' : b1:b2:s)  = chr ( read("0x"++[b1,b2]) ) : convEsc s
 convEsc ( a : s )                = a : convEsc s
 convEsc []                       = []
 
@@ -146,7 +142,7 @@ readToken = do
     -- End of File duh
     AlexEOF -> return TEOF
 
-    -- We need to talk about this :P   --> I have no idea what I was thinking when I wrote that, sorry
+    -- We need to talk about this :P
     AlexError inp' -> error $ "Lexical error on line "++ (show $ ailineno inp')      -- ' should be removed '
 
     -- It's the characters that have as action the ;

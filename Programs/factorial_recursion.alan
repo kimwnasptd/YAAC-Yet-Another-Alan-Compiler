@@ -1,0 +1,14 @@
+main () : proc
+    a: int ;
+    factorial( reps:int): int
+    {
+    if (reps == 1 ){ return reps; }
+    else { return (reps * factorial(reps-1) ) ; }
+    -- return 1;    -- NOTE: Now it works whether we include it or not, (before we HAD to include it ) 
+    }
+
+    {
+    a = factorial(7);
+    writeInteger(a);
+    return ;
+    }   -- main body

@@ -1,4 +1,22 @@
 hello () : proc
+    n : int;
+    frame : byte[1];
+
+    f(x:int) : int
+    {return x;}
+
+    g(b:reference byte) : proc
+    {b[0] = shrink(42); return;}
+
+    nested() : proc
+    n: int;
+    {
+        n = 2;
+        writeInteger(n);
+        return;
+    }
 {
-    writeString("Hello World\n");
+    n = f(42);
+    writeByte(frame[0]);
+    return;
 }

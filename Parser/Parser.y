@@ -82,12 +82,12 @@ Program: Func_Def                        { Prog   $1      }
 Func_Def: var "(" FPar_List ")" ":" R_Type L_Def_List Comp_Stmt { F_Def $1 $3 $6 $7 $8 }
 
 L_Def_List:                              {       []       }
-          | L_Def_List Local_Def         {     $2 : $1    }
+          | L_Def_List Local_Def         {     $1 ++ [$2]    }
 
 
 FPar_List: {- Nothing -}                 {      []        }
          | FPar_Def                      {      [$1]      }
-         | FPar_List "," FPar_Def        {     $3 : $1    }
+         | FPar_List "," FPar_Def        {     $1 ++ [$3]    }
 
 FPar_Def: var ":" reference Type         { FPar_Def_Ref $1 $4}
         | var ":" Type                   { FPar_Def_NR $1 $3 }
@@ -124,14 +124,14 @@ Stmt: ";"                                { Stmt_Semi      }
 Comp_Stmt: "{" Stmt_List "}"             { C_Stmt $2      }
 
 Stmt_List: {-Nothing -}                  {       []       }
-         | Stmt_List Stmt                {     $2 : $1    }  -- Probaby ALL LISTS NEED AMENDING
+         | Stmt_List Stmt                {    $1 ++ [$2]  }  -- Probaby ALL LISTS NEED AMENDING
 
 
 Func_Call: var "(" Expr_List ")"         { Func_Call $1 $3 }
 
 Expr_List: {-Nothing -}                  {    []      }
          | Expr                          {    [$1]    }
-         | Expr_List "," Expr            {    $3 : $1     }
+         | Expr_List "," Expr            {    $1 ++ [$3]     }
 
 Expr : int_literal                       { Expr_Int   $1  }
      | char                              { Expr_Char  $1  }
@@ -167,15 +167,11 @@ Cond: true                               { Cond_True      }
 
 {
 
--- Basic Error Messages
--- parseError:: [Token]  -> a
--- parseError _ = error "oopsie daisy "
-
 parseError _ = do
   lno <- getLineNo
-  error $ "Parse error on line "++ show lno
+  error $ "PARSER: error on line "++ show lno
 
-parse:: String -> Program                             -- probably correct! 
+-- parse::String->Program (AST)
 parse s = evalP basicParser s
 
 }

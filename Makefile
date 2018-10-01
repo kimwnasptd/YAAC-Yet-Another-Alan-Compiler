@@ -6,43 +6,61 @@ LXR_DIR = Lexer/
 PSR = happy
 PSR_DIR = Parser/
 
+SEM_DIR = Semantic/
+LIBS = Libraries/Source/
+
 CC_FLAGS = -i$(MODULES)
 LXR_FLAGS = -i
 PSR_FLAGS = -i
 
-MODULES = Lexer:Parser
-CLEAN_DIRS = Lexer Parser
+MODULES = Lexer:Parser:Semantic:Codegen:Libraries
+CLN_EXTN = .o .info .hi .out .ll
 
 # ------------------------
 
 default: compiler
 
-compiler: lexer parser
+all: parts compiler
+
+parts: lexer parser
 
 # ------------------------
-# Compile the Parser
+# Rules
 # ------------------------
 
-lexer: Lexer.hs
-	$(CC) $(CC_FLAGS) $(LXR_DIR)lexer_run.hs -o Lexer-bin
+compiler: $(LIBS)lib.so $(LXR_DIR)Lexer.hs $(PSR_DIR)Parser.hs
+	$(CC) $(CC_FLAGS) Compiler.hs -o Run/YAAC-ll
 
-Lexer.hs: $(LXR_DIR)Lexer.x
-	$(LXR) $(LXR_FLAGS) $(LXR_DIR)Lexer.x
+lexer: $(LXR_DIR)Lexer.hs
+	$(CC) $(CC_FLAGS) $(LXR_DIR)lexer_run.hs -o Run/Lexer-bin
 
-# ------------------------
-# Compile the Parser
-# ------------------------
+parser: $(PSR_DIR)Parser.hs
+	$(CC) $(CC_FLAGS) $(PSR_DIR)parser_run.hs -o Run/Parser-bin
 
-parser: Parser.hs Lexer.hs
-	$(CC) $(CC_FLAGS) $(PSR_DIR)parser_run.hs -o Parser-bin
+%.o: %.hs
+	$(CC) $(CC_FLAGS) $< -c
 
-Parser.hs: $(PSR_DIR)Parser.y
-	$(PSR) $(PSR_FLAGS) $(PSR_DIR)Parser.y
+%.hs: %.x
+	$(LXR) $(LXR_FLAGS) $<
+
+%.hs: %.y
+	$(PSR) $(PSR_FLAGS) $<
+
+%.so: %.c
+	clang -shared -fpic -o $(LIBS)lib.so $<
 
 # ------------------------
 
 clean:
-	for i in $(CLEAN_DIRS); do \
-		rm $$i/*.o $$i/*.hi $$i/*.info ; \
+	@echo "Cleaning .o .hi .info .out .ll Files..."
+	for i in $(CLN_EXTN); do \
+		find . -name "*$$i" -delete; \
 	done
-	rm Lexer-bin  Parser-bin ./Parser/Parser.hs ./Lexer/Lexer.hs   # remove anything missed by the previous steps 
+	@echo "Cleaning Lexer.hs and Parser.hs..."
+	find . -name "Lexer.hs" -delete
+	find . -name "Parser.hs" -delete
+
+distclean:
+	find . -name "lib.so" -delete
+	make clean
+	rm Run/*

@@ -1,0 +1,27 @@
+hello () : proc
+    n : int;
+    y : int ;
+
+    foo(x:int) : int
+    {
+     x = x + 1 ;
+     x = x * 2 ;
+     return x ;
+    -- return ( x + 1 );      -- notice that this is instruction is ignored (seems legit )
+    }    -- foo body  -> inside hello
+
+    goo(x:reference int) : int
+    {
+     x = x + 1 ;
+     x = x * 3 ;
+     return x ;
+
+    }    -- goo body  -> inside hello
+
+
+{
+    n = foo(42);
+    n = foo(n) ;
+    y = goo(n);
+    return;
+}       -- hello body
