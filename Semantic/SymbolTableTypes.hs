@@ -37,6 +37,7 @@ data SymbolType = IntType | ByteType | ProcType -- Fun Types
 data VarInfo = VarInfo {
       var_name    :: SymbolName              -- the variable name
     , var_type    :: SymbolType
+    , var_idx     :: Int
     , var_operand :: Maybe Operand           -- AST.Operand
     , id_num      :: Int               -- we'll probably need this field later
     , dimension   :: Maybe Int         -- its dimensions, if it's a table NOTE: It's nothing, if we arent' a table
@@ -59,6 +60,7 @@ data Symbol = V VarInfo
 data Scope = Scope {
       scp_name        :: String
     , symbols         :: Map.Map SymbolName Symbol     -- args and local vars go here
+    , nesting         :: Int
     , currentBlock    :: Name    -- AST.Name
     , blocks          :: Map.Map Name BlockState
     , blockCount      :: Int
@@ -89,6 +91,7 @@ emptyScope :: Scope
 emptyScope = Scope {
         scp_name = ""
       , symbols = Map.empty
+      , nesting = 0 
       , currentBlock = (Name $ toShort entryBlockName)
       , blocks = Map.empty
       , blockCount = 1

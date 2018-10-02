@@ -73,7 +73,7 @@ cgen_ast (S.Prog main) = do
 cgen_main :: S.Func_Def -> Codegen ()
 cgen_main (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     openScope "main"
-    fun <- addFunc "main" [] S.R_Type_Proc
+    fun <- addFunc "main" [] f_type
     entry <- addBlock entryBlockName
     setBlock entry
     addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
@@ -140,7 +140,7 @@ cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
         -- exit part
         ------------
     setBlock ifexit             -- merge the 2 blocks
-    -- ret                         -- WARNING: JUST FOR TESTING, THIS IS WRONG AF 
+    -- ret                         -- WARNING: JUST FOR TESTING, THIS IS WRONG AF
     return ()
 cgen_stmt (S.Stmt_If cond if_stmt ) = do
     ifthen <- addBlock "if.then"
@@ -286,6 +286,45 @@ cgen_arg :: (S.Expr, Bool) -> Codegen Operand
 cgen_arg ((S.Expr_Lval lval), False) = cgen_lval lval >>= load
 cgen_arg ((S.Expr_Lval lval), True ) = cgen_lval lval
 cgen_arg (expr, _) = cgen_expr expr
+
+-------------------------------------------------------------------------------
+-- Symbol Table and Scopes Handling
+-------------------------------------------------------------------------------
+
+getvar :: SymbolName -> Codegen Operand
+getvar var = do
+    symbol <- getSymbol_enhanced var
+    case symbol of
+        (Left (F _ ) )                ->  error $ "Var " ++ (show var) ++ " is also a function on the current scope!"
+        (Right ( _, F _ ) )           ->  error $ "Var " ++ (show var) ++ " is a function on a previous scope!"
+        (Left ( V var_info ) )        -> case var_operand var_info of
+            Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand"
+            Just op -> return op
+        (Right ( scp, V var_info) )   -> case var_operand var_info of
+            Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand in the parent function!"
+            Just op -> do
+                new_op <- putvar (nesting scp) var_info  -- we need to generate the local escape and return its operand
+                return new_op
+
+putvar :: Int -> VarInfo -> Codegen Operand
+putvar level v_info = do
+    let (offset, v_name ) =  (var_idx v_info, var_name v_info )   -- get necessary fields FU HASKELL
+    -- TODO: Remove this and cgen properly
+    var <- allocavar (symb_to_astp (V v_info)) v_name
+    store var one
+    let new_info = v_info { var_operand = Just var}
+    -- TODO: up to here
+    addSymbol v_name (V new_info)
+    return $ var
+
+getfun :: SymbolName -> Codegen Operand
+getfun fn = do
+    symbol <- getSymbol fn
+    case symbol of
+        V _        -> error $ "Fun " ++ (show fn) ++ " is also a variable"
+        F fun_info -> case fun_operand fun_info of
+            Nothing -> error $ "Symbol " ++ (show fn) ++ " has no operand"
+            Just op -> return op
 
 -------------------------------------------------------------------------------
 -- Driver Functions for navigating the Tree

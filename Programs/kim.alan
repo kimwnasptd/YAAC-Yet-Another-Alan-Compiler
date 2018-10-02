@@ -1,0 +1,22 @@
+hello () : proc
+    n : int;
+    y : int ;
+
+    foo( n : int  ) : int
+    a:int;
+    {
+    writeInteger(n);
+    return 5  ;
+    -- return ( x + 1 );      -- notice that this is instruction is ignored (seems legit )
+    }    -- foo body  -> inside hello
+
+
+{
+
+    n = 17 ;
+
+    writeInteger(n);
+    y = foo();
+    writeInteger(n);
+    return;
+}       -- hello bod
