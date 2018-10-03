@@ -32,6 +32,7 @@ type SymbolTable = Map.Map SymbolName [Scope]
 type SymbolName = String
 data SymbolType = IntType | ByteType | ProcType -- Fun Types
                 | TableIntType | TableByteType  -- + Var Types
+                | DisplayType                   -- Display
     deriving (Show, Eq)
 
 data VarInfo = VarInfo {

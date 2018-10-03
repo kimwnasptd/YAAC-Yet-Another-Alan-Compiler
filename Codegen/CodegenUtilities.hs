@@ -76,11 +76,13 @@ type_to_ast ByteType = i8
 type_to_ast ProcType = TP.void
 type_to_ast TableIntType = ptr i32
 type_to_ast TableByteType = ptr i8
+type_to_ast DisplayType = ptr (ptr i8)
 
 -- If a var is ref, then its AST.Type will be ptr
 to_type :: SymbolType -> Bool -> AST.Type
 to_type IntType  True = ptr i32
 to_type ByteType True = ptr i8
+to_type DisplayType True = ptr (ptr i8)
 to_type tp _ = type_to_ast tp
 
 -- When defining a var, we need to get the array type also
@@ -93,6 +95,7 @@ symb_to_astp (V var) =
                         -- TableByteType -> ArrayType 5 i8
                         TableIntType -> ArrayType (fromIntegral dim) i32
                         TableByteType -> ArrayType (fromIntegral dim) i8
+                        DisplayType  -> ArrayType (fromIntegral dim) (ptr i8)
                         _            -> type_to_ast (var_type var)
 symb_to_astp (F fn) = type_to_ast (result_type fn)
 
@@ -224,6 +227,7 @@ initOperand ByteType _ = return $ cons $ C.Int 8 0
 initOperand ProcType _ = return zero
 initOperand TableIntType  (Just dim) = return $ cons $ C.Array i32 [C.Int 32 0 | _ <- [1..dim]]
 initOperand TableByteType (Just dim) = return $ cons $ C.Array i8  [C.Int  8 0 | _ <- [1..dim]]
+initOperand DisplayType (Just dim) = return $ cons $ C.Array (ptr i8) [C.Int  32 0 | _ <- [1..dim]]
 initOperand _ _ = return zero
 
 operand :: Symbol -> Codegen Operand
@@ -265,6 +269,9 @@ addVarOpperand var_info = do
         TableByteType -> do
             pointer_byte <- bitcast var (ptr i8)
             return $ var_info { var_operand = Just pointer_byte }
+        DisplayType -> do
+            pointer <- bitcast var (ptr (ptr i8))
+            return $ var_info { var_operand = Just pointer }
         _             -> return $ var_info { var_operand = Just var }
 
 addArgOpperand :: VarInfo -> Codegen VarInfo
