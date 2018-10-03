@@ -78,7 +78,7 @@ cgen_main (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     setBlock entry
     addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
     init_display                      -- Updates the stack frame
-    escapevars "main"
+    escapevars
     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
     cgen_stmts cmp_stmt
     endblock fun
@@ -94,7 +94,7 @@ cgenFuncDef (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     addFunc name args_lst f_type      -- NOTE: add the function to the inside scope as well ?
     addLDefLst ldef_list              -- add the local definitions of that function, this is where the recursion happens
     putframe
-    escapevars name
+    escapevars
     semStmtList cmp_stmt              -- do the Semantic analysis of the function body
     cgen_stmts cmp_stmt               -- once the Semantic analysis has passed, gen the body
     endblock fun                      -- If proc, put a ret as terminator
@@ -340,9 +340,8 @@ putframe = return ()
 getframe :: Int -> Codegen Operand
 getframe idx = return one
 
--- TODO: Escapes the local variables of a function, except for leaf functions
-escapevars :: SymbolName -> Codegen ()
-escapevars fn = do
+escapevars :: Codegen ()
+escapevars = do
     funs <- currfuns
     case funs of
         [self] -> return ()  -- Leaf function
