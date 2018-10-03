@@ -226,6 +226,30 @@ initOperand TableIntType  (Just dim) = return $ cons $ C.Array i32 [C.Int 32 0 |
 initOperand TableByteType (Just dim) = return $ cons $ C.Array i8  [C.Int  8 0 | _ <- [1..dim]]
 initOperand _ _ = return zero
 
+operand :: Symbol -> Codegen Operand
+operand (F fn)  = case fun_operand fn of
+    Nothing -> error $ "No Operand for " ++ (fn_name fn)
+    Just op -> return op
+operand (V var) = case var_operand var of
+    Nothing -> error $ "No Operand for " ++ (var_name var)
+    Just op -> return op
+
+currvars :: Codegen [VarInfo]
+currvars = do
+    syms <- gets $ symbols . currentScope
+    return $ keepvars (Map.elems syms)
+    where keepvars ((V var):syms) = var : (keepvars syms)
+          keepvars ((F fun):syms) = keepvars syms
+          keepvars [] = []
+
+currfuns :: Codegen [FunInfo]
+currfuns = do
+    syms <- gets $ symbols . currentScope
+    return $ keepfns (Map.elems syms)
+    where keepfns ((V var):syms) = keepfns syms
+          keepfns ((F fun):syms) = fun : (keepfns syms)
+          keepfns [] = []
+
 addVarOpperand :: VarInfo -> Codegen VarInfo
 addVarOpperand var_info = do
     let tp = var_type var_info
@@ -260,8 +284,9 @@ addArgOpperand arg = do
 addFunOperand :: FunInfo -> Codegen FunInfo
 addFunOperand foo_info = do
     return $ foo_info { fun_operand = Just fn_op } where
-        fn_op = externf sorted_name typed_res arg_types
+        fn_op = externf sorted_name typed_res arg_types varg
         name = fn_name foo_info
+        varg = varargs foo_info
         result = result_type foo_info
         args = fn_args foo_info
         sorted_name = (AST.Name $ toShort name)
@@ -382,9 +407,9 @@ global = C.GlobalReference i32
 local_extended ::  Type -> Name ->  Operand
 local_extended = LocalReference
 
-externf :: Name -> Type -> [Type] -> Operand
-externf name tp op_list = ConstantOperand $ C.GlobalReference (ptr fn_type ) name where
-    fn_type = FunctionType tp op_list False
+externf :: Name -> Type -> [Type] -> Bool -> Operand
+externf name tp op_list vararg = ConstantOperand $ C.GlobalReference (ptr fn_type ) name where
+    fn_type = FunctionType tp op_list vararg
 
 externstr :: Name -> Type -> Operand
 externstr name tp = ConstantOperand $ C.GlobalReference (ptr tp) name
@@ -421,8 +446,8 @@ toArgs = map (\x -> (x, []))
 call :: Operand -> [Operand] -> Codegen Operand
 call fn args = instr $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
-call_unnamed :: Operand -> [Operand] -> Codegen Operand
-call_unnamed fn args = instr_unnamed $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
+call_void :: Operand -> [Operand] -> Codegen Operand
+call_void fn args = instr_unnamed $ Call Nothing CC.C [] (Right fn) (toArgs args) [] []
 
 alloca :: Type -> Codegen Operand
 alloca ty = instr $ Alloca ty Nothing 0 []

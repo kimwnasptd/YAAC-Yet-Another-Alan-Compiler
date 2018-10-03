@@ -7,8 +7,5 @@ main () : proc
   }
 
   {
-    a = 5;
-    frame[0] = '\x42';
-    nested(frame);
-    writeInteger(a);
+    -- a = 5;
   }   -- main body

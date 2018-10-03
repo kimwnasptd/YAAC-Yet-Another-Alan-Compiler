@@ -358,7 +358,6 @@ semStmt (Stmt_Eq lval expr) = do
         (IntType, IntType)    -> return ()
         (ByteType, ByteType)  -> return ()
         _                 -> error $ err
-
 semStmt (Stmt_Ret_Expr expr) = do
     expr_type <- getExprType expr -- get the type of the expression
     fn_name <- getScopeName       -- current function = current scope
@@ -367,7 +366,6 @@ semStmt (Stmt_Ret_Expr expr) = do
         V var_info -> error $ "Can't return " ++ (show expr)
         F fun_info -> if ( result_type fun_info ==  expr_type ) then return ()
             else error $ "Can't return " ++ (show expr_type) ++ " from func " ++ fn_name
-
 -- Same logic as above, the difference being that now
 -- the return type of the expression is proc by default
 semStmt Stmt_Ret = do
@@ -378,7 +376,6 @@ semStmt Stmt_Ret = do
         F fun_info -> case result_type fun_info of
             ProcType -> return ()
             _        -> error $ "Must return a value from a non void function"
-
 semStmt (Stmt_FCall (Func_Call fname fargs)) = do
     actual_types <- get_expr_types fargs      -- [(SymbolType,Reference)]
     formal_types <- get_fnargs_types fname    -- [(SymbolType, Reference)]

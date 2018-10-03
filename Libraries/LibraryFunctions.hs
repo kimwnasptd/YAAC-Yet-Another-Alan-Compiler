@@ -17,7 +17,7 @@ lib_fns = [
     FunInfo {
           fn_name = "writeInteger"
         , result_type = ProcType
-        , fun_operand = Just $ externf (Name $ toShort "writeInteger") void [i32]
+        , fun_operand = Just $ externf (Name $ toShort "writeInteger") void [i32] False
         , fn_args = [("n", IntType, False, False)]
         , varargs = False
     },
@@ -25,7 +25,7 @@ lib_fns = [
     FunInfo {
           fn_name = "writeByte"
         , result_type = ProcType
-        , fun_operand = Just $ externf (Name $ toShort "writeByte") void [i8]
+        , fun_operand = Just $ externf (Name $ toShort "writeByte") void [i8] False
         , fn_args = [("b", ByteType, False, False)]
         , varargs = False
     },
@@ -33,7 +33,7 @@ lib_fns = [
     FunInfo {
           fn_name = "writeChar"
         , result_type = ProcType
-        , fun_operand = Just $ externf (Name $ toShort "writeChar") void [i8]
+        , fun_operand = Just $ externf (Name $ toShort "writeChar") void [i8] False
         , fn_args = [("b", ByteType, False, False)]
         , varargs = False
     },
@@ -41,7 +41,7 @@ lib_fns = [
     FunInfo {
           fn_name = "writeString"
         , result_type = ProcType
-        , fun_operand = Just $ externf (Name $ toShort "writeString") void [ptr i8]
+        , fun_operand = Just $ externf (Name $ toShort "writeString") void [ptr i8] False
         , fn_args = [("s", TableByteType, True, True)]
         , varargs = False
     },
@@ -52,7 +52,7 @@ lib_fns = [
     FunInfo {
           fn_name = "readInteger"
         , result_type = IntType
-        , fun_operand = Just $ externf (Name $ toShort "readInteger") i32 []
+        , fun_operand = Just $ externf (Name $ toShort "readInteger") i32 [] False
         , fn_args = []
         , varargs = False
     },
@@ -60,7 +60,7 @@ lib_fns = [
     FunInfo {
           fn_name = "readByte"
         , result_type = ByteType
-        , fun_operand = Just $ externf (Name $ toShort "readByte") i8 []
+        , fun_operand = Just $ externf (Name $ toShort "readByte") i8 [] False
         , fn_args = []
         , varargs = False
     },
@@ -68,7 +68,7 @@ lib_fns = [
     FunInfo {
           fn_name = "readChar"
         , result_type = ByteType
-        , fun_operand = Just $ externf (Name $ toShort "readChar") i8 []
+        , fun_operand = Just $ externf (Name $ toShort "readChar") i8 [] False
         , fn_args = []
         , varargs = False
     },
@@ -76,7 +76,7 @@ lib_fns = [
     FunInfo {
           fn_name = "readString"
         , result_type = ProcType
-        , fun_operand = Just $ externf (Name $ toShort "readString") void [i32, ptr i8]
+        , fun_operand = Just $ externf (Name $ toShort "readString") void [i32, ptr i8] False
         , fn_args = [("n", IntType, False, False), ("s", TableByteType, True, True)]
         , varargs = False
     },
@@ -87,7 +87,7 @@ lib_fns = [
     FunInfo {
           fn_name = "strlen"
         , result_type = IntType
-        , fun_operand = Just $ externf (Name $ toShort "strlen") i32 [ptr i8]
+        , fun_operand = Just $ externf (Name $ toShort "strlen") i32 [ptr i8] False
         , fn_args = [("s", TableByteType, True, True)]
         , varargs = False
     },
@@ -95,7 +95,7 @@ lib_fns = [
     FunInfo {
           fn_name = "strcmp"
         , result_type = IntType
-        , fun_operand = Just $ externf (Name $ toShort "strcmp") i32 [ptr i8, ptr i8]
+        , fun_operand = Just $ externf (Name $ toShort "strcmp") i32 [ptr i8, ptr i8] False
         , fn_args = [("s1", TableByteType, True, True), ("s2", TableByteType, True, True)]
         , varargs = False
     },
@@ -103,7 +103,7 @@ lib_fns = [
     FunInfo {
           fn_name = "strcpy"
         , result_type = ProcType
-        , fun_operand = Just $ externf (Name $ toShort "strcpy") void [ptr i8, ptr i8]
+        , fun_operand = Just $ externf (Name $ toShort "strcpy") void [ptr i8, ptr i8] False
         , fn_args = [("trg", TableByteType, True, True), ("src", TableByteType, True, True)]
         , varargs = False
     },
@@ -111,7 +111,7 @@ lib_fns = [
     FunInfo {
           fn_name = "strcat"
         , result_type = ProcType
-        , fun_operand = Just $ externf (Name $ toShort "strcat") void [ptr i8, ptr i8]
+        , fun_operand = Just $ externf (Name $ toShort "strcat") void [ptr i8, ptr i8] False
         , fn_args = [("trg", TableByteType, True, True), ("src", TableByteType, True, True)]
         , varargs = False
     },
@@ -122,7 +122,7 @@ lib_fns = [
     FunInfo {
           fn_name = "extend"
         , result_type = IntType
-        , fun_operand = Just $ externf (Name $ toShort "extend") i32 [i8]
+        , fun_operand = Just $ externf (Name $ toShort "extend") i32 [i8] False
         , fn_args = [("b", ByteType, False, False)]
         , varargs = False
     },
@@ -130,7 +130,7 @@ lib_fns = [
     FunInfo {
           fn_name = "shrink"
         , result_type = ByteType
-        , fun_operand = Just $ externf (Name $ toShort "shrink") i8 [i32]
+        , fun_operand = Just $ externf (Name $ toShort "shrink") i8 [i32] False
         , fn_args = [("i", IntType, False, False)]
         , varargs = False
     },
@@ -141,15 +141,15 @@ lib_fns = [
     FunInfo {
           fn_name = "llvm.localescape"
         , result_type = ProcType
-        , fun_operand = Just $ externf (Name $ toShort "writeInteger") void []
+        , fun_operand = Just $ externf (Name $ toShort "llvm.localescape") void [] True
         , fn_args = []
         , varargs = True
     },
-    -- llvm.recover(...) : proc
+    -- llvm.recover(i8*, i8*, i32) : proc
     FunInfo {
           fn_name = "llvm.localrecover"
         , result_type = TableByteType
-        , fun_operand = Just $ externf (Name $ toShort "llvm.localrecover") (ptr i8) [ptr i8, ptr i8, i32]
+        , fun_operand = Just $ externf (Name $ toShort "llvm.localrecover") (ptr i8) [ptr i8, ptr i8, i32] False
         , fn_args = [("func", TableByteType, True, True), ("fp", TableByteType, True, True), ("idx", IntType, False, False)]
         , varargs = False
     }]

@@ -78,7 +78,7 @@ cgen_main (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     setBlock entry
     addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
     init_display                      -- Updates the stack frame
-    escapevars fun
+    escapevars "main"
     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
     cgen_stmts cmp_stmt
     endblock fun
@@ -94,7 +94,7 @@ cgenFuncDef (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     addFunc name args_lst f_type      -- NOTE: add the function to the inside scope as well ?
     addLDefLst ldef_list              -- add the local definitions of that function, this is where the recursion happens
     putframe
-    escapevars fun
+    escapevars name
     semStmtList cmp_stmt              -- do the Semantic analysis of the function body
     cgen_stmts cmp_stmt               -- once the Semantic analysis has passed, gen the body
     endblock fun                      -- If proc, put a ret as terminator
@@ -120,7 +120,7 @@ cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
     refs <- forM (fn_args fun_info) (\(_,_,ref,_) -> return ref)
     arg_operands <- mapM cgen_arg (zip args refs)
     foo_operand <- getfun fn
-    call_unnamed foo_operand arg_operands
+    call_void foo_operand arg_operands
     return ()
 cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
     ifthen <- addBlock "if.then"
@@ -341,8 +341,17 @@ getframe :: Int -> Codegen Operand
 getframe idx = return one
 
 -- TODO: Escapes the local variables of a function, except for leaf functions
-escapevars :: FunInfo -> Codegen ()
-escapevars fn = return ()
+escapevars :: SymbolName -> Codegen ()
+escapevars fn = do
+    funs <- currfuns
+    case funs of
+        [self] -> return ()  -- Leaf function
+        funs   -> do
+            vars <- currvars
+            operands <- forM (map var_name vars) getvar
+            fn_operand <- getfun "llvm.localescape"
+            call_void fn_operand operands
+            return ()
 
 -- TODO: Call to localrecover, used in putvar
 recovervar :: SymbolName -> Codegen Operand
