@@ -32,11 +32,11 @@ writeLog :: String -> Codegen ()
 writeLog line = modify $ \s -> s { logger = (logger s) ++ line ++ ['\n'] }
 
 -- Get the nesting depth of a function (used for main to get display's size)
-nesting :: Local_Def -> Int
-nesting (Loc_Def_Fun (F_Def _ _ _ ldefs _)) = (maximum $ map nesting ldefs) + 1
+max_nesting :: Local_Def -> Int
+max_nesting (Loc_Def_Fun (F_Def _ _ _ ldefs _)) = (maximum $ map max_nesting ldefs) + 1
     where maximum (x:xs) = max x (maximum xs)
           maximum []     = 0
-nesting _ = 0
+max_nesting _ = 0
 
 --------------------------------------------------------------------------------
 -- Transofrmation Functions (Convrsions for argument types)
@@ -48,6 +48,7 @@ createFunInfo func_name fun_args fun_res = FunInfo {
     , result_type = fun_res
     , fun_operand = Nothing
     , fn_args = fun_args
+    , varargs = False
 }   -- we simply get all fields already computed and package them in a FunInfo Struct
 
 createVarInfo:: SymbolName -> SymbolType -> Int ->  Maybe Int -> Bool -> Codegen VarInfo
@@ -55,6 +56,7 @@ createVarInfo nm vt idv dim byref =  do
     return VarInfo {
       var_name = nm
     , var_type = vt
+    , var_idx = 0
     , var_operand = Nothing
     , id_num = idv
     , dimension = dim
@@ -230,15 +232,13 @@ semCond (Cond_Or c1 c2 ) = semCond c1 >> semCond c2
 -- Symbol Table Functions
 --------------------------------------------------------------------------------
 -- Checks if var is defined in main
-checkSymbolTable :: SymbolName -> Codegen Symbol
+checkSymbolTable :: SymbolName -> Codegen Scope
 checkSymbolTable sym = do
     symtab <- gets symbolTable
     case sym `Map.lookup` symtab of
         Nothing -> error error_msg -- the variable is nowhere to be found
         Just [] -> error error_msg -- the variable is nowhere to be found (it was previously declared, but deleted )
-        Just (scp:scps) -> case sym `Map.lookup` (symbols scp) of
-            Just info -> return info
-            Nothing   -> error error_msg
+        Just (scp:scps) -> return scp
     where error_msg = "Symbol " ++ sym ++ " is not defined!"
 
 getSymbol:: SymbolName -> Codegen Symbol
@@ -246,25 +246,24 @@ getSymbol sym = do
     curr_scp <- gets currentScope
     case sym `Map.lookup` (symbols curr_scp) of
         Just info -> return info  -- the variable is in the current scope
-        Nothing   -> checkSymbolTable sym
+        Nothing   -> do
+            scp <- checkSymbolTable sym
+            case sym `Map.lookup` (symbols scp) of
+                Just info -> return info
+                Nothing   -> error error_msg
+    where error_msg = "Symbol " ++ sym ++ " is not defined!"
 
-getvar :: SymbolName -> Codegen Operand
-getvar var = do
-    symbol <- getSymbol var
-    case symbol of
-        F _        -> error $ "Var " ++ (show var) ++ " is also a function"
-        V var_info -> case var_operand var_info of
-            Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand"
-            Just op -> return op
-
-getfun :: SymbolName -> Codegen Operand
-getfun fn = do
-    symbol <- getSymbol fn
-    case symbol of
-        V _        -> error $ "Fun " ++ (show fn) ++ " is also a variable"
-        F fun_info -> case fun_operand fun_info of
-            Nothing -> error $ "Symbol " ++ (show fn) ++ " has no operand"
-            Just op -> return op
+getSymbol_enhanced :: SymbolName -> Codegen (Either Symbol (Scope, Symbol) )  -- Nesting Level, Offset
+getSymbol_enhanced sym = do
+    curr_scp <- gets currentScope
+    case sym `Map.lookup` (symbols curr_scp) of
+        Just info -> return $ Left info  -- the variable is in the current scope
+        Nothing   -> do
+            scp <- checkSymbolTable sym
+            case sym `Map.lookup` (symbols scp ) of
+                Just info -> return $ Right (scp, info)
+                Nothing -> error error_msg
+        where error_msg = "Symbol " ++ sym ++ " is not defined!"
 
 addSymbol :: SymbolName -> Symbol -> Codegen ()
 addSymbol symbol_name symbol_info = do
@@ -292,11 +291,13 @@ openScope name = do
     s <- get
     let curr_scope = currentScope s
         curr_name = scp_name curr_scope
+        prev_nest = nesting curr_scope
     case curr_name of
         "" -> put s { currentScope = (currentScope s) { scp_name = name } }  -- if we are the INITIAL scope, we just change the scope's name
         _  -> put s { currentScope = emptyScope { -- But as a currentScope we put an empty one
                         parent_scope = (Just $ curr_scope)  -- And change its parent
                       , scp_name = name
+                      , nesting = ( prev_nest + 1 )
                       }
                     }
 

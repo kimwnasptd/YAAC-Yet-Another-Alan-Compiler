@@ -50,8 +50,8 @@ int = i32
 toInt :: Int -> Operand
 toInt int = cons $ C.Int 32 (toInteger int)
 
-toInt8 :: Int -> Operand
-toInt8 int = cons $ C.Int 8 (toInteger int)
+toByte :: Int -> Operand
+toByte int = cons $ C.Int 8 (toInteger int)
 
 toChar :: Char -> Operand
 toChar c = cons $ C.Int 8 (toInteger $ ord $ c)
@@ -123,11 +123,11 @@ globalFun retty label argtys body = functionDefaults {
   , basicBlocks = body
   }
 
-externalFun ::  Type -> String -> [(Type, Name)] -> Global
-externalFun retty label argtys = functionDefaults {
+externalFun ::  Type -> String -> [(Type, Name)] -> Bool -> Global
+externalFun retty label argtys varargs = functionDefaults {
     name        = Name $ toShort label
   , linkage     = L.External
-  , parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False)
+  , parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], varargs)
   , returnType  = retty
   , basicBlocks = []
   }
@@ -165,15 +165,14 @@ uniqueName nm ns =
 sortBlocks :: [(Name, BlockState)] -> [(Name, BlockState)]
 sortBlocks = sortBy (compare `on` (idx . snd))
 
--- createBlocks :: Scope -> [BasicBlock]
--- createBlocks m = map makeBlock $ sortBlocks $ Map.toList (blocks m)        -- ORIGINAL
---
---
--- makeBlock :: (Name, BlockState) -> BasicBlock
--- makeBlock (l, (BlockState _ s t)) = BasicBlock l (reverse s) (maketerm t)
---   where
---     maketerm (Just x) = x
---     maketerm Nothing = error $ "Block has no terminator: " ++ (show l)  -- ORIGINAL
+createBlocks :: Scope -> [BasicBlock]
+createBlocks m = map makeBlock $ sortBlocks $ Map.toList (blocks m)
+
+makeBlock :: (Name, BlockState) -> BasicBlock
+makeBlock (l, (BlockState _ s t)) = BasicBlock l (reverse s) (maketerm t)
+  where
+    maketerm (Just x) = x
+    maketerm Nothing = error $ "Block has no terminator: " ++ (show l)
 
 -- Same thought process as the original Makeblock right above, with one difference
 -- If a block has no terminator, but also has no instructions, then the block is a dud
@@ -181,18 +180,18 @@ sortBlocks = sortBy (compare `on` (idx . snd))
 -- How could a block like that have been created?
 -- eg it was the if.exit block of a if-then-else statement,
 -- but the function was returning on both the if and the else case!
-makeBlock_filtered :: (Name, BlockState) -> Maybe BasicBlock   -- IF A BLOCK IS A DUD, DO NOT CREATE IT
-makeBlock_filtered (l, (BlockState _ [] Nothing)) = Nothing
-makeBlock_filtered (l, (BlockState _ s Nothing)) = error $ "ACTUAL Block has no terminator: " ++ (show l)
-makeBlock_filtered (l, (BlockState _ s (Just t))) = Just $ BasicBlock l (reverse s) (t)
-
-createBlocks_filtered :: Scope -> [Maybe BasicBlock]  -- a list of blocks and Nothing where a block was a dud
-createBlocks_filtered m = map makeBlock_filtered $ sortBlocks $ Map.toList (blocks m)
-
-createBlocks :: Scope -> [BasicBlock]
-createBlocks m = map maketerm $ filter (\x -> x /= Nothing )$ createBlocks_filtered m
-    where
-        maketerm (Just x ) = x
+-- makeBlock_filtered :: (Name, BlockState) -> Maybe BasicBlock   -- IF A BLOCK IS A DUD, DO NOT CREATE IT
+-- makeBlock_filtered (l, (BlockState _ [] Nothing)) = Nothing
+-- makeBlock_filtered (l, (BlockState _ s Nothing)) = error $ "ACTUAL Block has no terminator: " ++ (show l)
+-- makeBlock_filtered (l, (BlockState _ s (Just t))) = Just $ BasicBlock l (reverse s) (t)
+--
+-- createBlocks_filtered :: Scope -> [Maybe BasicBlock]  -- a list of blocks and Nothing where a block was a dud
+-- createBlocks_filtered m = map makeBlock_filtered $ sortBlocks $ Map.toList (blocks m)
+--
+-- createBlocks :: Scope -> [BasicBlock]
+-- createBlocks m = map maketerm $ filter (\x -> x /= Nothing )$ createBlocks_filtered m
+    -- where
+        -- maketerm (Just x ) = x
 
 fresh :: Codegen Word
 fresh = do
@@ -367,7 +366,9 @@ endblock :: FunInfo -> Codegen ()
 endblock fun = do
     case result_type fun of
         ProcType -> ret >> return ()
-        _        -> return ()
+        IntType  -> retval zero >> return ()
+        ByteType -> retval (toByte 0) >> return ()
+        _ -> error $ "Function not of type Int, Byte or Proc"
 
 -------------------------------------------------------------------------------
 

@@ -1,0 +1,14 @@
+main () : proc
+  a : int;
+  frame : byte[1];
+
+  nested(b: reference byte):proc
+  {
+  }
+
+  {
+    a = 5;
+    frame[0] = '\x42';
+    nested(frame);
+    writeInteger(a);
+  }   -- main body

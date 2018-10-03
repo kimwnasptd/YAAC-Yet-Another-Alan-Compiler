@@ -73,10 +73,12 @@ cgen_ast (S.Prog main) = do
 cgen_main :: S.Func_Def -> Codegen ()
 cgen_main (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     openScope "main"
-    fun <- addFunc "main" [] S.R_Type_Proc
+    fun <- addFunc "main" [] f_type
     entry <- addBlock entryBlockName
     setBlock entry
     addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
+    init_display                      -- Updates the stack frame
+    escapevars fun
     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
     cgen_stmts cmp_stmt
     endblock fun
@@ -91,6 +93,8 @@ cgenFuncDef (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     addFArgs args_lst                 -- add parameters to symtable
     addFunc name args_lst f_type      -- NOTE: add the function to the inside scope as well ?
     addLDefLst ldef_list              -- add the local definitions of that function, this is where the recursion happens
+    putframe
+    escapevars fun
     semStmtList cmp_stmt              -- do the Semantic analysis of the function body
     cgen_stmts cmp_stmt               -- once the Semantic analysis has passed, gen the body
     endblock fun                      -- If proc, put a ret as terminator
@@ -140,7 +144,7 @@ cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
         -- exit part
         ------------
     setBlock ifexit             -- merge the 2 blocks
-    -- ret                         -- WARNING: JUST FOR TESTING, THIS IS WRONG AF 
+    -- ret                         -- WARNING: JUST FOR TESTING, THIS IS WRONG AF
     return ()
 cgen_stmt (S.Stmt_If cond if_stmt ) = do
     ifthen <- addBlock "if.then"
@@ -288,6 +292,63 @@ cgen_arg ((S.Expr_Lval lval), True ) = cgen_lval lval
 cgen_arg (expr, _) = cgen_expr expr
 
 -------------------------------------------------------------------------------
+-- Symbol Table and Scopes Handling
+-------------------------------------------------------------------------------
+
+getvar :: SymbolName -> Codegen Operand
+getvar var = do
+    symbol <- getSymbol_enhanced var
+    case symbol of
+        (Left (F _ ) )                ->  error $ "Var " ++ (show var) ++ " is also a function on the current scope!"
+        (Right ( _, F _ ) )           ->  error $ "Var " ++ (show var) ++ " is a function on a previous scope!"
+        (Left ( V var_info ) )        -> case var_operand var_info of
+            Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand"
+            Just op -> return op
+        (Right ( scp, V var_info) )   -> case var_operand var_info of
+            Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand in the parent function!"
+            Just op -> putvar (nesting scp) var_info
+
+putvar :: Int -> VarInfo -> Codegen Operand
+putvar level v_info = do
+    let (offset, v_name ) =  (var_idx v_info, var_name v_info )   -- get necessary fields FU HASKELL
+    -- TODO: Remove this and cgen properly
+    var <- allocavar (symb_to_astp (V v_info)) v_name
+    store var one
+    let new_info = v_info { var_operand = Just var}
+    -- TODO: up to here
+    addSymbol v_name (V new_info)
+    return $ var
+
+getfun :: SymbolName -> Codegen Operand
+getfun fn = do
+    symbol <- getSymbol fn
+    case symbol of
+        V _        -> error $ "Fun " ++ (show fn) ++ " is also a variable"
+        F fun_info -> case fun_operand fun_info of
+            Nothing -> error $ "Symbol " ++ (show fn) ++ " has no operand"
+            Just op -> return op
+
+-- TODO: Initialize the display
+init_display :: Codegen ()
+init_display = return ()
+
+-- TODO: Put the functions Stack Frame Pointer to the display
+putframe :: Codegen ()
+putframe = return ()
+
+-- TODO: Return the bitcasted function Frame Pointer (i8*)
+getframe :: Int -> Codegen Operand
+getframe idx = return one
+
+-- TODO: Escapes the local variables of a function, except for leaf functions
+escapevars :: FunInfo -> Codegen ()
+escapevars fn = return ()
+
+-- TODO: Call to localrecover, used in putvar
+recovervar :: SymbolName -> Codegen Operand
+recovervar var = return one
+
+-------------------------------------------------------------------------------
 -- Driver Functions for navigating the Tree
 -------------------------------------------------------------------------------
 -- Takes the necessary fields from a function defintion, and adds a fun_info struct to the current scope
@@ -309,6 +370,7 @@ addVar vdef = do
     addSymbol (var_name var_info) (V var)
 
 -- Put the Function args to the function's scope, as variables variables
+-- TODO: Add the display code generation
 addFArgs :: S.FPar_List -> Codegen ()
 addFArgs (arg:args) = do
     param <- createVar_from_Arg arg
@@ -326,11 +388,12 @@ addLDefLst defs = mapM addLDef defs >> return ()
 
 addLibraryFns :: [FunInfo] -> Codegen ()
 addLibraryFns (fn:fns) = do
-    define $ externalFun retty label argtys
+    define $ externalFun retty label argtys vargs
     addSymbol (fn_name fn) (F fn)
     addLibraryFns fns
     where
         retty = type_to_ast (result_type fn)
         label = fn_name fn
         argtys = [(type_to_ast tp, Name $ toShort nm) | (nm, tp, _, _) <- (fn_args fn)]
+        vargs = varargs fn
 addLibraryFns [] = return ()
