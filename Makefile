@@ -62,5 +62,6 @@ clean:
 
 distclean:
 	find . -name "lib.so" -delete
+	find ./Run/ -type f -delete
 	make clean
 	rm Run/*
