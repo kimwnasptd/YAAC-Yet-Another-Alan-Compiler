@@ -21,8 +21,23 @@ main () : proc
     -- if (n > 5 ) { return 5 ;}
     if (n > 5 ) { return n ;}
     else {return 2 ; }
-    -- return 3 ;                  -- WITHOUT THIS DELTA CRUSHES!
+    -- return 3 ;                  -- WITHOUT THIS DELTA CRUSHES! (not anymore, fixed)
     } -- delta body
+
+    epsilon (n : int ): int
+    {
+    if (n > 5 ) { return n ;}
+    else {
+    if (n > 3 ) {
+    return n ;
+    }
+    else {
+    n = n + 1 ;
+    }
+    }
+    -- return 3 ;                  -- WITHOUT THIS epsilon CRUSHES ( as it should)!
+    } -- epsilon body
+
 
 
     {
