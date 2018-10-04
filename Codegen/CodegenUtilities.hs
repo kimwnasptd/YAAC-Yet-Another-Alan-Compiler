@@ -264,10 +264,9 @@ display lvl = VarInfo {
     , byreference = True
     }
 
-argdisplay :: SymbolName -> [(SymbolName, SymbolType, Bool, Bool)]
-argdisplay nm = case (nm == "main") of
-    True -> []
-    False -> [("display", DisplayType, True, True)]
+argdisplay :: Int -> [(SymbolName, SymbolType, Bool, Bool)]
+argdisplay 0 = []
+argdisplay _ = [("display", DisplayType, True, True)]
 
 addVarOperand :: VarInfo -> Codegen VarInfo
 addVarOperand var_info = do

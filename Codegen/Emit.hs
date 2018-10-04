@@ -368,8 +368,9 @@ recovervar var = return one
 addFunc :: SymbolName -> S.FPar_List -> S.R_Type -> Codegen FunInfo
 addFunc name args_lst f_type = do
     scpnm <- getScopeName
+    nest <- gets $ nesting . currentScope
     let our_ret = getFunType f_type   -- we format all of the function stuff properly
-        fun_args = (map createArgType args_lst) ++ (argdisplay name)
+        fun_args = (map createArgType args_lst) ++ (argdisplay nest)
         fn_info = createFunInfo name fun_args our_ret
     fun <- addFunOperand fn_info
     addSymbol (fn_name fn_info) (F fun)   -- > add the function to our SymbolTable
