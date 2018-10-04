@@ -74,14 +74,11 @@ cgen_main :: S.Func_Def -> Codegen ()
 cgen_main main@(S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     openScope "main"
     fun <- addFunc "main" [] f_type
-
     entry <- addBlock entryBlockName
     setBlock entry
     addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
-
-    init_display main                 -- Updates the stack frame
+    init_display (max_nesting (S.Loc_Def_Fun main)) -- Updates the stack frame
     escapevars
-
     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
     cgen_stmts cmp_stmt
     endblock fun
@@ -331,17 +328,9 @@ getfun fn = do
             Nothing -> error $ "Symbol " ++ (show fn) ++ " has no operand"
             Just op -> return op
 
-init_display :: S.Func_Def -> Codegen ()
-init_display main = do
-    let disp = VarInfo {
-          var_name = "display"
-        , var_type = DisplayType
-        , var_idx = 0
-        , var_operand = Nothing
-        , dimension = Just (max_nesting (S.Loc_Def_Fun main))
-        , byreference = True
-    }
-    disp_info <- addVarOpperand disp
+init_display :: Int -> Codegen ()
+init_display lvl = do
+    disp_info <- addVarOpperand (display lvl)
     addSymbol "display" (V disp_info)
 
 -- TODO: Put the functions Stack Frame Pointer to the display
@@ -401,7 +390,9 @@ addFArgs (arg:args) = do
     param_ready <- addArgOpperand param
     addSymbol (var_name param) (V param_ready)
     addFArgs args
-addFArgs [] = return ()
+addFArgs [] = do
+    disp <- addArgOpperand (display 0)
+    addSymbol "display" (V disp)
 
 addLDef :: S.Local_Def -> Codegen ()
 addLDef (S.Loc_Def_Fun fun) = cgenFuncDef fun

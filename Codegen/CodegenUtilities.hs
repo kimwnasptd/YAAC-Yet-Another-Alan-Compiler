@@ -254,6 +254,16 @@ currfuns = do
           keepfns ((F fun):syms) = fun : (keepfns syms)
           keepfns [] = []
 
+display :: Int -> VarInfo
+display lvl = VarInfo {
+      var_name = "display"
+    , var_type = DisplayType
+    , var_idx = 0
+    , var_operand = Nothing
+    , dimension = Just lvl
+    , byreference = True
+    }
+
 addVarOpperand :: VarInfo -> Codegen VarInfo
 addVarOpperand var_info = do
     let tp = var_type var_info

@@ -74,7 +74,6 @@ data Scope = Scope {
 data CodegenState = CodegenState {
       symbolTable   :: SymbolTable
     , currentScope  :: Scope                -- We always keep the current scope close to our chest.
-    , display       :: Map.Map SymbolName Operand   -- Fun Name -> i8* stack frame
     , names         :: Names                -- A fresh name supply
     , definitions   :: [Definition]         -- The meat and bones of the compiler
     , logger        :: String               -- Contains debug messages we may want to print
@@ -111,7 +110,6 @@ emptyCodegen = CodegenState {
       symbolTable   = Map.empty
     , currentScope  = emptyScope
     , names         = Map.empty
-    , display       = Map.empty
     , definitions   = []
     , logger        = ""
 }
