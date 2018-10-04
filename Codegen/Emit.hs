@@ -333,19 +333,16 @@ getfun fn = do
 
 init_display :: S.Func_Def -> Codegen ()
 init_display main = do
-    let nestlvl = max_nesting (S.Loc_Def_Fun main)
     let disp = VarInfo {
           var_name = "display"
         , var_type = DisplayType
         , var_idx = 0
         , var_operand = Nothing
-        , id_num = 0
-        , dimension = Just nestlvl
+        , dimension = Just (max_nesting (S.Loc_Def_Fun main))
         , byreference = True
     }
     disp_info <- addVarOpperand disp
     addSymbol "display" (V disp_info)
-    return ()
 
 -- TODO: Put the functions Stack Frame Pointer to the display
 putframe :: Codegen ()
@@ -362,10 +359,14 @@ escapevars = do
         [self] -> return ()  -- Leaf function
         funs   -> do
             vars <- currvars
-            operands <- forM (map var_name vars) getvar
+            operands <- forM vars (getvar . var_name)
             fn_operand <- getfun "llvm.localescape"
             call_void fn_operand operands
-            return ()
+            updateids vars 0
+    where updateids (var:vars) newid = do
+            updateSymbol (var_name var) (V var{var_idx = newid})
+            updateids vars (newid + 1)
+          updateids [] _ = return ()
 
 -- TODO: Call to localrecover, used in putvar
 recovervar :: SymbolName -> Codegen Operand

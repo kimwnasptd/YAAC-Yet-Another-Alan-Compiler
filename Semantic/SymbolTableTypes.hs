@@ -40,7 +40,6 @@ data VarInfo = VarInfo {
     , var_type    :: SymbolType
     , var_idx     :: Int
     , var_operand :: Maybe Operand           -- AST.Operand
-    , id_num      :: Int               -- we'll probably need this field later
     , dimension   :: Maybe Int         -- its dimensions, if it's a table NOTE: It's nothing, if we arent' a table
     , byreference :: Bool              -- if it was passed by reference (if it is a function arg)
   }

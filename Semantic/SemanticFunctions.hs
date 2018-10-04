@@ -58,7 +58,6 @@ createVarInfo nm vt idv dim byref =  do
     , var_type = vt
     , var_idx = 0
     , var_operand = Nothing
-    , id_num = idv
     , dimension = dim
     , byreference = byref
 }
@@ -277,6 +276,21 @@ addSymbol symbol_name symbol_info = do
     put s { symbolTable  = Map.insertWith (++) symbol_name [newScope] symb_t
           , currentScope = newScope
     }
+
+updateSymbol :: SymbolName -> Symbol -> Codegen ()
+updateSymbol sym_nm sym_info = do
+    s <- get
+    let currScope = currentScope s                -- get the current scope
+        currSymbols = symbols currScope           -- get the current symbol table, from the current scope
+        symtab = symbolTable s               -- get our backend implementation of nested scopes
+        newsyms = Map.update updtsym sym_nm currSymbols -- we update our symbol table
+        newscp = currScope { symbols = newsyms }   -- we updated our scope
+        newsymtab = Map.update (updtscps newscp) sym_nm symtab
+
+    put s { symbolTable  = symtab, currentScope = newscp }
+    where updtscps newscp (scp:scps) = Just (newscp:scps)
+          updtscps _ [] = Nothing
+          updtsym _ = Just sym_info
 
 --------------------------------------------------------------------------------
 -- Scope Functions
