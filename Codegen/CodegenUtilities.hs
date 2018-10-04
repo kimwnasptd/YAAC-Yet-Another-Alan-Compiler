@@ -238,6 +238,7 @@ operand (V var) = case var_operand var of
     Nothing -> error $ "No Operand for " ++ (var_name var)
     Just op -> return op
 
+-- keeps only the vars from the current scope
 currvars :: Codegen [VarInfo]
 currvars = do
     syms <- gets $ symbols . currentScope
@@ -246,6 +247,8 @@ currvars = do
           keepvars ((F fun):syms) = keepvars syms
           keepvars [] = []
 
+
+-- keeps only the functions from the current scope 
 currfuns :: Codegen [FunInfo]
 currfuns = do
     syms <- gets $ symbols . currentScope

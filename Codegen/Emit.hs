@@ -78,6 +78,7 @@ cgen_main main@(S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     setBlock entry
     addLDefLst ldef_list              -- > add the local definitions of that function, this is where the recursion happens
     init_display (max_nesting (S.Loc_Def_Fun main)) -- Updates the stack frame
+    putframe
     escapevars
     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
     cgen_stmts cmp_stmt
@@ -104,7 +105,6 @@ cgen_stmts :: S.Comp_Stmt -> Codegen [()]
 cgen_stmts (S.C_Stmt stmts) = mapM cgen_stmt stmts
 -- cgen_stmts (S.C_Stmt stmts) = forM stmts cgen_stmt   -- because we like playing with monads...
 
--- TODO: FCall, If, IFE, While
 cgen_stmt :: S.Stmt -> Codegen ()
 cgen_stmt S.Stmt_Ret = ret >> return ()
 cgen_stmt S.Stmt_Semi = return ()
@@ -335,24 +335,36 @@ init_display lvl = do
 
 -- TODO: Put the functions Stack Frame Pointer to the display
 putframe :: Codegen ()
-putframe = return ()
+putframe = do
+    curr_nst     <- gets $ nesting . currentScope  -- get current nesting level
+    fn_operand   <- getfun "llvm.frameaddress"      --  get the call opearand
+    frame_op     <- call fn_operand [zero]         -- call the function to get the frame pointer
+    curr_display <- getvar "display"
+    offseted_ptr <- create_ptr curr_display [toInt curr_nst] "display"
+    store offseted_ptr frame_op
+    return ()
 
 -- TODO: Return the bitcasted function Frame Pointer (i8*)
 getframe :: Int -> Codegen Operand
-getframe idx = return one
+getframe idx = do
+    let offset = toInt idx   --generate the expression for the offset
+    tbl_operand <- getvar "display"     -- get the table operand
+    create_ptr tbl_operand [offset] "display"
+
+
 
 escapevars :: Codegen ()
 escapevars = do
-    funs <- currfuns
+    funs <- currfuns            -- take all the functions in our scope
     case funs of
         [self] -> return ()  -- Leaf function
         funs   -> do
-            vars <- currvars
+            vars <- currvars        -- take the variables of the curret scope
             operands <- forM vars (getvar . var_name)
-            fn_operand <- getfun "llvm.localescape"
+            fn_operand <- getfun "llvm.localescape"      -- localescape every variable in the function
             call_void fn_operand operands
             updateids vars 0
-    where updateids (var:vars) newid = do
+    where updateids (var:vars) newid = do                -- update all indexes (dumb dumb way <3 )
             updateSymbol (var_name var) (V var{var_idx = newid})
             updateids vars (newid + 1)
           updateids [] _ = return ()
@@ -383,8 +395,7 @@ addVar vdef = do
     var <- addVarOperand var_info         -- NOTE: add the operand to the varinfo field
     addSymbol (var_name var_info) (V var)
 
--- Put the Function args to the function's scope, as variables variables
--- TODO: Add the display code generation
+-- Put the Function args to the function's scope, as variables
 addFArgs :: S.FPar_List -> Codegen ()
 addFArgs (arg:args) = do
     param <- createVar_from_Arg arg
