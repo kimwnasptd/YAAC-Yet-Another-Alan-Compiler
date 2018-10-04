@@ -330,7 +330,7 @@ getfun fn = do
 
 init_display :: Int -> Codegen ()
 init_display lvl = do
-    disp_info <- addVarOpperand (display lvl)
+    disp_info <- addVarOperand (display lvl)
     addSymbol "display" (V disp_info)
 
 -- TODO: Put the functions Stack Frame Pointer to the display
@@ -369,7 +369,7 @@ addFunc :: SymbolName -> S.FPar_List -> S.R_Type -> Codegen FunInfo
 addFunc name args_lst f_type = do
     scpnm <- getScopeName
     let our_ret = getFunType f_type   -- we format all of the function stuff properly
-        fun_args = map createArgType args_lst
+        fun_args = (map createArgType args_lst) ++ (argdisplay name)
         fn_info = createFunInfo name fun_args our_ret
     fun <- addFunOperand fn_info
     addSymbol (fn_name fn_info) (F fun)   -- > add the function to our SymbolTable
@@ -379,7 +379,7 @@ addVar :: S.Var_Def -> Codegen ()    -- takes a VARIABLE DEFINITION , and adds t
 addVar vdef = do
     scpnm <- getScopeName
     var_info <- createVar_from_Def vdef    -- create the new VarInfo filed to be inserted in the scope
-    var <- addVarOpperand var_info         -- NOTE: add the operand to the varinfo field
+    var <- addVarOperand var_info         -- NOTE: add the operand to the varinfo field
     addSymbol (var_name var_info) (V var)
 
 -- Put the Function args to the function's scope, as variables variables
@@ -387,11 +387,11 @@ addVar vdef = do
 addFArgs :: S.FPar_List -> Codegen ()
 addFArgs (arg:args) = do
     param <- createVar_from_Arg arg
-    param_ready <- addArgOpperand param
+    param_ready <- addArgOperand param
     addSymbol (var_name param) (V param_ready)
     addFArgs args
 addFArgs [] = do
-    disp <- addArgOpperand (display 0)
+    disp <- addArgOperand (display 0)
     addSymbol "display" (V disp)
 
 addLDef :: S.Local_Def -> Codegen ()

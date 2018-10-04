@@ -264,8 +264,13 @@ display lvl = VarInfo {
     , byreference = True
     }
 
-addVarOpperand :: VarInfo -> Codegen VarInfo
-addVarOpperand var_info = do
+argdisplay :: SymbolName -> [(SymbolName, SymbolType, Bool, Bool)]
+argdisplay nm = case (nm == "main") of
+    True -> []
+    False -> [("display", DisplayType, True, True)]
+
+addVarOperand :: VarInfo -> Codegen VarInfo
+addVarOperand var_info = do
     let tp = var_type var_info
         dim = dimension var_info
         nm = var_name var_info
@@ -284,8 +289,8 @@ addVarOpperand var_info = do
             return $ var_info { var_operand = Just pointer }
         _             -> return $ var_info { var_operand = Just var }
 
-addArgOpperand :: VarInfo -> Codegen VarInfo
-addArgOpperand arg = do
+addArgOperand :: VarInfo -> Codegen VarInfo
+addArgOperand arg = do
     let tp = var_type arg
         nm = var_name arg
         ref = byreference arg
