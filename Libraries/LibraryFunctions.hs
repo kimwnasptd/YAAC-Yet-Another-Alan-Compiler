@@ -145,11 +145,19 @@ lib_fns = [
         , fn_args = []
         , varargs = True
     },
-    -- llvm.recover(i8*, i8*, i32) : proc
+    -- llvm.recover(i8*, i8*, i32) : i8*
     FunInfo {
           fn_name = "llvm.localrecover"
         , result_type = TableByteType
         , fun_operand = Just $ externf (Name $ toShort "llvm.localrecover") (ptr i8) [ptr i8, ptr i8, i32] False
         , fn_args = [("func", TableByteType, True, True), ("fp", TableByteType, True, True), ("idx", IntType, False, False)]
+        , varargs = False
+    },
+    -- llvm.frameaddress(i32) : proc
+    FunInfo {
+          fn_name = "llvm.frameaddress"
+        , result_type = TableByteType
+        , fun_operand = Just $ externf (Name $ toShort "llvm.frameaddress") (ptr i8) [i32] False
+        , fn_args = [("idx", IntType, False, False)]
         , varargs = False
     }]
