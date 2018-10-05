@@ -150,6 +150,8 @@ getLvalType (LV_Tbl var ind) = do
     case (ind_type , var_type table_info, byreference table_info) of
         (IntType, TableIntType, False)  -> return IntType
         (IntType, TableByteType, False) -> return ByteType
+        (IntType, TableIntType,  True)  -> return IntType
+        (IntType, TableByteType, True)  -> return ByteType
         (IntType, IntType, True)        -> return IntType
         (IntType, ByteType, True)       -> return ByteType
         (a, b, c)                       -> error  $ var ++ ": "++(show b)++" index: "++(show a)++" reference: "++(show c)
@@ -190,6 +192,7 @@ getExprType (Expr_Fcall (Func_Call fname fargs) ) = do
 
 
 agree :: [(SymbolType, Bool)] -> [(SymbolType, Bool)] -> Bool
+agree r1 ((DisplayType,_):r2) = agree r1 r2
 agree [] [] = True
 agree ( (type1, ref1 ):rest1 ) ( (type2, ref2):rest2 ) = case (ref1,ref2) of
     (True,  _ ) -> if (type1 == type2 ) then agree rest1 rest2 else False

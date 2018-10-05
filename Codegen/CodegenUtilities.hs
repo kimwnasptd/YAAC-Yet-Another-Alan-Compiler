@@ -77,7 +77,7 @@ type_to_ast ProcType = TP.void
 type_to_ast TableIntType = ptr i32
 type_to_ast TableByteType = ptr i8
 type_to_ast DisplayType = ptr (ptr i8)
--- type_to_ast FNPTR = 
+-- type_to_ast FNPTR =
 
 -- If a var is ref, then its AST.Type will be ptr
 to_type :: SymbolType -> Bool -> AST.Type
@@ -268,9 +268,9 @@ display lvl = VarInfo {
     , byreference = True
     }
 
-argdisplay :: Int -> [(SymbolName, SymbolType, Bool, Bool)]
-argdisplay 0 = []
-argdisplay _ = [("display", DisplayType, True, True)]
+argdisplay :: Int -> String ->  [(SymbolName, SymbolType, Bool, Bool)]
+argdisplay 0 "main" = []
+argdisplay _ _ = [("display", DisplayType, True, True)]
 
 addVarOperand :: VarInfo -> Codegen VarInfo
 addVarOperand var_info = do

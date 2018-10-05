@@ -77,6 +77,7 @@ data CodegenState = CodegenState {
     , names         :: Names                -- A fresh name supply
     , definitions   :: [Definition]         -- The meat and bones of the compiler
     , logger        :: String               -- Contains debug messages we may want to print
+    , libraryfns     :: [SymbolName]
   }
   deriving Show
 
@@ -112,6 +113,7 @@ emptyCodegen = CodegenState {
     , names         = Map.empty
     , definitions   = []
     , logger        = ""
+    , libraryfns    = []
 }
 
 newtype Codegen a = Codegen { runCodegen :: State CodegenState a }

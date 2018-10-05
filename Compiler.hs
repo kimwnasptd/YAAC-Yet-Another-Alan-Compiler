@@ -22,7 +22,6 @@ process modo source = do
     -- putStrLn (res ++ "\n\nASSEMBLY CODE\n-------------\n")
     ast <- codegen modo parseTree
     return $ Just ast
-    -- return  ast    -- NOTE: Thought this would work alone...
 
 processFile :: String -> IO (Maybe AST.Module)
 processFile fname = readFile fname >>= process initModule

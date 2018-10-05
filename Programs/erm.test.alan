@@ -2,15 +2,20 @@ main () : proc
   a : int;
   frame : byte[1];
 
-  nested():proc
-  {
-  a = 5 ;
-  }
+  nested() : proc
+    deeply_nested() : proc
+    {
+    a = a * a ;
+    frame[0] = 'b' ;  
+}
 
   {
-    -- a = 5 ;
-    nested();
-    writeInteger(a);
+  a = a + 1  ;
+}
+
+  {
+
+   nested () ;
   }   -- main body
 
 

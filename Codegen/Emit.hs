@@ -92,7 +92,7 @@ cgenFuncDef (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     entry <- addBlock entryBlockName
     setBlock entry                    -- change the current block to the new function
     addFArgs args_lst                 -- add parameters to symtable
-    addFunc name args_lst f_type      -- NOTE: add the function to the inside scope as well ?
+    addFunc name args_lst f_type      -- NOTE: add the function to the inside scope as well
     addLDefLst ldef_list              -- add the local definitions of that function, this is where the recursion happens
     putframe
     escapevars
@@ -120,8 +120,16 @@ cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
     refs <- forM (fn_args fun_info) (\(_,_,ref,_) -> return ref)
     arg_operands <- mapM cgen_arg (zip args refs)
     foo_operand <- getfun fn
-    call_void foo_operand arg_operands
+    disp <- getvar "display"
+    lbr_fns <- gets libraryfns
+    case  fn `elem`  lbr_fns of
+        True -> call_void foo_operand arg_operands
+        _    -> call_void foo_operand (arg_operands ++ [disp] )
     return ()
+    -- -- call_void foo_operand arg_operands
+    -- return ()                                                NOTE: ASK SOMEONE
+
+
 cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
     ifthen <- addBlock "if.then"
     ifelse <- addBlock "if.else"
@@ -224,7 +232,12 @@ cgen_expr (S.Expr_Fcall (S.Func_Call fn args ) ) = do
     refs <- forM (fn_args fun_info) (\(_,_,ref,_) -> return ref)
     arg_operands <- mapM cgen_arg (zip args refs)
     foo_operand <- getfun fn
-    call foo_operand arg_operands
+    disp <- getvar "display"
+    lbr_fns <- gets libraryfns
+    case  fn `elem`  lbr_fns of
+        True -> call foo_operand arg_operands
+        _    -> call foo_operand (arg_operands ++ [disp] )
+
 cgen_expr (S.Expr_Char ch_str) = do
     return $ toChar (head ch_str)
 cgen_expr (S.Expr_Pos expr ) = cgen_expr expr
@@ -311,7 +324,6 @@ getvar var = do
 -- takes the nesting level in which a non local variable can be found
 -- and the var_info of that function in order to add it to our own scope
 
-
 putvar :: String -> Int -> VarInfo -> Codegen Operand
 putvar fn_name level v_info = do
     let (offset, v_name ) =  (var_idx v_info, var_name v_info )   --calculate the offset for local rec
@@ -324,13 +336,15 @@ putvar fn_name level v_info = do
     fp_op <- load offseted_ptr              -- load that display value -> that is the frame ptr we are looking for
 
     recovered_op <- call local_recover_operand [ bitcasted_func , fp_op ,(toInt offset) ]
-    -- recovered_op_bcasted <- bitcast recovered_op (type_to_ast $ var_type v_info)
-    recovered_op_bcasted <- bitcast recovered_op (ptr i32)
-
+    recovered_op_bcasted <- bitcast recovered_op ( proper_type $ var_type v_info)   -- bitcast the * i8 return of localrecover back
 
     let new_info = v_info { var_operand = Just recovered_op_bcasted}
     addSymbol v_name (V new_info)
     return $ recovered_op_bcasted
+    where
+        proper_type IntType  = ptr $ type_to_ast IntType
+        proper_type ByteType = ptr $ type_to_ast ByteType
+        proper_type rest =  type_to_ast rest
 
 getfun :: SymbolName -> Codegen Operand
 getfun fn = do
@@ -356,14 +370,11 @@ putframe = do
     store offseted_ptr frame_op
     return ()
 
--- TODO: Return the bitcasted function Frame Pointer (i8*)
 getframe :: Int -> Codegen Operand
 getframe idx = do
     let offset = toInt idx   --generate the expression for the offset
     tbl_operand <- getvar "display"     -- get the table operand
     create_ptr tbl_operand [offset] "display"
-
-
 
 escapevars :: Codegen ()
 escapevars = do
@@ -371,7 +382,8 @@ escapevars = do
     case funs of
         [self] -> return ()  -- Leaf function
         funs   -> do
-            vars <- currvars        -- take the variables of the curret scope
+            vars_withdisp <- currvars         -- take the variables of the curret scope INCLUDING display
+            let vars = filter ( \x ->  (var_type x) /= DisplayType ) vars_withdisp
             operands <- forM vars (getvar . var_name)
             fn_operand <- getfun "llvm.localescape"      -- localescape every variable in the function
             call_void fn_operand operands
@@ -381,9 +393,6 @@ escapevars = do
             updateids vars (newid + 1)
           updateids [] _ = return ()
 
--- TODO: Call to localrecover, used in putvar
-recovervar :: SymbolName -> Codegen Operand
-recovervar var = return one
 
 -------------------------------------------------------------------------------
 -- Driver Functions for navigating the Tree
@@ -394,7 +403,7 @@ addFunc name args_lst f_type = do
     scpnm <- getScopeName
     nest <- gets $ nesting . currentScope
     let our_ret = getFunType f_type   -- we format all of the function stuff properly
-        fun_args = (map createArgType args_lst) ++ (argdisplay nest)
+        fun_args = (map createArgType args_lst) ++ (argdisplay nest name)
         fn_info = createFunInfo name fun_args our_ret
     fun <- addFunOperand fn_info
     addSymbol (fn_name fn_info) (F fun)   -- > add the function to our SymbolTable
@@ -429,6 +438,8 @@ addLibraryFns :: [FunInfo] -> Codegen ()
 addLibraryFns (fn:fns) = do
     define $ externalFun retty label argtys vargs
     addSymbol (fn_name fn) (F fn)
+    libfns <- gets libraryfns
+    modify $ \s -> s {libraryfns = label:libfns}
     addLibraryFns fns
     where
         retty = type_to_ast (result_type fn)
