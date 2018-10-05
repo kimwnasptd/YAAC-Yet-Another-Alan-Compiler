@@ -1,21 +1,43 @@
 main () : proc
-  a : int;
-  frame : byte[1];
+
+  f : byte[10];
+  c : int ;
+  b : int ;
+  e : int ;
+  despoina : byte[10];
+  a : int ;
+
 
   nested() : proc
-    deeply_nested() : proc
-    {
-    a = a * a ;
-    frame[0] = 'b' ;  
-}
 
   {
   a = a + 1  ;
-}
+  b = b + 5  ;
+  e = 7 ;
+  c =  9  ;
+  f[0] = 'b';
+  despoina[5] = 'h' ;
+
+
+  -- writeInteger(a);
+  -- writeInteger(b);
+  -- writeInteger(c);
+
+
+  }  -- nested body
 
   {
-
-   nested () ;
+  writeInteger(a);  -- 0
+  writeInteger(b);  -- 0
+  writeInteger(c);  -- 0
+  writeInteger(e);  -- 0
+  nested () ;
+  writeInteger(e);  -- 7
+  writeInteger(c);  -- 9
+  writeInteger(b);  -- 5
+  writeInteger(a);  -- 1
+  writeChar(f[0]);  -- b
+  writeChar(despoina[5]); -- h 
   }   -- main body
 
 

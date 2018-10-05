@@ -66,6 +66,7 @@ data Scope = Scope {
     , blocks          :: Map.Map Name BlockState
     , blockCount      :: Int
     , count           :: Word -- Count of unnamed instructions
+    , max_index       :: Int
     , parent_scope    :: Maybe Scope  -- Used when we close a scope
   }
   deriving Show
@@ -97,6 +98,7 @@ emptyScope = Scope {
       , blocks = Map.empty
       , blockCount = 1
       , count = 0
+      , max_index = 0 
       , parent_scope = Nothing    -- Genesis Scope doesn't have a parent
   }
 

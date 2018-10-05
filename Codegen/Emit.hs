@@ -19,6 +19,7 @@ import qualified LLVM.AST.FloatingPointPredicate as FP
 import Data.Char
 import Data.Word
 import Data.Int
+import Data.List
 import Control.Monad.Except
 import Control.Applicative
 import Control.Monad.State
@@ -46,7 +47,7 @@ codegen mod main = withContext $ \context ->
         withPassManager passes $ \pm -> do
             runPassManager pm m
             llstr <- moduleLLVMAssembly m
-            verify m
+            -- verify m
             putStrLn $ BS8.unpack llstr  -- Convert ByteString -> String
             return newast
   where
@@ -326,7 +327,9 @@ getvar var = do
 
 putvar :: String -> Int -> VarInfo -> Codegen Operand
 putvar fn_name level v_info = do
+    -- error "putvar was called "
     let (offset, v_name ) =  (var_idx v_info, var_name v_info )   --calculate the offset for local rec
+    -- let new_thingy = if ( offset /= 0 ) then (error "oopsies!!!") else "mhtsos"
     local_recover_operand <- getfun "llvm.localrecover"
     func_operand <- getfun fn_name      --get the func operand used in llvm.localrecover
     bitcasted_func <- bitcast func_operand (ptr i8)  -- bitcast the function operand to * i8 for localrecover
@@ -384,14 +387,43 @@ escapevars = do
         funs   -> do
             vars_withdisp <- currvars         -- take the variables of the curret scope INCLUDING display
             let vars = filter ( \x ->  (var_type x) /= DisplayType ) vars_withdisp
-            operands <- forM vars (getvar . var_name)
+            let sortedVars = var_sort vars
+            operands <- forM sortedVars (getvar . var_name)
             fn_operand <- getfun "llvm.localescape"      -- localescape every variable in the function
             call_void fn_operand operands
-            updateids vars 0
-    where updateids (var:vars) newid = do                -- update all indexes (dumb dumb way <3 )
-            updateSymbol (var_name var) (V var{var_idx = newid})
-            updateids vars (newid + 1)
-          updateids [] _ = return ()
+            -- updateids vars 0
+            return () where
+                var_sort :: [VarInfo] -> [VarInfo]
+                var_sort = sortBy ( \a b -> compare (var_idx a)  (var_idx b) )
+
+
+-- takes a list of VarInfos and updates their index
+-- updateids :: [VarInfo] -> Int -> Codegen ()
+-- updateids _ 5  = error "oopsies daisies"
+-- updateids (var:rest) num = do
+--     let newVar = var{ var_idx = num }
+--     updateSymbol (var_name newVar) (V newVar)
+--     updateids rest (num + 1 )
+--
+--
+-- updateids [] _ = return ()
+
+-- escapevars :: Codegen ()
+-- escapevars = do
+--     funs <- currfuns            -- take all the functions in our scope
+--     case funs of
+--         [self] -> return ()  -- Leaf function
+--         funs   -> do
+--             vars_withdisp <- currvars         -- take the variables of the curret scope INCLUDING display
+--             let vars = filter ( \x ->  (var_type x) /= DisplayType ) vars_withdisp
+--             operands <- forM vars (getvar . var_name)
+--             fn_operand <- getfun "llvm.localescape"      -- localescape every variable in the function
+--             call_void fn_operand operands
+--             updateids vars 0
+--     where updateids (var:vars) newid = do                -- update all indexes (dumb dumb way <3 )
+--             updateSymbol (var_name var) (V var{var_idx = newid})
+--             updateids vars (newid + 1)
+--           updateids [] _ = return ()
 
 
 -------------------------------------------------------------------------------
@@ -414,7 +446,11 @@ addVar vdef = do
     scpnm <- getScopeName
     var_info <- createVar_from_Def vdef    -- create the new VarInfo filed to be inserted in the scope
     var <- addVarOperand var_info         -- NOTE: add the operand to the varinfo field
-    addSymbol (var_name var_info) (V var)
+    current_scope <- gets currentScope
+    let curr_index = max_index current_scope    -- get the current max index
+    let new_var = var{ var_idx = curr_index}    -- update the index for localescape
+    modify $ \s -> s { currentScope = (current_scope) { max_index = curr_index + 1  } }
+    addSymbol (var_name var_info) (V new_var)
 
 -- Put the Function args to the function's scope, as variables
 addFArgs :: S.FPar_List -> Codegen ()
