@@ -1,0 +1,19 @@
+main () : proc
+  a : int;
+  frame : byte[1];
+
+  nested():proc
+  {
+  a = 5 ;
+  }
+
+  {
+    -- a = 5 ;
+    nested();
+    writeInteger(a);
+  }   -- main body
+
+
+-- YAAC-ll: EncodeException "The serialized GlobalReference Name \"nested\" has type
+-- PointerType {pointerReferent = FunctionType {resultType = VoidType, argumentTypes = [],                                                                                                                                                           isVarArg = False}, pointerAddrSpace = AddrSpace 0} but should have type
+-- PointerType {pointerReferent = FunctionType {resultType = VoidType, argumentTypes = [PointerType {pointerReferent = PointerType {pointerReferent = IntegerType {typeBits = 8}, pointerAddrSpace = AddrSpace 0}, pointerAddrSpace = AddrSpace 0}], isVarArg = False}, pointerAddrSpace = AddrSpace 0}"

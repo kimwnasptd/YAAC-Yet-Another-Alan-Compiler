@@ -306,18 +306,31 @@ getvar var = do
             Just op -> return op
         (Right ( scp, V var_info) )   -> case var_operand var_info of
             Nothing -> error $ "Symbol " ++ (show var) ++ " has no operand in the parent function!"
-            Just op -> putvar (nesting scp) var_info
+            Just op -> putvar (scp_name scp) (nesting scp) var_info  -- we need to put it in the scope
 
-putvar :: Int -> VarInfo -> Codegen Operand
-putvar level v_info = do
-    let (offset, v_name ) =  (var_idx v_info, var_name v_info )   -- get necessary fields FU HASKELL
-    -- TODO: Remove this and cgen properly
-    var <- allocavar (symb_to_astp (V v_info)) v_name
-    store var one
-    let new_info = v_info { var_operand = Just var}
-    -- TODO: up to here
+-- takes the nesting level in which a non local variable can be found
+-- and the var_info of that function in order to add it to our own scope
+
+
+putvar :: String -> Int -> VarInfo -> Codegen Operand
+putvar fn_name level v_info = do
+    let (offset, v_name ) =  (var_idx v_info, var_name v_info )   --calculate the offset for local rec
+    local_recover_operand <- getfun "llvm.localrecover"
+    func_operand <- getfun fn_name      --get the func operand used in llvm.localrecover
+    bitcasted_func <- bitcast func_operand (ptr i8)  -- bitcast the function operand to * i8 for localrecover
+
+    curr_display <- getvar "display"     -- get the display
+    offseted_ptr <- create_ptr curr_display [toInt level] "display"  -- get a display.elem ptr at the proper position in the frame
+    fp_op <- load offseted_ptr              -- load that display value -> that is the frame ptr we are looking for
+
+    recovered_op <- call local_recover_operand [ bitcasted_func , fp_op ,(toInt offset) ]
+    -- recovered_op_bcasted <- bitcast recovered_op (type_to_ast $ var_type v_info)
+    recovered_op_bcasted <- bitcast recovered_op (ptr i32)
+
+
+    let new_info = v_info { var_operand = Just recovered_op_bcasted}
     addSymbol v_name (V new_info)
-    return $ var
+    return $ recovered_op_bcasted
 
 getfun :: SymbolName -> Codegen Operand
 getfun fn = do
@@ -333,7 +346,6 @@ init_display lvl = do
     disp_info <- addVarOperand (display lvl)
     addSymbol "display" (V disp_info)
 
--- TODO: Put the functions Stack Frame Pointer to the display
 putframe :: Codegen ()
 putframe = do
     curr_nst     <- gets $ nesting . currentScope  -- get current nesting level

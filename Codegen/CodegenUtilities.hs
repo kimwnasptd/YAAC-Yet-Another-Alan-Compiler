@@ -77,6 +77,7 @@ type_to_ast ProcType = TP.void
 type_to_ast TableIntType = ptr i32
 type_to_ast TableByteType = ptr i8
 type_to_ast DisplayType = ptr (ptr i8)
+-- type_to_ast FNPTR = 
 
 -- If a var is ref, then its AST.Type will be ptr
 to_type :: SymbolType -> Bool -> AST.Type
@@ -248,7 +249,7 @@ currvars = do
           keepvars [] = []
 
 
--- keeps only the functions from the current scope 
+-- keeps only the functions from the current scope
 currfuns :: Codegen [FunInfo]
 currfuns = do
     syms <- gets $ symbols . currentScope
