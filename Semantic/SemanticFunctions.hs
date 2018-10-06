@@ -132,7 +132,7 @@ type_check left right fn = do
     right_type <- getExprType right
     case (left_type, right_type) of
         (IntType, IntType) -> return IntType
-        (ByteType, ByteType) -> return IntType
+        (ByteType, ByteType) -> return ByteType
         _ -> error $ "Can't " ++ fn ++ " a " ++ (show left_type) ++ " with a " ++ (show right_type)
 
 -- Left Values
