@@ -451,8 +451,14 @@ mul a b = instr $ Mul True True a b []
 sdiv :: Operand -> Operand -> Codegen Operand
 sdiv a b = instr $ SDiv True a b []
 
+udiv :: Operand -> Operand -> Codegen Operand
+udiv a b = instr $ UDiv True a b []
+
 srem :: Operand -> Operand -> Codegen Operand
 srem a b = instr $ SRem  a b []
+
+urem :: Operand -> Operand -> Codegen Operand
+urem a b = instr $ URem  a b []
 
 -- cmp :: FP.FloatingPointPredicate -> Operand -> Operand -> Codegen Operand
 -- cmp cond a b = instr $ FCmp cond a b []

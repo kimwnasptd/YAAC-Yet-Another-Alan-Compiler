@@ -3,8 +3,9 @@ main () : proc
     z : int ;
 {
     -- Main
-    b = '\x00' + '\xFF';
+    b = '\xFF' % '\x09';
     writeString("B is: ");
     writeByte(b);
+    writeChar('\n');
     return;
 }

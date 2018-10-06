@@ -222,11 +222,17 @@ cgen_expr (S.Expr_Tms e1 e2) = do
 cgen_expr (S.Expr_Div e1 e2) = do
     ce1 <- cgen_expr e1
     ce2 <- cgen_expr e2
-    sdiv ce1 ce2
+    tp  <- getExprType e1
+    case tp of
+        IntType  ->  sdiv ce1 ce2
+        ByteType ->  udiv ce1 ce2
 cgen_expr (S.Expr_Mod e1 e2) = do
     ce1 <- cgen_expr e1
     ce2 <- cgen_expr e2
-    srem ce1 ce2
+    tp  <- getExprType e1
+    case tp of
+        IntType  ->  srem ce1 ce2
+        ByteType ->  urem ce1 ce2    
 cgen_expr (S.Expr_Fcall (S.Func_Call fn args ) ) = do
     F fun_info <- getSymbol fn
     refs <- forM (fn_args fun_info) (\(_,_,ref,_) -> return ref)
