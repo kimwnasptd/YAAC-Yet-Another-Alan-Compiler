@@ -82,8 +82,8 @@ createArgType ( FPar_Def_NR  str (Table_Type (D_Type TByte)) ) = error $ "tables
 createVar_from_Def :: Var_Def -> Codegen VarInfo
 createVar_from_Def ( VDef str (D_Type TInt) )         = createVarInfo str IntType  0 Nothing False
 createVar_from_Def ( VDef str (D_Type TByte) )        = createVarInfo str ByteType 0 Nothing False
-createVar_from_Def ( VDef_T str (D_Type TInt) dim  )  = createVarInfo str TableIntType  0 (Just dim) False
-createVar_from_Def ( VDef_T str (D_Type TByte) dim )  = createVarInfo str TableByteType 0 (Just dim) False
+createVar_from_Def ( VDef_T str (D_Type TInt) dim  )  = createVarInfo str TableIntType  0 (Just dim) True
+createVar_from_Def ( VDef_T str (D_Type TByte) dim )  = createVarInfo str TableByteType 0 (Just dim) True
 -- Whenever we create a variable from a Var_Def, it's always NOT by reference
 -- If it's a table, we know a priori its size, so we add it
 -- Else, we add Nothing to the dimension

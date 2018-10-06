@@ -324,30 +324,19 @@ getvar var = do
 
 -- takes the nesting level in which a non local variable can be found
 -- and the var_info of that function in order to add it to our own scope
-
 putvar :: String -> Int -> VarInfo -> Codegen Operand
 putvar fn_name level v_info = do
-    -- error "putvar was called "
     let (offset, v_name ) =  (var_idx v_info, var_name v_info )   --calculate the offset for local rec
-    -- let new_thingy = if ( offset /= 0 ) then (error "oopsies!!!") else "mhtsos"
     local_recover_operand <- getfun "llvm.localrecover"
-    func_operand <- getfun fn_name      --get the func operand used in llvm.localrecover
+    func_operand <- getfun fn_name
     bitcasted_func <- bitcast func_operand (ptr i8)  -- bitcast the function operand to * i8 for localrecover
+    fp_op <- getframe level              -- load the frame ptr we are looking for
 
-    curr_display <- getvar "display"     -- get the display
-    offseted_ptr <- create_ptr curr_display [toInt level] "display"  -- get a display.elem ptr at the proper position in the frame
-    fp_op <- load offseted_ptr              -- load that display value -> that is the frame ptr we are looking for
+    recovered_op <- call local_recover_operand [bitcasted_func , fp_op ,(toInt offset) ]
+    op <- convert_op recovered_op v_info
 
-    recovered_op <- call local_recover_operand [ bitcasted_func , fp_op ,(toInt offset) ]
-    recovered_op_bcasted <- bitcast recovered_op ( proper_type $ var_type v_info)   -- bitcast the * i8 return of localrecover back
-
-    let new_info = v_info { var_operand = Just recovered_op_bcasted}
-    addSymbol v_name (V new_info)
-    return $ recovered_op_bcasted
-    where
-        proper_type IntType  = ptr $ type_to_ast IntType
-        proper_type ByteType = ptr $ type_to_ast ByteType
-        proper_type rest =  type_to_ast rest
+    addSymbol v_name (V v_info { var_operand = Just op })
+    return $ op
 
 getfun :: SymbolName -> Codegen Operand
 getfun fn = do
@@ -375,9 +364,10 @@ putframe = do
 
 getframe :: Int -> Codegen Operand
 getframe idx = do
-    let offset = toInt idx   --generate the expression for the offset
-    tbl_operand <- getvar "display"     -- get the table operand
-    create_ptr tbl_operand [offset] "display"
+    let offset = toInt idx
+    tbl_operand <- getvar "display"
+    display_pos <- create_ptr tbl_operand [offset] "display"
+    load display_pos
 
 escapevars :: Codegen ()
 escapevars = do
@@ -388,43 +378,40 @@ escapevars = do
             vars_withdisp <- currvars         -- take the variables of the curret scope INCLUDING display
             let vars = filter ( \x ->  (var_type x) /= DisplayType ) vars_withdisp
             let sortedVars = var_sort vars
-            operands <- forM sortedVars (getvar . var_name)
+            -- operands <- forM sortedVars (getvar . var_name)
+            operands <- forM sortedVars escape_op
             fn_operand <- getfun "llvm.localescape"      -- localescape every variable in the function
             call_void fn_operand operands
-            -- updateids vars 0
-            return () where
-                var_sort :: [VarInfo] -> [VarInfo]
-                var_sort = sortBy ( \a b -> compare (var_idx a)  (var_idx b) )
+            return ()
+    where
+        var_sort :: [VarInfo] -> [VarInfo]
+        var_sort = sortBy ( \a b -> compare (var_idx a)  (var_idx b) )
 
+-- In case of Tables, we 'alloca' a Pointer Holder and escape that one
+escape_op :: VarInfo -> Codegen Operand
+escape_op vinfo
+    | (byreference vinfo) == False = getvar $ var_name vinfo
+    | otherwise = do
+        addr <- getvar $ var_name vinfo
+        ptr_holder <- allocavar (to_type tp ref) nm -- The holder of the pointer is what we escape
+        store ptr_holder addr >> return ptr_holder
+    where tp  = var_type vinfo
+          nm  = var_name vinfo
+          ref = byreference vinfo
 
--- takes a list of VarInfos and updates their index
--- updateids :: [VarInfo] -> Int -> Codegen ()
--- updateids _ 5  = error "oopsies daisies"
--- updateids (var:rest) num = do
---     let newVar = var{ var_idx = num }
---     updateSymbol (var_name newVar) (V newVar)
---     updateids rest (num + 1 )
---
---
--- updateids [] _ = return ()
-
--- escapevars :: Codegen ()
--- escapevars = do
---     funs <- currfuns            -- take all the functions in our scope
---     case funs of
---         [self] -> return ()  -- Leaf function
---         funs   -> do
---             vars_withdisp <- currvars         -- take the variables of the curret scope INCLUDING display
---             let vars = filter ( \x ->  (var_type x) /= DisplayType ) vars_withdisp
---             operands <- forM vars (getvar . var_name)
---             fn_operand <- getfun "llvm.localescape"      -- localescape every variable in the function
---             call_void fn_operand operands
---             updateids vars 0
---     where updateids (var:vars) newid = do                -- update all indexes (dumb dumb way <3 )
---             updateSymbol (var_name var) (V var{var_idx = newid})
---             updateids vars (newid + 1)
---           updateids [] _ = return ()
-
+-- Bitcasts the result of llvm.localrecover to the corect type
+convert_op :: Operand -> VarInfo -> Codegen Operand
+convert_op recovered_op vinfo
+    | ref == False = bitcast recovered_op (proper_type tp ref)
+    | otherwise    = bitcast recovered_op (proper_type tp ref) >>= load >>= return
+    where tp = var_type vinfo
+          ref = byreference vinfo
+          proper_type IntType  False = ptr i32
+          proper_type ByteType False = ptr i8
+          proper_type IntType  True  = ptr (ptr i32)
+          proper_type ByteType True  = ptr (ptr i8)
+          -- proper_type tabletp _      = error $ show vinfo
+          proper_type tabletp _      = ptr $ type_to_ast tabletp
 
 -------------------------------------------------------------------------------
 -- Driver Functions for navigating the Tree

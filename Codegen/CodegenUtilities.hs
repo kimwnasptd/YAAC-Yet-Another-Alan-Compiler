@@ -248,7 +248,6 @@ currvars = do
           keepvars ((F fun):syms) = keepvars syms
           keepvars [] = []
 
-
 -- keeps only the functions from the current scope
 currfuns :: Codegen [FunInfo]
 currfuns = do

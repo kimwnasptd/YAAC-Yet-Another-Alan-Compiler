@@ -2,19 +2,17 @@ main () : proc
     a : int;
     frame : byte[10];
 
-    -- nested(b: reference byte[]):proc
-    nested():proc
-    -- deep():proc
-    -- { b[0] = '\x42';}
+    nested(b:reference byte[]):proc
+        ref():proc {writeByte(b[0]); writeString("\n");}
+        arr():proc {writeByte(frame[0]); writeString("\n");}
+
     {
-        a = 17;
-        -- frame[0] = '\x42';
-        writeByte(frame[0]);
-        writeString("\n");
+        b[0] = '\x42';
+        ref();
+        arr();
     }
 
     {
-        frame[0] = '\x42';
-        nested();
+        nested(frame);
         writeByte(frame[0]);
     }   -- main body
