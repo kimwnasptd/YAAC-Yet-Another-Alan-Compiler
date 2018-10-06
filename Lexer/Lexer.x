@@ -26,7 +26,7 @@ $esc_seq = [\n \t \r]
 
 @string_sp  = \\\" | \\\' | \\$quotable | \\x $hexdig $hexdig                              --"
 @string     = \" ( $quotable | @string_sp )* \"               -- Printable contains $white  " just fixed all the coments for you <3
-@chars      = \' ($alpha | $digit | \\x $hexdig $hexdig | @string_sp ) \'     -- Missing some characters
+@chars      = \' ($alpha | $digit | \\x $hexdig $hexdig | @string_sp | $quotable) \'     -- Missing some characters
 @name       = $alpha[$alpha $digit \_]*
 
 tokens :-

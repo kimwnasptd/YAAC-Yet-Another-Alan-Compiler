@@ -1,0 +1,10 @@
+--this program reads a number N> 10 and prints the penultimate its digit.
+
+program () : proc
+num: byte[100];
+{
+	writeString("Give me a number N>10:\n");
+	readString(100,num);
+	writeChar(num[strlen(num)-2]);
+	writeChar('\n');
+}

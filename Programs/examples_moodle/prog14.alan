@@ -1,0 +1,160 @@
+--this program :
+-- reads the number of elements N ≤ 50,000 from the first line of the input.
+-- reads from the second line of the input the N elements of Table A and the third line
+-- of the entry of the N elements of Table B. 
+-- The elements of A and B are integers are separated by a blank and given in random order (not sorted). 
+-- Checks whether Tables A and B have all their elements the same. 
+-- If so, the program prints the word "yes". 
+-- If not, the program prints (on the same line, separated by a blank) the word "no", 
+-- the smallest element in one table and none at the other, 
+-- and the largest element in a table and not on the other.
+
+program () : proc
+
+	swap(x: reference int, y : reference int): proc
+	temp: int;
+	{
+		temp = x;
+		x = y;
+		y = temp;
+	}
+
+	partition (arr: reference int[], low: int, high: int): int
+	pivot: int;
+	i : int;
+	j: int;
+	{
+	    pivot = arr[high];  
+	 
+	    i = (low - 1) ;
+	    j = low;
+	    while (j <= high- 1)
+	    {
+	        if (arr[j] <= pivot)
+	        {
+	            i = i+1;    
+	            swap (arr[i] , arr[j]);
+	        }
+	        j = j+1;
+	    }
+	    swap (arr[i + 1], arr[high]);
+	    return (i + 1);
+	}
+	
+	quickSort(arr: reference int[], low: int, high: int): proc
+	pi: int;
+	{
+	    if (low < high)
+	    {
+	        
+	        pi = partition(arr, low, high);
+
+	        quickSort(arr, low, pi - 1);  -- Before pi
+	        quickSort(arr, pi + 1, high); -- After pi
+	    }
+	}
+
+	isSame(arr1: reference int[], arr2: reference int[], size: int, max: reference int, min: reference int) : int
+	i: int;
+	flag: int;
+	{
+		max = -1;
+		min = 1000;
+		i=0;
+		flag = 1;
+		while(i<size){
+			if(arr1[i] != arr2[i]){
+				if(flag == 1){ -- is first difference
+					if(arr1[i]<arr2[i])
+						min = arr1[i];
+					else
+						min = arr2[i];
+				}
+				else{
+					if(max< arr2[i] | max <arr1[i]){
+						if(arr1[i]<arr2[i])
+							max = arr2[i];
+						else
+							max = arr1[i];
+					}
+				}
+				flag =0;
+			}
+			i = i+1;
+		}
+		return flag;
+	}
+
+	convertInput(result: reference int[], line: reference byte[], size: int) : proc
+	i: int;
+	j: int;
+	prev: byte;
+	{
+		i =0;
+		j =0;
+		prev = ' ';
+		while(i < size & line[i]!='\n'){
+
+			if(prev!= ' '){ 
+				if(line[i]!= ' ' )
+					result[j-1] = result[j-1]*10 + extend(line[i]) -48;
+				else
+					prev = ' ';
+			}
+			else{
+				if(line[i] != ' ' ){
+					result[j] = extend(line[i]) -48;
+					j = j+1;
+					prev = line[i];
+				}
+				else
+					prev = ' ';
+			}
+
+			i = i+1;
+		}
+	}
+	
+
+
+i: int;
+m: int;
+array1: int[20];
+max: int;
+min: int;
+
+array2: int[20];
+line: byte[101];
+{
+	writeString("Give me a number:\n");
+	m = readInteger();
+	writeString("Give me table A["); 
+	writeInteger(m);
+	writeString("]:\n");
+
+	readString(100,line);
+	convertInput(array1,line,strlen(line));
+	writeString("Give me table B["); 
+	writeInteger(m);
+	writeString("]:\n");
+
+	readString(100,line);
+	convertInput(array2,line,strlen(line));
+
+	quickSort(array1,0,m-1);
+	quickSort(array2,0,m-1);
+
+	if(isSame(array1,array2, m, max, min) ==1)
+	{
+		writeString("yes\n");
+	}
+	else{
+		writeString("no ");
+		writeInteger(min);
+		writeChar(' ');
+		writeInteger(max);
+		writeChar('\n');
+	}
+	
+}
+		

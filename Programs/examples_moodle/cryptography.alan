@@ -1,0 +1,103 @@
+program ()  : proc
+
+	reverse(alphabet: reference byte[], new: reference byte[]): proc
+	i: int;
+	{
+		i =0;
+		while(i<26){
+			new[extend(alphabet[i]) - 97] = shrink(i +97);
+			i = i+1;
+		}
+		writeString(new);
+		writeChar('\n');
+	}
+	
+	encrypt(text: reference byte[], cipher: reference byte[], size: int, alphabet: reference byte[]) : proc
+	i : int;
+	{
+		i =0;
+		while(i<size){
+			if(extend(text[i]) >= 65 & extend(text[i]) <= 90 ){
+				cipher[i] = alphabet[extend(text[i]) - 97 + 32];
+				cipher[i] = cipher[i] -shrink(32);
+			}
+			else{
+
+				if(extend(text[i]) >= 97 & extend(text[i]) <= 122 ){
+					cipher[i] = alphabet[extend(text[i]) - 97];
+				}
+				else{
+					cipher[i] = text[i];
+				}
+			}
+			i = i+1;
+		}
+
+	}
+
+	checkAlphabet(array: reference byte[]) : int
+	check: int[27];
+	i : int;
+	{
+		-- init
+		i =0;
+		while(i<26){
+			check[i] = 0;
+			i = i+1;
+		}
+		if(strlen(array)!= 26){
+			return 0;
+		}
+		i =0;
+		while(i<26){
+			if(check[extend(array[i]) - 97] == 1){
+				return 0;
+			}
+			else{
+				check[extend(array[i]) - 97] = 1;
+			}
+			i = i+1;
+		}
+		return 1;
+	}
+
+alphabet: byte [27];
+rev_alphabet: byte[27];
+text: byte [201];
+answer: byte[20];
+cipher: byte [201];
+oo: int;
+{
+	writeString("Give me new alphabet:\n");
+	readString(30,alphabet);
+	if( checkAlphabet(alphabet) == 0){
+		writeString("Error: wrong!!! \n Exiting... \n");
+		return;
+	}
+	writeString("Tell me encrypt or decrypt\n");
+	readString(30, answer);
+
+	
+
+	if(answer[0] == 'd'){
+		writeString("Give me cipher text:\n");
+		readString(200,text);
+		reverse(alphabet ,rev_alphabet);
+		encrypt(text,cipher,strlen(text), rev_alphabet);
+		writeString("Plaintext is: \n");
+	}
+	else{
+		writeString("Give me plain text:\n");
+		readString(200,text);
+		encrypt(text,cipher,strlen(text), alphabet);
+		writeString("Ciphertext is: \n");
+	}
+	
+	
+	writeString(cipher);
+	writeChar('\n');
+	return;
+
+	
+	
+}

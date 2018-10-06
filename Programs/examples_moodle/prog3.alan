@@ -1,0 +1,138 @@
+-- this program is extension of prog2 
+-- all numerical operations with fractions (addition,subtraction, multiplication, division)
+program () : proc
+
+	simple (x: reference int, y: reference int): proc
+	i: int;
+	{
+		if(x<y){
+			i = x;
+		}
+		else{
+			i = y;
+		}
+		while (i > 0){
+			if(x%i == 0 & y%i ==0){
+				x = x/i;
+				y = y/i;
+				i = 0;
+			}
+
+			i = i-1;
+		}
+
+	}
+
+
+	readFraction(x: reference int, y: reference int) : proc
+	{
+		writeString("\nGive me a fraction:\n");
+		writeString("nominator: ");
+		x = readInteger();
+		writeString("denominator: ");
+		y = readInteger();
+		while( y ==0){
+			writeString("Error: cannot divide with zero!\n");
+			writeString("Give again denominator: ");
+			y = readInteger();
+		}
+
+	}
+
+	-- addition with fractions. the result is saved to first fraction
+	add(a1: reference int, p1: reference int, a2:int, p2:int) : proc
+	{
+		a1 = p2*a1;
+		a2 = p1*a2;
+
+		a1 = a1+a2;
+		p1 = p1*p2;
+		simple(a1,p1);
+	}
+
+	-- subtraction with fractions
+	sub(a1: reference int, p1: reference int, a2:int, p2:int) : proc
+	{
+		a1 = p2*a1;
+		a2 = p1*a2;
+	
+		a1 = a1-a2;
+		p1 = p1*p2;
+		simple(a1,p1);
+	}
+
+	-- multiplication with fractions
+	mul(a1: reference int, p1: reference int, a2: int, p2: int) : proc
+	{
+		a1 = a1*a2;
+		p1 = p1*p2;
+		simple(a1,p1);
+	}
+
+	-- division with fractions
+	div(a1: reference int, p1: reference int, a2: int, p2: int) : proc
+	{
+		a1 = a1*p2;
+		p1 = a2*p1;
+		simple(a1,p1);
+	}
+
+	a1 : int;
+	a2: int;
+	p1: int;
+	p2: int;
+	n: int;
+	err : int; --error flag for divide with zero
+	
+	symbol: byte;
+	{	
+		writeString("Num of Operations: ");
+		n = readInteger();
+		while(n>0){
+
+			writeString("\nOperator: ");
+			symbol = readChar();
+			if(symbol!='+' & symbol!='-' & symbol!='*' & symbol!='/' ){
+				writeString("Error: Wrong Operator!\n");
+			}
+			else{
+				readFraction(a1,p1);
+				
+				readFraction(a2,p2);
+					
+				if(symbol == '+'){
+					add(a1,p1,a2,p2);
+				}
+				if(symbol == '-'){
+					sub(a1,p1,a2,p2);
+				}
+				if(symbol == '*'){
+					mul(a1,p1,a2,p2);
+				}
+				if(symbol == '/'){
+					if(a2 == 0){
+						writeString("Error: cannot divide with zero!\n");
+						err = 1;
+					}
+					else{
+						div(a1,p1,a2,p2);
+					}
+				}
+
+				if(err == 0){
+					writeString("\nThe Result is: ");
+					writeInteger(a1);
+					writeChar(' ');
+					writeInteger(p1);
+					writeChar('\n');
+				}
+				
+			}
+			
+			n = n-1;
+		}
+
+	}
+
+	
+	

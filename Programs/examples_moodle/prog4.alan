@@ -1,0 +1,44 @@
+--this program finds all four digits integers equal to the sum of their digits, elevated to the fourth force
+-- example: 1634 = 1^4 + 6^4 + 3^4 + 4^4
+
+program () : proc
+
+	mul_4times (x: int) : int
+	{
+		x = x*x;
+		x = x*x;
+		return x;
+	}
+
+	i:int;
+	sum:int;
+	dekades:int;
+	xiliades:int;
+	ekatontades:int;
+	monades:int;
+	{
+		i =1000;
+		
+		while(i<=9999){
+			sum =0;
+			xiliades = i/1000;
+			ekatontades = i/100;
+			ekatontades = ekatontades%10;
+			dekades = i/10;
+			dekades = dekades%10;
+			monades = i%10;
+			xiliades = mul_4times(xiliades);
+			ekatontades = mul_4times(ekatontades);
+			dekades = mul_4times(dekades);
+			monades = mul_4times(monades);
+			sum = xiliades +ekatontades+dekades+monades;
+			if(sum == i){
+				writeInteger(sum);
+				writeChar('\n');
+			}
+			i = i+1;
+		}
+	}
+
+	
+	

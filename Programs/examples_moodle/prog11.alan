@@ -1,0 +1,241 @@
+-- this program checks if a square table N × N with elements integers (>0) is a "magic square".
+-- this program:
+-- reads from the first line of input the N number of rows and columns of the table (1-150)
+-- reading the table data from the following N lines. 
+-- From each line, the program will reads N numbers separated by spaces.
+-- checks if the table read is a 'magic square', ie it contains all the numbers from 0 to N 2 - 1 
+-- and as long as the two main diagonals, all lines and all columns have the same sum of elements . 
+-- If this happens, the program prints the word "yes" or otherwise prints the word "no".
+
+program () :proc
+
+	convertInput(result: reference int[], line: reference byte[], size: int) : proc
+	i: int;
+	j: int;
+	prev: byte;
+	{
+		i =0;
+		j =0;
+		prev = ' ';
+		while(i < size & line[i]!='\n'){
+
+			if(prev!= ' '){ 
+				if(line[i]!= ' ' )
+					result[j-1] = result[j-1]*10 + extend(line[i]) -48;
+				else
+					prev = ' ';
+			}
+			else{
+				if(line[i] != ' ' ){
+					result[j] = extend(line[i]) -48;
+					j = j+1;
+					prev = line[i];
+				}
+				else
+					prev = ' ';
+			}
+
+			i = i+1;
+		}
+	}
+
+	checkDif(arr: reference int[], row: reference int[], n: int) : int
+	i:  int;
+	{
+		i=0;
+		while(i<n){
+			if(arr[row[i]]==1){
+				return 0;
+			}
+			arr[row[i]] = 1; 
+			i = i+1;
+		}
+		return 1;
+	}
+
+	findSum(arr: reference int[], n:  int) : int
+	i: int;
+	sum: int;
+	{
+		i=0;
+		sum = 0;
+		while(i<n){
+			sum = sum+ arr[i];
+			i = i+1;
+		}
+		return sum;
+	}
+
+
+	checkSum(arr1: reference int[], arr2:reference int[], arr3:reference int[], arr4: reference int[], arr5:reference int[], n: int, sum: reference int): int
+	{
+		sum = findSum(arr1,n);
+		if(n>=2){
+			if(sum!= findSum(arr2,n))
+				return 0;
+			else{
+				if(n>=3)
+				{
+					if(sum!= findSum(arr3,n))
+						return 0;
+					else{
+						if(n>=4)
+						{
+							if(sum!= findSum(arr4,n))
+								return 0;
+							else{
+								if(n>=5)
+								{
+									if(sum!= findSum(arr5,n))
+										return 0;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return 1;
+	}
+
+
+row1: int[10];
+row2: int[10];
+row3: int[10];
+row4: int[10];
+row5: int[10];
+
+	createColumn(col: reference int[], x: int) : proc
+	{
+		col[0] = row1[x];
+		col[1] = row2[x];
+		col[2] = row3[x];
+		col[3] = row4[x];
+		col[4] = row5[x];
+	}
+
+	checkMagicSquare (n: int) : int
+	array: int[30];
+	i: int;
+	sum: int;
+	sum_diag: int;
+	col: int[30];
+	{
+		--check if contains all the numbers
+		if (checkDif(array,row1,n) == 0)
+			return 0;
+		if(n>=2)
+		{
+			if (checkDif(array,row2,n) == 0)
+				return 0;
+			else
+			{
+				if(n>=3)
+				{
+					if (checkDif(array,row3,n) == 0)
+						return 0;
+					else{
+						if (n>= 4){
+							if (checkDif(array,row4,n) == 0)
+								return 0;
+							else{
+								if(n>=5){
+									if (checkDif(array,row5,n) == 0)
+										return 0;
+								}
+							}
+						}
+					}
+				}
+			}	
+		}	
+		sum =0;
+		if (checkSum(row1 , row2, row3, row4, row5, n, sum) == 0)
+			return 0;
+
+
+		i=0;
+		while(i<n){
+			createColumn(col, i);
+			if(sum!= findSum(col,n))
+				return 0;
+			i = i+1;
+		}
+
+		sum_diag = row1[0];
+
+		if(n>=2)
+			sum_diag = sum_diag +row2[1];
+		if(n>=3)
+			sum_diag = sum_diag +row3[2];
+		if(n>=4)
+			sum_diag = sum_diag +row4[3];
+		if(n>=5)
+			sum_diag = sum_diag +row5[4];
+			
+		if( sum_diag != sum){
+			return 0;
+		}
+
+		sum_diag = row1[n-1];
+		
+		if(n>=2)
+			sum_diag = sum_diag +row2[n-2];
+		if(n>=3)
+			sum_diag = sum_diag +row3[n-3];
+		if(n>=4)
+			sum_diag = sum_diag +row4[n-4];
+		if(n>=5)
+			sum_diag = sum_diag +row5[n-5];
+
+		if( sum_diag != sum){
+			return 0;
+		}
+
+		return 1;
+	}
+
+
+n: int;
+i: int;
+line: byte[100];
+{
+	writeString("Give me dimension:\n");
+	n = readInteger();
+	i =0;
+	
+	writeString("Give me a magic square ");
+	writeInteger(n);
+	writeChar('x');
+	writeInteger(n);
+	writeString(" :\n");
+
+	readString(100,line);
+	convertInput(row1,line,strlen(line));
+	if(n>=2){
+		readString(100,line);
+		convertInput(row2,line,strlen(line));
+	}
+	if(n>=3){
+		readString(100,line);
+		convertInput(row3,line,strlen(line));
+	}
+	if(n>=4){
+		readString(100,line);
+		convertInput(row4,line,strlen(line));
+	}
+	if(n>=5){
+		readString(100,line);
+		convertInput(row5,line,strlen(line));
+	}
+
+	writeString("The result if the above table is magical is :\n");
+	if(checkMagicSquare(n) == 1){
+		writeString("yes\n");
+	}
+	else{
+		writeString("no\n");
+	}
+
+}

@@ -1,0 +1,138 @@
+--this program:
+-- reads from the first line of the input one integer M (between 1 and 100).
+-- reads a table of integers 3 × M from the next 3 lines of the input, each of which contains M integer numbers.
+-- finds the largest number of each column and prints the smallest one.
+-- finds the smallest number of each line and prints the largest one.
+
+program () : proc
+
+	array1: int [20];
+	array2: int [20];
+	array3: int [20];
+	convertInput(result: reference int[], line: reference byte[], size: int) : proc
+	i: int;
+	j: int;
+	prev: byte;
+	{
+		i =0;
+		j =0;
+		prev = ' ';
+		while(i < size & line[i]!='\n'){
+
+			if(prev!= ' '){ 
+				if(line[i]!= ' ' )
+					result[j-1] = result[j-1]*10 + extend(line[i]) -48;
+				else
+					prev = ' ';
+			}
+			else{
+				if(line[i] != ' ' ){
+					result[j] = extend(line[i]) -48;
+					j = j+1;
+					prev = line[i];
+				}
+				else
+					prev = ' ';
+			}
+
+			i = i+1;
+		}
+	}
+
+	createColumn(col: reference int[], x: int) : proc
+	{
+		col[0] = array1[x];
+		col[1] = array2[x];
+		col[2] = array3[x];
+	}
+
+	minArray(x: reference int[],size:int) : int
+	min: int;
+	i: int;
+	{
+		min = 10000;
+		i =0;
+		while(i<size){
+			if(x[i]< min){
+				min = x[i];
+			}
+			i = i+1;
+		}
+		return min;
+	}
+
+	maxArray(x: reference int[],size:int) : int
+	max: int;
+	i: int;
+	{
+		max = -10000;
+		i =0;
+		while(i<size){
+			if(x[i]> max){
+				max = x[i];
+			}
+			i = i+1;
+		}
+		return max;
+	}
+	
+	
+	col: int[3];
+	array: int [20];
+
+	line: byte[40];
+	i:int;
+	maximum: int;
+	m: int;
+
+	{
+		writeString("Give me dimension:\n");
+		m = readInteger();
+		writeString("Give me table 3x");
+		writeInteger(m);
+		writeChar('\n');
+
+		
+		readString(100,line);
+		convertInput(array1,line,strlen(line));
+		readString(100,line);
+		convertInput(array2,line,strlen(line));
+		readString(100,line);
+		convertInput(array3,line,strlen(line));
+
+		col[0] = minArray(array1,m);
+		col[1] = minArray(array2,m);
+		col[2] = minArray(array3,m);
+		writeInteger(maxArray(col,3));
+		writeString("\t-- the smallest of each line is ");
+		i=0;
+		while(i<3)
+		{
+			writeInteger(col[i]);
+			writeChar(' ');
+			i = i+1;
+		}
+		writeChar('\n');
+
+		i =0;
+		while(i<m){
+			createColumn(col,i);
+			array[i] = maxArray(col,3);
+			i = i+1;
+		}
+		writeInteger(minArray(array,m));
+		writeString("\t-- the largest of each column is ");
+		i=0;
+		while(i<m)
+		{
+			writeInteger(array[i]);
+			writeChar(' ');
+			i = i+1;
+		}
+
+		writeChar('\n');
+
+	}
+
+	
+	

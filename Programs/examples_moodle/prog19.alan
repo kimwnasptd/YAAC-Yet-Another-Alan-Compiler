@@ -1,0 +1,130 @@
+-- this program:
+-- reads from the first line of entry the number of imports N.
+-- reads from each of the following N lines of the input two positive integers K and X 
+-- and enter the X number in the K-position of the list.
+-- reads from the N + 2 line of the input the number of deletions M <N
+-- reads from each of the following M input lines a positive physical number K 
+-- and deletes the item in the K-position of the list.
+-- reads a positive number K from the N + M + 3 line of the input 
+-- and prints two positive numbers (separated by a blank) corresponding to the current list size 
+-- and the value of the item in the K list of the list. 
+-- In all the above cases, assume that K will always be less than or equal to the current size of the list 
+
+program() : proc
+
+	convertInput(result: reference int[], line: reference byte[], size: int) : proc
+	i: int;
+	j: int;
+	prev: byte;
+	{
+		i =0;
+		j =0;
+		prev = ' ';
+		while(i < size & line[i]!='\n'){
+
+			if(prev!= ' '){ 
+				if(line[i]!= ' ' )
+					result[j-1] = result[j-1]*10 + extend(line[i]) -48;
+				else
+					prev = ' ';
+			}
+			else{
+				if(line[i] != ' ' ){
+					result[j] = extend(line[i]) -48;
+					j = j+1;
+					prev = line[i];
+				}
+				else
+					prev = ' ';
+			}
+
+			i = i+1;
+		}
+	}
+
+	delFromList(array: reference int[],del_i: int, size_arr: reference int, max_i: reference int) : proc
+	i: int;
+	{
+		array[del_i] =0;
+		size_arr = size_arr -1;
+		i = del_i;
+		while(i<max_i){
+			array[i] = array[i+1];
+			i=i+1;
+		}
+		array[max_i] = 0;
+		max_i = max_i -1;
+	}
+
+	addToList(array: reference int[], enter: reference int[], size_arr: reference int, max_i: reference int) : proc
+	i: int;
+	{
+		if(array[enter[0]]==0){ -- is empty position
+			array[enter[0]] = enter[1];
+			size_arr = size_arr +1;
+			if(max_i<enter[1])
+				max_i = enter[1];
+		}
+		else{
+			i = max_i +1;
+			while(i >= enter[0]+1){
+				array[i] = array[i-1];
+				i = i-1;
+			}
+			array[enter[0]] = enter[1];
+			size_arr = size_arr +1;
+			max_i = max_i +1;
+		}
+
+	}
+	
+
+N:int;
+i: int;
+j: int;
+line: byte[20];
+enter: int[3];
+array: int[100];
+max_i: int;
+size_arr: int;
+{
+	writeString("Give me the number of imports: ");
+	N = readInteger();
+	i =0;
+	max_i = 0;
+	size_arr=0;
+	while(i< N){
+		readString(20,line);
+		convertInput(enter,line,strlen(line));
+		
+		-- enter data 
+		addToList(array,enter,size_arr,max_i);
+		
+		i = i+1;
+	}
+	
+
+	writeString("Give me the number of deletions: ");
+	N = readInteger();
+	i =0;
+	while(i< N){
+		readString(20,line);
+		convertInput(enter,line,strlen(line));
+		-- delete data from array
+		if(max_i == enter[0]){
+			max_i = max_i -1;
+		}
+		-- delete 
+		delFromList(array,enter[0],size_arr,max_i);
+		i = i+1;
+	}
+
+	writeString("Give me a number : ");
+	N = readInteger();
+
+	writeInteger(size_arr);
+	writeChar(' ');
+	writeInteger(array[N]);
+	writeChar('\n');
+	
+}

@@ -1,0 +1,62 @@
+-- this program adds fractions 
+program () : proc
+	
+	simple (x: reference int, y: reference int): proc
+	i: int;
+	{
+		if(x<y){
+			i = x;
+		}
+		else{
+			i = y;
+		}
+		while (i > 0){
+			if(x%i == 0 & y%i ==0){
+				x = x/i;
+				y = y/i;
+				i = 0;
+			}
+
+			i = i-1;
+		}
+
+	}
+	a1 : int;
+	a2: int;
+	p1: int;
+	p2: int;
+	{	
+		writeString("Give me first fraction:  \n");
+		writeString("nominator: ");
+		a1 = readInteger();
+		writeString("denominator: ");
+		p1 = readInteger();
+		if( p1 ==0 ){
+			writeString("Error: Cannot divide with zero! \n");
+			return;
+		}
+		writeString("Give me second fraction: \n");
+		writeString("nominator: ");
+		a2 = readInteger();
+		writeString("denominator: ");
+		p2 = readInteger();
+		if( p2 ==0 ){
+			writeString("Error: Cannot divide with zero! \n");
+			return;
+		}
+		a1 = p2*a1;
+		a2 = p1*a2;
+
+		a1 = a1+a2;
+		p1 = p1*p2;
+		simple(a1,p1);
+		writeString("The Sum is: \n");
+		writeInteger(a1);
+		writeChar(' ');
+		writeInteger(p1);
+		writeChar('\n');
+
+	}
+
+	
+	

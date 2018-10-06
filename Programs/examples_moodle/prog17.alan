@@ -1,0 +1,32 @@
+-- this program that reads a number N> 0 and prints the maximum integer
+-- whose factorial does not exceed N.
+
+program() : proc
+	
+	factorial(num: int) : int
+	
+	i : int;
+	f: int;
+	{
+		if(num==0) return 0;
+		f = 1;
+		i =2;
+		while(i<=num){
+			f = f*i;
+			i = i+1;
+		}
+		return f;
+	}
+
+N: int;
+i : int;
+{
+	writeString("Give me a number N>0:\n");
+	N = readInteger();
+	i = 0;
+	while(factorial(i) <= N ){
+		i = i+1;
+	}
+	writeInteger(i-1);
+	writeChar('\n');
+}

@@ -1,0 +1,57 @@
+--this program checks if it symbolizes (at least 20 characters) that
+--input from the keyboard is reciprocating. examples: anna, menem, seles 
+
+program () : proc
+	check(array: reference byte[], l: int) : int
+		i : int;
+		{
+			i =0;
+			while(i<l){
+				if(array[i] != array[l-i-1]){
+					return 0;
+				}
+				i = i+1;
+			}
+			return 1;
+		}
+
+	n: int;
+	str: byte[100];
+	l:int;
+	sum :int;
+	i:int;
+	{
+		writeString("Give me the number of strings: ");
+		n = readInteger();
+		i = 0;
+		sum = 0;
+		while(i<n){
+			readString(100,str);
+			l = strlen(str);
+			if(l ==0){
+				writeString("empty  \n");
+			}	
+			if(l> 20){
+				writeString("error  \n");
+			}
+			if(l<20 & l>0){
+				if(check(str,l)== 1){
+					sum = sum +1;
+					writeString("yes\n");
+				}
+				else{
+					writeString("no\n");
+				}
+			}
+			i = i+1;
+		}
+		writeString("\nSuccess: ");
+		writeInteger(sum);
+		writeChar('/');
+		writeInteger(n);
+		writeChar('\n');
+
+	}
+
+	
+	

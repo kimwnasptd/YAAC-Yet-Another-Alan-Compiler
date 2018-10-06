@@ -1,0 +1,64 @@
+--this program is an extension of prog4
+--finds all four(or three or two or one) digits integers equal to the sum of their digits, elevated to the "x" force
+
+program () : proc
+
+	mul_x_times (x: int, n: int) : int
+	i: int;
+	y: int;
+	{	
+		i =1;
+		y = x;
+		while(i<n){
+			y = y*x;
+			i = i+1;
+		}
+		if(n==0 & x!=0){
+			y =1;
+		}
+		return y;
+	}
+
+	i:int;
+	sum:int;
+	dekades:int;
+	xiliades:int;
+	ekatontades:int;
+	monades:int;
+	a:int;
+	b: int;
+	c:int;
+	d:int;
+	x:int;
+	{
+		writeString("Give me x: ");
+		x = readInteger();
+		i =0;
+
+		while(i<=9999){
+			sum =0;
+			
+			xiliades = i/1000;
+			xiliades = xiliades%10;
+			ekatontades = i/100;
+			ekatontades = ekatontades%10;
+			dekades = i/10;
+			dekades = dekades%10;
+			monades = i%10;
+			
+			a = mul_x_times(xiliades,x);
+			b = mul_x_times(ekatontades,x);
+			c = mul_x_times(dekades,x);
+			d = mul_x_times(monades,x);
+			sum = a+b+c+d;
+			if(sum == i){
+				writeInteger(sum);
+				writeChar('\n');
+			}
+			
+			i = i+1;
+		}
+	}
+
+	
+	

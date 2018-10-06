@@ -1,0 +1,104 @@
+-- this program reads a sequence non-zero integers and check whether this:
+-- has as many positive numbers as negative, and (at the same time)
+-- negative numbers appear in the same order as the absolute value displayed positive numbers.
+-- If this is the case, the program must print the "yes" message, otherwise it prints it message "no".
+
+program() : proc
+	convertInput(result: reference int[], line: reference byte[], size: int) : int
+	i: int;
+	j: int;
+	prev: byte;
+	neg: int;
+	{
+		i =0;
+		j =0;
+		neg = 0;
+		prev = ' ';
+		while(i < size & line[i]!='\n'){
+
+			if(prev!= ' '){ 
+			 	if(prev == '-'){
+			 		result[j] = -(extend(line[i]) -48);
+			 		j = j+1;
+			 		prev = line[i];
+			 	}
+			 	else{
+					if(line[i]!= ' ' )
+						result[j-1] = result[j-1]*10 + extend(line[i]) -48;
+					else
+						prev = ' ';
+				}
+			}
+			else{
+				
+				if(line[i] != ' '){
+					if(line[i] == '-')
+						prev = '-';
+					else{
+						result[j] = extend(line[i]) -48;
+						j = j+1;
+						prev = line[i];
+					}
+				}
+				else
+					prev = ' ';
+			}
+
+			i = i+1;
+		}
+		return j;
+	}
+
+	createPosNeg(arr: reference int[], size: int, pos: reference int[], pos_size: reference int, neg: reference int[], neg_size: reference int) : proc
+	i: int;
+	{
+		i =0;
+		pos_size =0;
+		neg_size =0;
+		while(i<size){
+			if(arr[i]>0){
+				pos[pos_size] = arr[i];
+				pos_size = pos_size+1;
+			}
+			else{
+				neg[neg_size] = arr[i];
+				neg_size = neg_size+1;
+			}
+			i = i+1;
+		}
+
+	}
+
+	isSame(arr1: reference int[], arr2: reference int[], size: int) : int
+	i: int;
+	{
+		i=0;
+		while(i<size){
+			if(arr1[i] != -arr2[i]){
+				return 0;
+			}
+			i = i+1;
+		}
+		return 1;
+	}
+
+array: int[100];
+positive: int[50];
+negative: int[50];
+line: byte[100];
+i: int;
+size: int;
+pos_size: int;
+neg_size: int;
+{
+	
+	readString(100,line);
+	size = convertInput(array,line,strlen(line));
+	
+	createPosNeg(array, size, positive, pos_size, negative, neg_size);
+
+	if(pos_size == neg_size & isSame(positive,negative,pos_size) == 1)
+		writeString("yes\n");
+	else
+		writeString("no\n");
+}
