@@ -410,7 +410,6 @@ convert_op recovered_op vinfo
           proper_type ByteType False = ptr i8
           proper_type IntType  True  = ptr (ptr i32)
           proper_type ByteType True  = ptr (ptr i8)
-          -- proper_type tabletp _      = error $ show vinfo
           proper_type tabletp _      = ptr $ type_to_ast tabletp
 
 -------------------------------------------------------------------------------
