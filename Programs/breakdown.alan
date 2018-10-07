@@ -1,0 +1,24 @@
+main(): proc
+h: int ;
+f: int[5];
+
+nested(n: int) : proc
+{
+
+if ( n > 10 ){
+    h = 10 ;
+    f[3] = 42 ;
+}
+else {
+    h = 15 ;
+    f[3] = 17 ;
+}
+
+
+} -- nested body
+
+
+{
+writeChar('h');
+nested(5);
+}

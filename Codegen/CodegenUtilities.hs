@@ -194,8 +194,8 @@ makeBlock (l, (BlockState _ s t)) = BasicBlock l (reverse s) (maketerm t)
 --
 -- createBlocks :: Scope -> [BasicBlock]
 -- createBlocks m = map maketerm $ filter (\x -> x /= Nothing )$ createBlocks_filtered m
-    -- where
-        -- maketerm (Just x ) = x
+--     where
+--         maketerm (Just x ) = x
 
 fresh :: Codegen Word
 fresh = do
