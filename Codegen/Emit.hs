@@ -82,7 +82,6 @@ cgen_main main@(S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     putframe
     escapevars
     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
-    recover_vars cmp_stmt             -- walk the function body , recovering all needed external variables from
     cgen_stmts cmp_stmt
     endblock fun
     closeScope                        -- > close the function' s scope
