@@ -82,6 +82,7 @@ cgen_main main@(S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     putframe
     escapevars
     semStmtList cmp_stmt              -- > do the Semantic analysis of the function body
+    recover_vars cmp_stmt             -- walk the function body , recovering all needed external variables from
     cgen_stmts cmp_stmt
     endblock fun
     closeScope                        -- > close the function' s scope
@@ -96,9 +97,9 @@ cgenFuncDef (S.F_Def name args_lst f_type ldef_list cmp_stmt) = do
     addFunc name args_lst f_type      -- NOTE: add the function to the inside scope as well
     addLDefLst ldef_list              -- add the local definitions of that function, this is where the recursion happens
     putframe
-    recover_vars cmp_stmt             -- walk the function body , recovering all needed external variables from
     escapevars                        -- previous functions, Then, local escape our own variables
     semStmtList cmp_stmt              -- do the Semantic analysis of the function body
+    recover_vars cmp_stmt             -- walk the function body , recovering all needed external variables from
     cgen_stmts cmp_stmt               -- once the Semantic analysis has passed, gen the body
     endblock fun                      -- If proc, put a ret as terminator
     closeScope                        -- close the function' s scope
@@ -407,17 +408,10 @@ walk_stmt S.Stmt_Ret = return ()
 walk_stmt S.Stmt_Semi = return ()
 walk_stmt (S.Stmt_Ret_Expr e1) = walk_expr e1
 walk_stmt (S.Stmt_Cmp (S.C_Stmt list ) ) = mapM walk_stmt list >> return ()   -- THIS LINE IS WHAT REAL PAIN LOOKS LIKE
-walk_stmt (S.Stmt_Eq lval expr) = do
-    walk_expr (S.Expr_Lval lval)
-    walk_expr expr
-walk_stmt (S.Stmt_FCall (S.Func_Call fn args)) =
-    mapM walk_expr args >> return ()
-walk_stmt (S.Stmt_If cond stmt) = do
-    walk_cond cond
-    walk_stmt stmt
-walk_stmt (S.Stmt_Wh cond stmt) = do
-    walk_cond cond
-    walk_stmt stmt
+walk_stmt (S.Stmt_Eq lval expr) = walk_expr (S.Expr_Lval lval) >> walk_expr expr
+walk_stmt (S.Stmt_FCall (S.Func_Call fn args)) = mapM walk_expr args >> return ()
+walk_stmt (S.Stmt_If cond stmt) = walk_cond cond >> walk_stmt stmt
+walk_stmt (S.Stmt_Wh cond stmt) = walk_cond cond >> walk_stmt stmt
 walk_stmt (S.Stmt_IFE cond stmt1 stmt2) = do
     walk_cond cond
     walk_stmt stmt1
@@ -428,62 +422,32 @@ walk_cond S.Cond_True = return ()
 walk_cond S.Cond_False = return ()
 walk_cond (S.Cond_Br cond ) = walk_cond cond
 walk_cond (S.Cond_Bang cond ) = walk_cond cond
-walk_cond (S.Cond_Eq left right ) = do
-    walk_expr left
-    walk_expr right
-walk_cond (S.Cond_Neq left right ) = do
-    walk_expr left
-    walk_expr right
-walk_cond (S.Cond_L left right ) = do
-    walk_expr left
-    walk_expr right
-walk_cond (S.Cond_G left right ) = do
-    walk_expr left
-    walk_expr right
-walk_cond (S.Cond_LE left right ) = do
-    walk_expr left
-    walk_expr right
-walk_cond (S.Cond_GE left right ) = do
-    walk_expr left
-    walk_expr right
-walk_cond (S.Cond_And cond1 cond2 ) = do
-    walk_cond cond1
-    walk_cond cond2
-walk_cond (S.Cond_Or cond1 cond2 ) = do
-    walk_cond cond1
-    walk_cond cond2
+walk_cond (S.Cond_Eq left right ) = walk_expr left>> walk_expr right
+walk_cond (S.Cond_Neq left right ) = walk_expr left >> walk_expr right
+walk_cond (S.Cond_L left right ) = walk_expr left >> walk_expr right
+walk_cond (S.Cond_G left right ) = walk_expr left >> walk_expr right
+walk_cond (S.Cond_LE left right ) = walk_expr left >> walk_expr right
+walk_cond (S.Cond_GE left right ) = walk_expr left >> walk_expr right
+walk_cond (S.Cond_And cond1 cond2 ) = walk_cond cond1 >> walk_cond cond2
+walk_cond (S.Cond_Or cond1 cond2 ) = walk_cond cond1 >> walk_cond cond2
 
 walk_expr :: S.Expr -> Codegen ()
-walk_expr (S.Expr_Add left right) = do
-    walk_expr left
-    walk_expr right
-walk_expr (S.Expr_Sub left right) = do
-    walk_expr left
-    walk_expr right
-walk_expr (S.Expr_Tms left right) = do
-    walk_expr left
-    walk_expr right
-walk_expr (S.Expr_Div left right) = do
-    walk_expr left
-    walk_expr right
-walk_expr (S.Expr_Mod left right) = do
-    walk_expr left
-    walk_expr right
+walk_expr (S.Expr_Add left right) = walk_expr left >> walk_expr right
+walk_expr (S.Expr_Sub left right) = walk_expr left >> walk_expr right
+walk_expr (S.Expr_Tms left right) = walk_expr left>> walk_expr right
+walk_expr (S.Expr_Div left right) = walk_expr left >> walk_expr right
+walk_expr (S.Expr_Mod left right) = walk_expr left >> walk_expr right
 walk_expr (S.Expr_Pos expr) = walk_expr expr
 walk_expr (S.Expr_Neg expr) = walk_expr expr
 walk_expr (S.Expr_Brack expr) = walk_expr expr
-walk_expr (S.Expr_Char str ) = return ()
-walk_expr (S.Expr_Int num ) = return ()
-walk_expr (S.Expr_Fcall (S.Func_Call nm expr_list) ) = mapM walk_expr expr_list >> return ()
-walk_expr (S.Expr_Lval (S.LV_Var var)) = do
-    getvar var
-    return ()
+walk_expr (S.Expr_Fcall (S.Func_Call nm args) ) = mapM walk_expr args >> return ()
+walk_expr (S.Expr_Lval (S.LV_Var var)) = getvar var >> return ()
 walk_expr (S.Expr_Lval (S.LV_Tbl tbl_var offset_expr)) = do
     walk_expr offset_expr
     tbl_operand <- getvar tbl_var
     -- create_ptr tbl_operand [offset] tbl_var                           -- WARNING MAYBE WE NEED IT?
     return ()
-walk_expr (S.Expr_Lval (S.LV_Lit str)) = return ()
+walk_expr _ = return ()
 
 -- In case of Tables, we 'alloca' a Pointer Holder and escape that one
 escape_op :: VarInfo -> Codegen Operand
