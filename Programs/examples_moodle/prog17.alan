@@ -2,16 +2,16 @@
 -- whose factorial does not exceed N.
 
 program() : proc
-	
+
 	factorial(num: int) : int
-	
+
 	i : int;
 	f: int;
 	{
 		if(num==0) return 0;
 		f = 1;
-		i =2;
-		while(i<=num){
+		i = 2;
+		while(f<=num){
 			f = f*i;
 			i = i+1;
 		}

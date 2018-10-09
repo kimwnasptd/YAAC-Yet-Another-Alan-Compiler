@@ -1,18 +1,6 @@
 main () : proc
     a : int;
     frame : byte[10];
-
-    nested(b:reference byte[]):proc
-        ref():proc {writeByte(b[0]); writeString("\n");}
-        arr():proc {writeByte(frame[0]); writeString("\n");}
-
     {
-        b[0] = '\x42';
-        ref();
-        arr();
-    }
-
-    {
-        nested(frame);
-        writeByte(frame[0]);
+        if(a < 10) writeString("Got in\n");
     }   -- main body

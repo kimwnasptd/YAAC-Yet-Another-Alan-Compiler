@@ -47,7 +47,6 @@ codegen mod main = withContext $ \context ->
         withPassManager passes $ \pm -> do
             runPassManager pm m
             llstr <- moduleLLVMAssembly m
-            verify m
             putStrLn $ BS8.unpack llstr  -- Convert ByteString -> String
             return newast
   where
@@ -130,7 +129,6 @@ cgen_stmt (S.Stmt_FCall (S.Func_Call fn args)) = do
     return ()
     -- -- call_void foo_operand arg_operands
     -- return ()                                                NOTE: ASK SOMEONE
-
 cgen_stmt (S.Stmt_IFE cond if_stmt else_stmt) = do
     ifthen <- addBlock "if.then"
     ifelse <- addBlock "if.else"
@@ -166,7 +164,7 @@ cgen_stmt (S.Stmt_If cond if_stmt ) = do
     setBlock ifthen
     cgen_stmt if_stmt
     br ifexit
-    ifthen <- getBlock
+    -- ifthen <- getBlock
     -- exit part
     ------------
     setBlock ifexit
@@ -175,33 +173,19 @@ cgen_stmt (S.Stmt_Wh cond loop_stmt) = do
     while_entry <- addBlock "while.entry" -- add a block to prep the loop body
     while_loop  <- addBlock "while.loop"  -- add block for the loop body
     while_exit  <- addBlock "while.exit"  -- add fall through loop
-    exit        <- addBlock "while.exit"  -- add fall through loop
 
-    br while_entry
-
+    entry_cond <- cgen_cond cond          -- generate the condition for the FIRST time
+    cbr entry_cond while_loop while_exit  -- if the condition is true, execute the body
     -- while entry
-    --------------
     setBlock while_entry
     entry_cond <- cgen_cond cond          -- generate the condition for the FIRST time
-    cbr entry_cond while_loop while_exit        -- if the condition is true, execute the body
-    while_entry <- getBlock
-
+    cbr entry_cond while_loop while_exit  -- if the condition is true, execute the body
     -- while body
-    -------------
     setBlock while_loop                 -- change block
     cgen_stmt loop_stmt                 -- generate the loop's code
-    loop_cond <- cgen_cond cond         -- re-evaluate the condition
-    br while_exit                       -- go to the loop exit
-    while_loop <- getBlock
-
+    br while_entry                      -- go to the loop exit
     -- while exit
     setBlock while_exit
-    exit_cond <- phi i1 [(entry_cond, while_entry), (loop_cond, while_loop)]
-    cbr exit_cond while_loop exit
-
-
-    -- exit
-    setBlock exit
     return()
 
 cgen_expr :: S.Expr -> Codegen AST.Operand
@@ -244,7 +228,6 @@ cgen_expr (S.Expr_Fcall (S.Func_Call fn args ) ) = do
     case  fn `elem`  lbr_fns of
         True -> call foo_operand arg_operands
         _    -> call foo_operand (arg_operands ++ [disp] )
-
 cgen_expr (S.Expr_Char ch_str) = do
     return $ toChar (head ch_str)
 cgen_expr (S.Expr_Pos expr ) = cgen_expr expr

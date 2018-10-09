@@ -411,13 +411,16 @@ fndblock blk = do
       Just x -> return x
       Nothing -> error $ "No such block: " ++ show blk
 
-endblock :: FunInfo -> Codegen ()
+endblock :: FunInfo -> Codegen (Named Terminator)
 endblock fun = do
-    case result_type fun of
-        ProcType -> ret >> return ()
-        IntType  -> retval zero >> return ()
-        ByteType -> retval (toByte 0) >> return ()
-        _ -> error $ "Function not of type Int, Byte or Proc"
+    curblk <- current
+    case (term curblk) of
+        Just trm -> return trm
+        Nothing  -> addterm (result_type fun)
+    where addterm ProcType = ret
+          addterm IntType  = retval zero
+          addterm ByteType = retval (toByte 0)
+          _ = error $ "Function not of type Int, Byte or Proc"
 
 -------------------------------------------------------------------------------
 
@@ -507,7 +510,11 @@ br val = do
         Nothing  -> terminator $ Do $ Br val []
 
 cbr :: Operand -> Name -> Name -> Codegen (Named Terminator)
-cbr cond tr fl = terminator $ Do $ CondBr cond tr fl []
+cbr cond tr fl = do
+    curblk <- current
+    case (term curblk) of
+        Just trm -> return trm
+        Nothing  -> terminator $ Do $ CondBr cond tr fl []
 
 phi :: Type -> [(Operand, Name)] -> Codegen Operand
 phi ty incoming = instr $ Phi ty incoming []
