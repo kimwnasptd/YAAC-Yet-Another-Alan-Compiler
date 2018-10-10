@@ -1,6 +1,16 @@
 main () : proc
-    a : int;
+    line : byte[80];
     frame : byte[10];
+    x : int;
     {
-        if(a < 10) writeString("Got in\n");
+        x = readInteger();
+        writeInteger(x);
+        readString(80, line);
+        writeString(line);
+        -- readString(80, line);
+        -- writeString(line);
+        -- readString(80, line);
+        -- writeString(line);
+        -- readString(80, line);
+        -- writeString(line);
     }   -- main body

@@ -13,13 +13,17 @@ uint8_t shrink(int32_t i) {
 // READ
 int32_t readInteger() {
     int32_t i;
+    int32_t x;
     scanf("%d", &i);
+    scanf("%c", &x);
     return i;
 }
 
 uint8_t readByte() {
     uint8_t b;
+    uint8_t kim;
     scanf("%hhu", &b);
+    scanf("%c", &kim);
     return b;
 }
 

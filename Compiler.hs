@@ -16,32 +16,19 @@ import qualified LLVM.AST as AST
 initModule :: AST.Module
 initModule = emptyModule "-I'm really happy right now. -Me too <3"
 
-process :: AST.Module -> String -> IO (Maybe AST.Module)
-process modo source = do
+process :: AST.Module -> Word -> String -> IO (Maybe AST.Module)
+process modo opt source = do
     let parseTree = parse source
-    -- putStrLn (res ++ "\n\nASSEMBLY CODE\n-------------\n")
-    ast <- codegen modo parseTree
+    ast <- codegen modo parseTree opt -- Optimisation level
     return $ Just ast
 
-processFile :: String -> IO (Maybe AST.Module)
-processFile fname = readFile fname >>= process initModule
-
-repl :: IO ()
-repl = runInputT defaultSettings (loop initModule)
-  where
-  loop mod = do
-    minput <- getInputLine "ready> "
-    case minput of
-      Nothing -> outputStrLn "Goodbye."
-      Just input -> do
-        modn <- liftIO $ process mod input
-        case modn of
-          Just modn -> loop modn
-          Nothing -> loop mod
+processFile :: String -> Word -> IO (Maybe AST.Module)
+processFile fname opt = readFile fname >>= process initModule opt
 
 main :: IO ()
 main = do
   args <- getArgs
   case args of
-    []      -> repl
-    [fname] -> processFile fname >> return ()
+    []      -> error "No file to compile!"
+    [fname] -> processFile fname 0 >> return ()
+    [fname, opt] -> processFile fname 3 >> return ()

@@ -11,7 +11,7 @@ program() : proc
 		if(num==0) return 0;
 		f = 1;
 		i = 2;
-		while(f<=num){
+		while(i<=num){
 			f = f*i;
 			i = i+1;
 		}

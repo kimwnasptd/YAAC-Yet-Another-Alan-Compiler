@@ -1,10 +1,10 @@
 -- this program :
 -- reads the number of N entries to create the list from the first line of the input.
 -- reads from each of the following N lines of the input two positive natural numbers K and X
--- and enter the X number in the K-position of the list. 
+-- and enter the X number in the K-position of the list.
 -- Assume that K will be always smaller than or equal to the current size of the list plus one.
 -- Reads from the N + 2 line of the input the number of M searches
--- Reads from each of the following M input lines a positive physical number X 
+-- Reads from each of the following M input lines a positive physical number X
 -- and searches for X in the searchMF list.
 -- Prints a number corresponding to the sum of the values ​​returned by the searchMF for all searches.
 
@@ -21,7 +21,7 @@ program() : proc
 		prev = ' ';
 		while(i < size & line[i]!='\n'){
 
-			if(prev!= ' '){ 
+			if(prev!= ' '){
 				if(line[i]!= ' ' )
 					result[j-1] = result[j-1]*10 + extend(line[i]) -48;
 				else
@@ -89,7 +89,7 @@ program() : proc
 		}
 		return 0;
 	}
-	
+
 
 N:int;
 i: int;
@@ -104,16 +104,20 @@ sum: int;
 {
 	writeString("Give me the number of imports: ");
 	N = readInteger();
+	writeString("Int: ");
+	writeInteger(N);
 	i =0;
 	max_i = 0;
 	size_arr=0;
 	while(i< N){
 		readString(20,line);
+		writeString("Got: ");
+		writeString(line);
 		convertInput(enter,line,strlen(line));
-		
-		-- enter data 
+
+		-- enter data
 		addToList(array,enter,size_arr,max_i);
-		
+
 		i = i+1;
 	}
 
@@ -128,15 +132,15 @@ sum: int;
 		sum = sum +j;
 		-- delete data
 		delFromList(array,j,size_arr,max_i);
-		-- enter data 
+		-- enter data
 		enter[0] = 1;
 		enter[1] = search;
 		addToList(array,enter,size_arr,max_i);
-		
+
 		i = i+1;
 	}
 
 	writeInteger(sum);
 	writeChar('\n');
-	
+
 }

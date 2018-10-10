@@ -38,13 +38,13 @@ import qualified LibraryFunctions as LIB
 -- Compilation
 -------------------------------------------------------------------------------
 
-passes :: PassSetSpec   -- the optimizations we want to run
-passes = defaultCuratedPassSetSpec { optLevel = Just 0 }
+passes :: Word -> PassSetSpec   -- the optimizations we want to run
+passes opt = defaultCuratedPassSetSpec { optLevel = Just opt }
 
-codegen :: AST.Module -> S.Program -> IO AST.Module
-codegen mod main = withContext $ \context ->
+codegen :: AST.Module -> S.Program -> Word -> IO AST.Module
+codegen mod main opt = withContext $ \context ->
     withModuleFromAST context newast $ \m -> do
-        withPassManager passes $ \pm -> do
+        withPassManager (passes opt) $ \pm -> do
             runPassManager pm m
             llstr <- moduleLLVMAssembly m
             putStrLn $ BS8.unpack llstr  -- Convert ByteString -> String
