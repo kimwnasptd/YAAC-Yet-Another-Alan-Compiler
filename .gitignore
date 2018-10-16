@@ -19,3 +19,4 @@ Libraries/Source/lib.so
 *.info
 *.out
 *.ll
+*.s
