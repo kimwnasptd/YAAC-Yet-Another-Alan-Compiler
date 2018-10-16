@@ -104,15 +104,11 @@ sum: int;
 {
 	writeString("Give me the number of imports: ");
 	N = readInteger();
-	writeString("Int: ");
-	writeInteger(N);
 	i =0;
 	max_i = 0;
 	size_arr=0;
 	while(i< N){
 		readString(20,line);
-		writeString("Got: ");
-		writeString(line);
 		convertInput(enter,line,strlen(line));
 
 		-- enter data

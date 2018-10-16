@@ -104,9 +104,10 @@ str_type :: String -> Type
 str_type str = ArrayType (n+1) i8
     where n = fromIntegral $ length str
 
-toSig :: [(SymbolName,SymbolType,Bool,Bool)] -> [(AST.Type, AST.Name)]
+toSig :: [(SymbolName,SymbolType,Bool,Bool)] -> [(AST.Type, AST.Name, [A.ParameterAttribute])]
 toSig args = map convert args
-    where convert (name, tp, ref, _) = (to_type tp ref, AST.Name $ toShort name)
+    where convert (name, DisplayType, ref, _) = (to_type DisplayType ref, AST.Name $ toShort name, [A.ByVal])
+          convert (name, tp, ref, _) = (to_type tp ref, AST.Name $ toShort name, [])
 -------------------------------------------------------------------------------
 -- Module Level
 -------------------------------------------------------------------------------
@@ -119,10 +120,10 @@ addDefn d = do
   defs <- gets definitions
   modify $ \s -> s { definitions = defs ++ [d] }
 
-globalFun :: Type -> String -> [(Type, Name)] -> [BasicBlock] -> Global
+globalFun :: Type -> String -> [(Type, Name, [A.ParameterAttribute])] -> [BasicBlock] -> Global
 globalFun retty label argtys body = functionDefaults {
     name        = Name $ toShort label
-  , parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False)
+  , parameters  = ([Parameter ty nm attr | (ty, nm, attr) <- argtys], False)
   , returnType  = retty
   , basicBlocks = body
   }
@@ -315,7 +316,7 @@ addFunOperand foo_info = do
         args = fn_args foo_info
         sorted_name = (AST.Name $ toShort name)
         typed_res = type_to_ast result
-        arg_types = [tp | (tp, _) <- toSig args]
+        arg_types = [tp | (tp, _, _) <- toSig args]
 
 instr_named :: Instruction -> String -> Codegen (Operand)
 instr_named ins nm = do

@@ -23,15 +23,13 @@ convertInput:                           # @convertInput
 	movq	%rdi, -72(%rbp)
 	movq	%rsi, -64(%rbp)
 	movl	%edx, -48(%rbp)
-	movq	%rcx, -56(%rbp)
+	leaq	16(%rbp), %rax
+	movq	%rax, -56(%rbp)
 	movl	$0, -40(%rbp)
 	movl	$0, -44(%rbp)
-	movb	$0, -33(%rbp)
-	movq	%rbp, 8(%rcx)
-	movl	$0, -40(%rbp)
-	movl	$0, -44(%rbp)
+	movq	%rbp, 24(%rbp)
 	movb	$32, -33(%rbp)
-	cmpl	$0, -48(%rbp)
+	testl	%edx, %edx
 	jle	.LBB0_12
 # %bb.1:                                # %entry1
 	movq	%rsi, %rbx
@@ -125,9 +123,10 @@ delFromList:                            # @delFromList
 	movl	%esi, -8(%rbp)
 	movq	%rdx, -32(%rbp)
 	movq	%rcx, -24(%rbp)
-	movq	%r8, -16(%rbp)
+	leaq	16(%rbp), %rax
+	movq	%rax, -16(%rbp)
 	movl	$0, -4(%rbp)
-	movq	%rbp, 8(%r8)
+	movq	%rbp, 24(%rbp)
 	movslq	-8(%rbp), %rax
 	movl	$0, (%rdi,%rax,4)
 	decl	(%rdx)
@@ -172,9 +171,10 @@ addToList:                              # @addToList
 	movq	%rsi, -40(%rbp)
 	movq	%rdx, -32(%rbp)
 	movq	%rcx, -24(%rbp)
-	movq	%r8, -16(%rbp)
+	leaq	16(%rbp), %rax
+	movq	%rax, -16(%rbp)
 	movl	$0, -4(%rbp)
-	movq	%rbp, 8(%r8)
+	movq	%rbp, 24(%rbp)
 	movslq	(%rsi), %rax
 	cmpl	$0, (%rdi,%rax,4)
 	je	.LBB2_1
@@ -243,11 +243,11 @@ searchList:                             # @searchList
 	movq	%rdi, -32(%rbp)
 	movl	%esi, -12(%rbp)
 	movl	%edx, -8(%rbp)
-	movq	%rcx, -24(%rbp)
+	leaq	16(%rbp), %rax
+	movq	%rax, -24(%rbp)
 	movl	$0, -4(%rbp)
-	movq	%rbp, 8(%rcx)
-	movl	$0, -4(%rbp)
-	cmpl	$0, -8(%rbp)
+	movq	%rbp, 24(%rbp)
+	testl	%edx, %edx
 	js	.LBB3_3
 	.p2align	4, 0x90
 .LBB3_1:                                # %while.loop3
@@ -294,23 +294,23 @@ main:                                   # @main
 	pushq	%r13
 	pushq	%r12
 	pushq	%rbx
-	subq	$504, %rsp              # imm = 0x1F8
+	subq	$520, %rsp              # imm = 0x208
 	.cfi_offset %rbx, -56
 	.cfi_offset %r12, -48
 	.cfi_offset %r13, -40
 	.cfi_offset %r14, -32
 	.cfi_offset %r15, -24
-.set .Lmain$frame_escape_0, -48
+.set .Lmain$frame_escape_0, -52
 .set .Lmain$frame_escape_1, -44
 .set .Lmain$frame_escape_2, -68
 .set .Lmain$frame_escape_3, -64
-.set .Lmain$frame_escape_4, -104
-.set .Lmain$frame_escape_5, -96
-.set .Lmain$frame_escape_6, -88
-.set .Lmain$frame_escape_7, -52
+.set .Lmain$frame_escape_4, -120
+.set .Lmain$frame_escape_5, -112
+.set .Lmain$frame_escape_6, -104
+.set .Lmain$frame_escape_7, -48
 .set .Lmain$frame_escape_8, -60
 .set .Lmain$frame_escape_9, -56
-	movl	$0, -48(%rbp)
+	movl	$0, -52(%rbp)
 	movl	$0, -44(%rbp)
 	movl	$0, -68(%rbp)
 	movl	$0, -64(%rbp)
@@ -369,117 +369,113 @@ main:                                   # @main
 	movq	$0, -268(%rbp)
 	movq	$0, -276(%rbp)
 	movq	$0, -284(%rbp)
-	movl	$0, -52(%rbp)
+	movl	$0, -48(%rbp)
 	movl	$0, -60(%rbp)
 	movl	$0, -56(%rbp)
-	movq	$0, -112(%rbp)
-	movq	%rbp, -120(%rbp)
+	movq	$0, -88(%rbp)
+	movq	%rbp, -96(%rbp)
 	leaq	-140(%rbp), %rax
-	movq	%rax, -104(%rbp)
+	movq	%rax, -120(%rbp)
 	leaq	-80(%rbp), %rax
-	movq	%rax, -96(%rbp)
+	movq	%rax, -112(%rbp)
 	leaq	-540(%rbp), %rax
-	movq	%rax, -88(%rbp)
+	movq	%rax, -104(%rbp)
 	leaq	.Lstr.entry.37(%rip), %rdi
 	callq	writeString@PLT
 	callq	readInteger@PLT
-	movl	%eax, -48(%rbp)
-	leaq	.Lstr.entry.42(%rip), %rdi
-	callq	writeString@PLT
-	movl	-48(%rbp), %edi
-	callq	writeInteger@PLT
+	movl	%eax, -52(%rbp)
 	movl	$0, -44(%rbp)
-	movl	$0, -52(%rbp)
+	movl	$0, -48(%rbp)
 	movl	$0, -60(%rbp)
-	cmpl	$0, -48(%rbp)
+	testl	%eax, %eax
 	jle	.LBB4_3
 # %bb.1:                                # %while.loop4.preheader
 	leaq	-140(%rbp), %rbx
-	leaq	-80(%rbp), %r15
-	leaq	-120(%rbp), %r12
-	leaq	-60(%rbp), %r14
-	leaq	-52(%rbp), %r13
+	leaq	-80(%rbp), %r14
+	leaq	-540(%rbp), %r15
+	leaq	-60(%rbp), %r12
+	leaq	-48(%rbp), %r13
 	.p2align	4, 0x90
 .LBB4_2:                                # %while.loop4
                                         # =>This Inner Loop Header: Depth=1
 	movl	$20, %edi
 	movq	%rbx, %rsi
 	callq	readString@PLT
-	leaq	.Lstr.while.loop4.57(%rip), %rdi
-	callq	writeString@PLT
-	movq	%rbx, %rdi
-	callq	writeString@PLT
 	movq	%rbx, %rdi
 	callq	strlen@PLT
-	movq	%r15, %rdi
+	movq	-96(%rbp), %rcx
+	movq	%rcx, (%rsp)
+	movq	%r14, %rdi
 	movq	%rbx, %rsi
 	movl	%eax, %edx
-	movq	%r12, %rcx
 	callq	convertInput@PLT
-	leaq	-540(%rbp), %rdi
-	movq	%r15, %rsi
-	movq	%r14, %rdx
+	movq	-96(%rbp), %rax
+	movq	%rax, (%rsp)
+	movq	%r15, %rdi
+	movq	%r14, %rsi
+	movq	%r12, %rdx
 	movq	%r13, %rcx
-	movq	%r12, %r8
 	callq	addToList@PLT
 	movl	-44(%rbp), %eax
 	incl	%eax
 	movl	%eax, -44(%rbp)
-	cmpl	-48(%rbp), %eax
+	cmpl	-52(%rbp), %eax
 	jl	.LBB4_2
 .LBB4_3:                                # %while.exit4
-	leaq	.Lstr.while.exit4.67(%rip), %rdi
+	leaq	.Lstr.while.exit4.58(%rip), %rdi
 	callq	writeString@PLT
 	callq	readInteger@PLT
-	movl	%eax, -48(%rbp)
+	movl	%eax, -52(%rbp)
 	movl	$0, -44(%rbp)
 	movl	$0, -56(%rbp)
 	testl	%eax, %eax
 	jle	.LBB4_6
 # %bb.4:                                # %while.loop5.preheader
-	leaq	-540(%rbp), %r14
-	leaq	-120(%rbp), %rbx
-	leaq	-60(%rbp), %r15
-	leaq	-52(%rbp), %r12
-	leaq	-80(%rbp), %r13
+	leaq	-540(%rbp), %rbx
+	leaq	-60(%rbp), %r14
+	leaq	-48(%rbp), %r15
+	leaq	-80(%rbp), %r12
 	.p2align	4, 0x90
 .LBB4_5:                                # %while.loop5
                                         # =>This Inner Loop Header: Depth=1
 	callq	readInteger@PLT
 	movl	%eax, -64(%rbp)
-	movl	-52(%rbp), %edx
-	movq	%r14, %rdi
+	movl	-48(%rbp), %edx
+	movq	-96(%rbp), %rcx
+	movq	%rcx, (%rsp)
+	movq	%rbx, %rdi
 	movl	%eax, %esi
-	movq	%rbx, %rcx
 	callq	searchList@PLT
 	movl	%eax, -68(%rbp)
 	addl	%eax, -56(%rbp)
-	movq	%r14, %rdi
+	movq	-96(%rbp), %rcx
+	movq	%rcx, (%rsp)
+	movq	%rbx, %rdi
 	movl	%eax, %esi
-	movq	%r15, %rdx
-	movq	%r12, %rcx
-	movq	%rbx, %r8
+	movq	%r14, %rdx
+	movq	%r15, %rcx
 	callq	delFromList@PLT
 	movl	$1, -80(%rbp)
 	movl	-64(%rbp), %eax
 	movl	%eax, -76(%rbp)
-	movq	%r14, %rdi
-	movq	%r13, %rsi
-	movq	%r15, %rdx
-	movq	%r12, %rcx
-	movq	%rbx, %r8
+	movq	-96(%rbp), %rax
+	movq	%rax, (%rsp)
+	movq	%rbx, %rdi
+	movq	%r12, %rsi
+	movq	%r14, %rdx
+	movq	%r15, %rcx
 	callq	addToList@PLT
 	movl	-44(%rbp), %eax
 	incl	%eax
 	movl	%eax, -44(%rbp)
-	cmpl	-48(%rbp), %eax
+	cmpl	-52(%rbp), %eax
 	jl	.LBB4_5
 .LBB4_6:                                # %while.exit5
 	movl	-56(%rbp), %edi
 	callq	writeInteger@PLT
 	movl	$10, %edi
 	callq	writeChar@PLT
-	addq	$504, %rsp              # imm = 0x1F8
+	addq	$520, %rsp              # imm = 0x208
 	popq	%rbx
 	popq	%r12
 	popq	%r13
@@ -499,23 +495,11 @@ main:                                   # @main
 	.asciz	"Give me the number of imports: "
 	.size	.Lstr.entry.37, 32
 
-	.type	.Lstr.entry.42,@object  # @str.entry.42
-	.section	.rodata.str1.1,"aMS",@progbits,1
-.Lstr.entry.42:
-	.asciz	"Int: "
-	.size	.Lstr.entry.42, 6
-
-	.type	.Lstr.while.loop4.57,@object # @str.while.loop4.57
-.Lstr.while.loop4.57:
-	.asciz	"Got: "
-	.size	.Lstr.while.loop4.57, 6
-
-	.type	.Lstr.while.exit4.67,@object # @str.while.exit4.67
-	.section	.rodata.str1.16,"aMS",@progbits,1
+	.type	.Lstr.while.exit4.58,@object # @str.while.exit4.58
 	.p2align	4
-.Lstr.while.exit4.67:
+.Lstr.while.exit4.58:
 	.asciz	"Give me the number of searches : "
-	.size	.Lstr.while.exit4.67, 34
+	.size	.Lstr.while.exit4.58, 34
 
 
 	.section	".note.GNU-stack","",@progbits
