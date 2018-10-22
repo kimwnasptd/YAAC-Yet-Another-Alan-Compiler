@@ -2,10 +2,12 @@
 A compiler made for the Alan programming language written in haskell.
 
 ## Installation
-Firstly you'll need to install a package with cabal
+Firstly you'll need to install these haskell packages:
 ```
-cabal install utf8-string
-cabal install llvm-hs
+utf8-string 
+alex
+happy
+llvm-hs
 ```
 
 Then just use the makefile to create the executables
@@ -17,9 +19,7 @@ make parser
 To clean the files and keep the core ones use
 ```
 make clean
-or
-make distclean 
-to also remove the lib.so
+make distclean  //to also remove the lib.so
 ```
 
 ## Executables
